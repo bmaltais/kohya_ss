@@ -1853,10 +1853,10 @@ def lora_tab(
         )
 
         # Setup Configuration Files Gradio
-        with gr.Accordion("Configuration", open=False):
+        with gr.Accordion("Configuration", open=config.get("settings.expand_all_accordions", False)):
             configuration = ConfigurationFile(headless=headless, config=config)
 
-        with gr.Accordion("Accelerate launch", open=False), gr.Column():
+        with gr.Accordion("Accelerate launch", open=config.get("settings.expand_all_accordions", False)), gr.Column():
             accelerate_launch = AccelerateLaunch(config=config)
 
         with gr.Column():
@@ -1869,13 +1869,13 @@ def lora_tab(
                 config=config,
             )
 
-            with gr.Accordion("Folders", open=True), gr.Group():
+            with gr.Accordion("Folders", open=config.get("settings.expand_all_accordions", True)), gr.Group():
                 folders = Folders(headless=headless, config=config)
 
-        with gr.Accordion("Metadata", open=False), gr.Group():
+        with gr.Accordion("Metadata", open=config.get("settings.expand_all_accordions", False)), gr.Group():
             metadata = MetaData(config=config)
 
-        with gr.Accordion("Dataset Preparation", open=False):
+        with gr.Accordion("Dataset Preparation", open=config.get("settings.expand_all_accordions", False)):
             gr.Markdown(
                 "This section provide Dreambooth tools to help setup your dataset..."
             )
@@ -1890,7 +1890,7 @@ def lora_tab(
 
             gradio_dataset_balancing_tab(headless=headless)
 
-        with gr.Accordion("Parameters", open=False), gr.Column():
+        with gr.Accordion("Parameters", open=config.get("settings.expand_all_accordions", False)), gr.Column():
 
             def list_presets(path):
                 json_files = []
@@ -2680,9 +2680,9 @@ def lora_tab(
             )
 
             with gr.Accordion(
-                "Advanced", open=False, elem_classes="advanced_background"
+                "Advanced", open=config.get("settings.expand_all_accordions", False), elem_classes="advanced_background"
             ):
-                # with gr.Accordion('Advanced Configuration', open=False):
+                # with gr.Accordion('Advanced Configuration', open=config.get("settings.expand_all_accordions", False)):
                 with gr.Row(visible=True) as kohya_advanced_lora:
                     with gr.Tab(label="Weights"):
                         with gr.Row(visible=True):
@@ -2739,12 +2739,12 @@ def lora_tab(
                     outputs=[basic_training.cache_latents],
                 )
 
-            with gr.Accordion("Samples", open=False, elem_classes="samples_background"):
+            with gr.Accordion("Samples", open=config.get("settings.expand_all_accordions", False), elem_classes="samples_background"):
                 sample = SampleImages(config=config)
 
             global huggingface
             with gr.Accordion(
-                "HuggingFace", open=False, elem_classes="huggingface_background"
+                "HuggingFace", open=config.get("settings.expand_all_accordions", False), elem_classes="huggingface_background"
             ):
                 huggingface = HuggingFace(config=config)
             

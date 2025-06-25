@@ -66,7 +66,7 @@ class sd3Training:
                 return (gr.Group(visible=False), gr.Group(visible=True))
 
         with gr.Accordion(
-            "SD3", open=False, elem_id="sd3_tab", visible=False
+            "SD3", open=self.config.get("settings.expand_all_accordions", False), elem_id="sd3_tab", visible=False
         ) as sd3_accordion:
             with gr.Group():
                 gr.Markdown("### SD3 Specific Parameters")

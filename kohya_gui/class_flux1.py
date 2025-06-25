@@ -274,7 +274,7 @@ class flux1Training:
                         
                 with gr.Accordion(
                     "Rank for layers",
-                    open=False,
+                    open=self.config.get("settings.expand_all_accordions", False),
                     visible=False if finetuning else True,
                     elem_classes=["flux1_rank_layers_background"],
                 ):

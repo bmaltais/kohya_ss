@@ -1175,22 +1175,22 @@ def dreambooth_tab(
         gr.Markdown("Train a custom model using kohya dreambooth python code...")
 
         # Setup Configuration Files Gradio
-        with gr.Accordion("Configuration", open=False):
+        with gr.Accordion("Configuration", open=config.get("settings.expand_all_accordions", False)):
             configuration = ConfigurationFile(headless=headless, config=config)
 
-        with gr.Accordion("Accelerate launch", open=False), gr.Column():
+        with gr.Accordion("Accelerate launch", open=config.get("settings.expand_all_accordions", False)), gr.Column():
             accelerate_launch = AccelerateLaunch(config=config)
 
         with gr.Column():
             source_model = SourceModel(headless=headless, config=config)
 
-        with gr.Accordion("Folders", open=False), gr.Group():
+        with gr.Accordion("Folders", open=config.get("settings.expand_all_accordions", False)), gr.Group():
             folders = Folders(headless=headless, config=config)
 
-        with gr.Accordion("Metadata", open=False), gr.Group():
+        with gr.Accordion("Metadata", open=config.get("settings.expand_all_accordions", False)), gr.Group():
             metadata = MetaData(config=config)
 
-        with gr.Accordion("Dataset Preparation", open=False):
+        with gr.Accordion("Dataset Preparation", open=config.get("settings.expand_all_accordions", False)):
             gr.Markdown(
                 "This section provide Dreambooth tools to help setup your dataset..."
             )
@@ -1206,7 +1206,7 @@ def dreambooth_tab(
             gradio_dataset_balancing_tab(headless=headless)
 
         with gr.Accordion("Parameters", open=config.get("settings.expand_all_accordions", False)), gr.Column():
-            with gr.Accordion("Basic", open=config.get("dreambooth.expand_basic_accordion", True)):
+            with gr.Accordion("Basic", open="True"):
                 with gr.Group(elem_id="basic_tab"):
                     basic_training = BasicTraining(
                         learning_rate_value=1e-5,
@@ -1237,7 +1237,7 @@ def dreambooth_tab(
                 headless=headless, config=config, sd3_checkbox=source_model.sd3_checkbox
             )
 
-            with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
+            with gr.Accordion("Advanced", open=config.get("settings.expand_all_accordions", False), elem_id="advanced_tab"):
                 advanced_training = AdvancedTraining(headless=headless, config=config)
                 advanced_training.color_aug.change(
                     color_aug_changed,
@@ -1245,11 +1245,11 @@ def dreambooth_tab(
                     outputs=[basic_training.cache_latents],
                 )
 
-            with gr.Accordion("Samples", open=False, elem_id="samples_tab"):
+            with gr.Accordion("Samples", open=config.get("settings.expand_all_accordions", False), elem_id="samples_tab"):
                 sample = SampleImages(config=config)
 
             global huggingface
-            with gr.Accordion("HuggingFace", open=False):
+            with gr.Accordion("HuggingFace", open=config.get("settings.expand_all_accordions", False)):
                 huggingface = HuggingFace(config=config)
 
         global executor

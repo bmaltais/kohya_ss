@@ -142,7 +142,7 @@ class AdvancedTraining:
                 placeholder='(Optional) Use to provide additional parameters not handled by the GUI. Eg: --some_parameters "value"',
                 value=self.config.get("advanced.additional_parameters", ""),
             )
-        with gr.Accordion("Scheduled Huber Loss", open=False):
+        with gr.Accordion("Scheduled Huber Loss", open=self.config.get("settings.expand_all_accordions", False)):
             with gr.Row():
                 self.loss_type = gr.Dropdown(
                     label="Loss type",

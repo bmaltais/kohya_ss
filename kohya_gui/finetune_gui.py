@@ -1214,10 +1214,10 @@ def finetune_tab(
         gr.Markdown("Train a custom model using kohya finetune python code...")
 
         # Setup Configuration Files Gradio
-        with gr.Accordion("Configuration", open=False):
+        with gr.Accordion("Configuration", open=config.get("settings.expand_all_accordions", False)):
             configuration = ConfigurationFile(headless=headless, config=config)
 
-        with gr.Accordion("Accelerate launch", open=False), gr.Column():
+        with gr.Accordion("Accelerate launch", open=config.get("settings.expand_all_accordions", False)), gr.Column():
             accelerate_launch = AccelerateLaunch(config=config)
 
         with gr.Column():
@@ -1227,16 +1227,16 @@ def finetune_tab(
             image_folder = source_model.train_data_dir
             output_name = source_model.output_name
 
-        with gr.Accordion("Folders", open=False), gr.Group():
+        with gr.Accordion("Folders", open=config.get("settings.expand_all_accordions", False)), gr.Group():
             folders = Folders(headless=headless, finetune=True, config=config)
             output_dir = folders.output_dir
             logging_dir = folders.logging_dir
             train_dir = folders.reg_data_dir
 
-        with gr.Accordion("Metadata", open=False), gr.Group():
+        with gr.Accordion("Metadata", open=config.get("settings.expand_all_accordions", False)), gr.Group():
             metadata = MetaData(config=config)
 
-        with gr.Accordion("Dataset Preparation", open=False):
+        with gr.Accordion("Dataset Preparation", open=config.get("settings.expand_all_accordions", False)):
             with gr.Row():
                 max_resolution = gr.Textbox(
                     label="Resolution (width,height)", value=config.get("finetune.dataset_preparation.max_resolution", "512,512")
@@ -1261,7 +1261,7 @@ def finetune_tab(
                     ],
                     value=config.get("finetune.dataset_preparation.use_latent_files", "Yes"),
                 )
-            with gr.Accordion("Advanced parameters", open=False):
+            with gr.Accordion("Advanced parameters", open=config.get("settings.expand_all_accordions", False)):
                 with gr.Row():
                     caption_metadata_filename = gr.Textbox(
                         label="Caption metadata filename",
@@ -1276,7 +1276,7 @@ def finetune_tab(
                         label="Weighted captions", value=config.get("finetune.dataset_preparation.weighted_captions", False)
                     )
 
-        with gr.Accordion("Parameters", open=False), gr.Column():
+        with gr.Accordion("Parameters", open=config.get("settings.expand_all_accordions", False)), gr.Column():
 
             def list_presets(path):
                 json_files = []
@@ -1336,7 +1336,7 @@ def finetune_tab(
                 headless=headless, config=config, sd3_checkbox=source_model.sd3_checkbox
             )
 
-            with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
+            with gr.Accordion("Advanced", open=config.get("settings.expand_all_accordions", False), elem_id="advanced_tab"):
                 with gr.Row():
                     gradient_accumulation_steps = gr.Slider(
                         label="Gradient accumulate steps",
@@ -1362,11 +1362,11 @@ def finetune_tab(
                     ],  # Not applicable to fine_tune.py
                 )
 
-            with gr.Accordion("Samples", open=False, elem_id="samples_tab"):
+            with gr.Accordion("Samples", open=config.get("settings.expand_all_accordions", False), elem_id="samples_tab"):
                 sample = SampleImages(config=config)
 
             global huggingface
-            with gr.Accordion("HuggingFace", open=False):
+            with gr.Accordion("HuggingFace", open=config.get("settings.expand_all_accordions", False)):
                 huggingface = HuggingFace(config=config)
 
         global executor
