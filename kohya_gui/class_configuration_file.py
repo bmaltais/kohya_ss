@@ -29,7 +29,7 @@ class ConfigurationFile:
 
         # Sets the directory for storing configuration files, defaults to a 'presets' folder within the script directory.
         self.current_config_dir = self.config.get(
-            "config_dir", os.path.join(scriptdir, "presets")
+            "configuration.config_dir", os.path.join(scriptdir, "presets")
         )
 
         # Initialize the GUI components for configuration.
@@ -60,8 +60,8 @@ class ConfigurationFile:
                 # Dropdown for selecting or entering the name of a configuration file.
                 self.config_file_name = gr.Dropdown(
                     label="Load/Save Config file",
-                    choices=[self.config.get("config_dir", "")] + self.list_config_dir(self.current_config_dir),
-                    value=self.config.get("config_dir", ""),
+                    choices=[self.config.get("configuration.config_dir", "")] + self.list_config_dir(self.current_config_dir),
+                    value=self.config.get("configuration.config_dir", ""),
                     interactive=True,
                     allow_custom_value=True,
                 )

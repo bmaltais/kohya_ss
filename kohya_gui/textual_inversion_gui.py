@@ -1013,8 +1013,8 @@ def ti_tab(
 
             gradio_dataset_balancing_tab(headless=headless)
 
-        with gr.Accordion("Parameters", open=False), gr.Column():
-            with gr.Accordion("Basic", open="True"):
+        with gr.Accordion("Parameters", open=config.get("settings.expand_all_accordions", False)), gr.Column():
+            with gr.Accordion("Basic", open=config.get("textual_inversion.expand_basic_accordion", True)):
                 with gr.Group(elem_id="basic_tab"):
                     with gr.Row():
 
@@ -1068,15 +1068,16 @@ def ti_tab(
                         token_string = gr.Textbox(
                             label="Token string",
                             placeholder="eg: cat",
+                            value=config.get("textual_inversion.basic.token_string", ""),
                         )
                         init_word = gr.Textbox(
                             label="Init word",
-                            value="*",
+                            value=config.get("textual_inversion.basic.init_word", "*"),
                         )
                         num_vectors_per_token = gr.Slider(
                             minimum=1,
                             maximum=75,
-                            value=1,
+                            value=config.get("textual_inversion.basic.num_vectors_per_token", 1),
                             step=1,
                             label="Vectors",
                         )
@@ -1091,7 +1092,7 @@ def ti_tab(
                                 "object template",
                                 "style template",
                             ],
-                            value="caption",
+                            value=config.get("textual_inversion.basic.template", "caption"),
                         )
                     basic_training = BasicTraining(
                         learning_rate_value=1e-5,

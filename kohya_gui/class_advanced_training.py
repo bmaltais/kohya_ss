@@ -328,7 +328,7 @@ class AdvancedTraining:
             )
             self.flip_aug = gr.Checkbox(
                 label="Flip augmentation",
-                value=getattr(self.config, "advanced.flip_aug", False),
+                value=self.config.get("advanced.flip_aug", False),
                 info="Enable horizontal flip augmentation",
             )
             self.masked_loss = gr.Checkbox(

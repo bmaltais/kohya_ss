@@ -31,7 +31,7 @@ class flux1Training:
                 return (gr.Group(visible=False), gr.Group(visible=True))
 
         with gr.Accordion(
-            "Flux.1", open=True, visible=False, elem_classes=["flux1_background"]
+            "Flux.1", open=self.config.get("flux1.expand_accordion", True), visible=False, elem_classes=["flux1_background"]
         ) as flux1_accordion:
             with gr.Group():
                 with gr.Row():
@@ -104,7 +104,7 @@ class flux1Training:
                         label="Model Prediction Type",
                         choices=["raw", "additive", "sigma_scaled"],
                         value=self.config.get(
-                            "flux1.timestep_sampling", "sigma_scaled"
+                            "flux1.model_prediction_type", "sigma_scaled"
                         ),
                         interactive=True,
                     )
@@ -247,7 +247,7 @@ class flux1Training:
                     )
                     self.flux_fused_backward_pass = gr.Checkbox(
                         label="Fused Backward Pass",
-                        value=self.config.get("flux1.fused_backward_pass", False),
+                        value=self.config.get("flux1.flux_fused_backward_pass", False),
                         info="Enables the fusing of the optimizer step into the backward pass for each parameter.  Only Adafactor optimizer is supported.",
                         interactive=True,
                     )

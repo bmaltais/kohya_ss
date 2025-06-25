@@ -244,33 +244,33 @@ class SourceModel:
                     with gr.Column():
                         with gr.Row():
                             self.v2 = gr.Checkbox(
-                                label="v2", value=False, visible=False, min_width=60,
+                                label="v2", value=self.config.get("model.v2", False), visible=False, min_width=60,
                                 interactive=True,
                             )
                             self.v_parameterization = gr.Checkbox(
                                 label="v_param",
-                                value=False,
+                                value=self.config.get("model.v_parameterization", False),
                                 visible=False,
                                 min_width=130,
                                 interactive=True,
                             )
                             self.sdxl_checkbox = gr.Checkbox(
                                 label="SDXL",
-                                value=False,
+                                value=self.config.get("model.sdxl", False),
                                 visible=False,
                                 min_width=60,
                                 interactive=True,
                             )
                             self.sd3_checkbox = gr.Checkbox(
                                 label="SD3",
-                                value=False,
+                                value=self.config.get("model.sd3", False),
                                 visible=False,
                                 min_width=60,
                                 interactive=True,
                             )
                             self.flux1_checkbox = gr.Checkbox(
                                 label="Flux.1",
-                                value=False,
+                                value=self.config.get("model.flux1", False),
                                 visible=False,
                                 min_width=60,
                                 interactive=True,

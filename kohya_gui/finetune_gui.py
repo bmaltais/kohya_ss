@@ -1239,19 +1239,19 @@ def finetune_tab(
         with gr.Accordion("Dataset Preparation", open=False):
             with gr.Row():
                 max_resolution = gr.Textbox(
-                    label="Resolution (width,height)", value="512,512"
+                    label="Resolution (width,height)", value=config.get("finetune.dataset_preparation.max_resolution", "512,512")
                 )
-                min_bucket_reso = gr.Textbox(label="Min bucket resolution", value="256")
+                min_bucket_reso = gr.Textbox(label="Min bucket resolution", value=config.get("finetune.dataset_preparation.min_bucket_reso", "256"))
                 max_bucket_reso = gr.Textbox(
-                    label="Max bucket resolution", value="1024"
+                    label="Max bucket resolution", value=config.get("finetune.dataset_preparation.max_bucket_reso", "1024")
                 )
-                batch_size = gr.Textbox(label="Batch size", value="1")
+                batch_size = gr.Textbox(label="Batch size", value=config.get("finetune.dataset_preparation.batch_size", "1"))
             with gr.Row():
                 create_caption = gr.Checkbox(
-                    label="Generate caption metadata", value=True
+                    label="Generate caption metadata", value=config.get("finetune.dataset_preparation.create_caption", True)
                 )
                 create_buckets = gr.Checkbox(
-                    label="Generate image buckets metadata", value=True
+                    label="Generate image buckets metadata", value=config.get("finetune.dataset_preparation.create_buckets", True)
                 )
                 use_latent_files = gr.Dropdown(
                     label="Use latent files",
@@ -1259,21 +1259,21 @@ def finetune_tab(
                         "No",
                         "Yes",
                     ],
-                    value="Yes",
+                    value=config.get("finetune.dataset_preparation.use_latent_files", "Yes"),
                 )
             with gr.Accordion("Advanced parameters", open=False):
                 with gr.Row():
                     caption_metadata_filename = gr.Textbox(
                         label="Caption metadata filename",
-                        value="meta_cap.json",
+                        value=config.get("finetune.dataset_preparation.caption_metadata_filename", "meta_cap.json"),
                     )
                     latent_metadata_filename = gr.Textbox(
-                        label="Latent metadata filename", value="meta_lat.json"
+                        label="Latent metadata filename", value=config.get("finetune.dataset_preparation.latent_metadata_filename", "meta_lat.json")
                     )
                 with gr.Row():
-                    full_path = gr.Checkbox(label="Use full path", value=True)
+                    full_path = gr.Checkbox(label="Use full path", value=config.get("finetune.dataset_preparation.full_path", True))
                     weighted_captions = gr.Checkbox(
-                        label="Weighted captions", value=False
+                        label="Weighted captions", value=config.get("finetune.dataset_preparation.weighted_captions", False)
                     )
 
         with gr.Accordion("Parameters", open=False), gr.Column():
@@ -1301,7 +1301,7 @@ def finetune_tab(
                 value="none",
             )
 
-            with gr.Accordion("Basic", open="True"):
+            with gr.Accordion("Basic", open=config.get("finetune.expand_basic_accordion", True)):
                 with gr.Group(elem_id="basic_tab"):
                     basic_training = BasicTraining(
                         learning_rate_value=1e-5,
@@ -1318,9 +1318,9 @@ def finetune_tab(
                     )
 
                     with gr.Row():
-                        dataset_repeats = gr.Textbox(label="Dataset repeats", value=40)
+                        dataset_repeats = gr.Textbox(label="Dataset repeats", value=config.get("finetune.basic.dataset_repeats", "40"))
                         train_text_encoder = gr.Checkbox(
-                            label="Train text encoder", value=True
+                            label="Train text encoder", value=config.get("finetune.basic.train_text_encoder", True)
                         )
 
             # Add FLUX1 Parameters

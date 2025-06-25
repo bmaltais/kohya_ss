@@ -1918,7 +1918,7 @@ def lora_tab(
                 elem_classes=["preset_background"],
             )
 
-            with gr.Accordion("Basic", open="True", elem_classes=["basic_background"]):
+            with gr.Accordion("Basic", open=config.get("lora.expand_basic_accordion", True), elem_classes=["basic_background"]):
                 with gr.Row():
                     LoRA_type = gr.Dropdown(
                         label="LoRA type",
@@ -1939,12 +1939,12 @@ def lora_tab(
                             "LyCORIS/Native Fine-Tuning",
                             "Standard",
                         ],
-                        value="Standard",
+                        value=config.get("lora.basic.lora_type", "Standard"),
                     )
                     LyCORIS_preset = gr.Dropdown(
                         label="LyCORIS Preset",
                         choices=LYCORIS_PRESETS_CHOICES,
-                        value="full",
+                        value=config.get("lora.basic.lycoris_preset", "full"),
                         visible=False,
                         interactive=True,
                         allow_custom_value=True,
@@ -1971,11 +1971,11 @@ def lora_tab(
                             )
                             dim_from_weights = gr.Checkbox(
                                 label="DIM from weights",
-                                value=False,
+                                value=config.get("lora.basic.dim_from_weights", False),
                                 info="Automatically determine the dim(rank) from the weight file.",
                             )
                 basic_training = BasicTraining(
-                    learning_rate_value=0.0001,
+                    learning_rate_value=0.0001, # This is a default for LoRA, config will override if basic.learning_rate is set
                     lr_scheduler_value="cosine",
                     lr_warmup_value=10,
                     sdxl_checkbox=source_model.sdxl_checkbox,
@@ -1985,7 +1985,7 @@ def lora_tab(
                 with gr.Row():
                     text_encoder_lr = gr.Number(
                         label="Text Encoder learning rate",
-                        value=0,
+                        value=config.get("lora.basic.text_encoder_lr", 0),
                         info="(Optional) Set CLIP-L and T5XXL learning rates.",
                         minimum=0,
                         maximum=1,
@@ -1993,7 +1993,7 @@ def lora_tab(
 
                     t5xxl_lr = gr.Number(
                         label="T5XXL learning rate",
-                        value=0,
+                        value=config.get("lora.basic.t5xxl_lr", 0),
                         info="(Optional) Override the T5XXL learning rate set by the Text Encoder learning rate if you desire a different one.",
                         minimum=0,
                         maximum=1,
@@ -2001,7 +2001,7 @@ def lora_tab(
 
                     unet_lr = gr.Number(
                         label="Unet learning rate",
-                        value=0.0001,
+                        value=config.get("lora.basic.unet_lr", 0.0001),
                         info="(Optional)",
                         minimum=0,
                         maximum=1,
@@ -2010,7 +2010,7 @@ def lora_tab(
                 with gr.Row() as loraplus:
                     loraplus_lr_ratio = gr.Number(
                         label="LoRA+ learning rate ratio",
-                        value=0,
+                        value=config.get("lora.basic.loraplus_lr_ratio", 0),
                         info="(Optional) starting with 16 is suggested",
                         minimum=0,
                         maximum=128,
@@ -2018,7 +2018,7 @@ def lora_tab(
 
                     loraplus_unet_lr_ratio = gr.Number(
                         label="LoRA+ Unet learning rate ratio",
-                        value=0,
+                        value=config.get("lora.basic.loraplus_unet_lr_ratio", 0),
                         info="(Optional) starting with 16 is suggested",
                         minimum=0,
                         maximum=128,
@@ -2026,7 +2026,7 @@ def lora_tab(
 
                     loraplus_text_encoder_lr_ratio = gr.Number(
                         label="LoRA+ Text Encoder learning rate ratio",
-                        value=0,
+                        value=config.get("lora.basic.loraplus_text_encoder_lr_ratio", 0),
                         info="(Optional) starting with 16 is suggested",
                         minimum=0,
                         maximum=128,
@@ -2035,79 +2035,79 @@ def lora_tab(
                 sdxl_params = SDXLParameters(source_model.sdxl_checkbox, config=config)
 
                 # LyCORIS Specific parameters
-                with gr.Accordion("LyCORIS", visible=False) as lycoris_accordion:
+                with gr.Accordion("LyCORIS", open=config.get("lora.expand_lycoris_accordion", False), visible=False) as lycoris_accordion: # Added config get for open
                     with gr.Row():
                         factor = gr.Slider(
                             label="LoKr factor",
-                            value=-1,
+                            value=config.get("lora.lycoris.factor", -1),
                             minimum=-1,
                             maximum=64,
                             step=1,
                             visible=False,
                         )
                         bypass_mode = gr.Checkbox(
-                            value=False,
+                            value=config.get("lora.lycoris.bypass_mode", False),
                             label="Bypass mode",
                             info="Designed for bnb 8bit/4bit linear layer. (QLyCORIS)",
                             visible=False,
                         )
                         dora_wd = gr.Checkbox(
-                            value=False,
+                            value=config.get("lora.lycoris.dora_wd", False),
                             label="DoRA Weight Decompose",
                             info="Enable the DoRA method for these algorithms",
                             visible=False,
                         )
                         use_cp = gr.Checkbox(
-                            value=False,
+                            value=config.get("lora.lycoris.use_cp", False),
                             label="Use CP decomposition",
                             info="A two-step approach utilizing tensor decomposition and fine-tuning to accelerate convolution layers in large neural networks, resulting in significant CPU speedups with minor accuracy drops.",
                             visible=False,
                         )
                         use_tucker = gr.Checkbox(
-                            value=False,
+                            value=config.get("lora.lycoris.use_tucker", False),
                             label="Use Tucker decomposition",
                             info="Efficiently decompose tensor shapes, resulting in a sequence of convolution layers with varying dimensions and Hadamard product implementation through multiplication of two distinct tensors.",
                             visible=False,
                         )
                         use_scalar = gr.Checkbox(
-                            value=False,
+                            value=config.get("lora.lycoris.use_scalar", False),
                             label="Use Scalar",
                             info="Train an additional scalar in front of the weight difference, use a different weight initialization strategy.",
                             visible=False,
                         )
                     with gr.Row():
                         rank_dropout_scale = gr.Checkbox(
-                            value=False,
+                            value=config.get("lora.lycoris.rank_dropout_scale", False),
                             label="Rank Dropout Scale",
                             info="Adjusts the scale of the rank dropout to maintain the average dropout rate, ensuring more consistent regularization across different layers.",
                             visible=False,
                         )
                         constrain = gr.Number(
-                            value=0.0,
+                            value=config.get("lora.lycoris.constrain", 0.0),
                             label="Constrain OFT",
                             info="Limits the norm of the oft_blocks, ensuring that their magnitude does not exceed a specified threshold, thus controlling the extent of the transformation applied.",
                             visible=False,
                         )
                         rescaled = gr.Checkbox(
-                            value=False,
+                            value=config.get("lora.lycoris.rescaled", False),
                             label="Rescaled OFT",
                             info="applies an additional scaling factor to the oft_blocks, allowing for further adjustment of their impact on the model's transformations.",
                             visible=False,
                         )
                         train_norm = gr.Checkbox(
-                            value=False,
+                            value=config.get("lora.lycoris.train_norm", False),
                             label="Train Norm",
                             info="Selects trainable layers in a network, but trains normalization layers identically across methods as they lack matrix decomposition.",
                             visible=False,
                         )
                         decompose_both = gr.Checkbox(
-                            value=False,
+                            value=config.get("lora.lycoris.decompose_both", False),
                             label="LoKr decompose both",
                             info="Controls whether both input and output dimensions of the layer's weights are decomposed into smaller matrices for reparameterization.",
                             visible=False,
                         )
                         train_on_input = gr.Checkbox(
-                            value=True,
+                            value=config.get("lora.lycoris.train_on_input", True),
                             label="iA3 train on input",
                             info="Set if we change the information going into the system (True) or the information coming out of it (False).",
                             visible=False,
@@ -2117,7 +2117,7 @@ def lora_tab(
                         minimum=1,
                         maximum=512,
                         label="Network Rank (Dimension)",
-                        value=8,
+                        value=config.get("lora.basic.network_dim", 8),
                         step=1,
                         interactive=True,
                     )
@@ -2125,7 +2125,7 @@ def lora_tab(
                         minimum=0.00001,
                         maximum=1024,
                         label="Network Alpha",
-                        value=1,
+                        value=config.get("lora.basic.network_alpha", 1),
                         step=0.00001,
                         interactive=True,
                         info="alpha for LoRA weight scaling",
@@ -2135,21 +2135,21 @@ def lora_tab(
                     conv_dim = gr.Slider(
                         minimum=0,
                         maximum=512,
-                        value=1,
+                        value=config.get("lora.basic.conv_dim", 1),
                         step=1,
                         label="Convolution Rank (Dimension)",
                     )
                     conv_alpha = gr.Slider(
                         minimum=0,
                         maximum=512,
-                        value=1,
+                        value=config.get("lora.basic.conv_alpha", 1),
                         step=1,
                         label="Convolution Alpha",
                     )
                 with gr.Row():
                     scale_weight_norms = gr.Slider(
                         label="Scale weight norms",
-                        value=0,
+                        value=config.get("lora.basic.scale_weight_norms", 0),
                         minimum=0,
                         maximum=10,
                         step=0.01,
@@ -2158,7 +2158,7 @@ def lora_tab(
                     )
                     network_dropout = gr.Slider(
                         label="Network dropout",
-                        value=0,
+                        value=config.get("lora.basic.network_dropout", 0),
                         minimum=0,
                         maximum=1,
                         step=0.01,
@@ -2166,7 +2166,7 @@ def lora_tab(
                     )
                     rank_dropout = gr.Slider(
                         label="Rank dropout",
-                        value=0,
+                        value=config.get("lora.basic.rank_dropout", 0),
                         minimum=0,
                         maximum=1,
                         step=0.01,
@@ -2174,7 +2174,7 @@ def lora_tab(
                     )
                     module_dropout = gr.Slider(
                         label="Module dropout",
-                        value=0.0,
+                        value=config.get("lora.basic.module_dropout", 0.0),
                         minimum=0.0,
                         maximum=1.0,
                         step=0.01,
@@ -2185,7 +2185,7 @@ def lora_tab(
                         minimum=1,
                         maximum=64,
                         label="DyLoRA Unit / Block size",
-                        value=1,
+                        value=config.get("lora.basic.unit", 1),
                         step=1,
                         interactive=True,
                     )
@@ -2193,20 +2193,20 @@ def lora_tab(
                 with gr.Row(visible=False) as train_lora_ggpo_row:
                     train_lora_ggpo = gr.Checkbox(
                         label="Train LoRA GGPO",
-                        value=False,
+                        value=config.get("lora.basic.train_lora_ggpo", False),
                         info="Train LoRA GGPO",
                         interactive=True,
                     )
                     with gr.Row(visible=False) as ggpo_row:
                         ggpo_sigma = gr.Number(
                             label="GGPO sigma",
-                            value=0.03,
+                            value=config.get("lora.basic.ggpo_sigma", 0.03),
                             info="Specify the sigma of GGPO.",
                             interactive=True,
                         )
                         ggpo_beta = gr.Number(
                             label="GGPO beta",
-                            value=0.01,
+                            value=config.get("lora.basic.ggpo_beta", 0.01),
                             info="Specify the beta of GGPO.",
                             interactive=True,
                         )
