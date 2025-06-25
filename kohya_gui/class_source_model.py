@@ -111,7 +111,7 @@ class SourceModel:
                         self.pretrained_model_name_or_path = gr.Dropdown(
                             label="Pretrained model name or path",
                             choices=default_models + model_checkpoints,
-                            value=self.config.get("model.models_dir", "runwayml/stable-diffusion-v1-5"),
+                            value=self.config.get("model.pretrained_model_name_or_path", "runwayml/stable-diffusion-v1-5"),
                             allow_custom_value=True,
                             visible=True,
                             min_width=100,

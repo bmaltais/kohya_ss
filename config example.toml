@@ -8,6 +8,7 @@ expand_all_accordions = true # Expand all accordions in the UI by default
 # Default folders location
 [model]
 models_dir = "./models"                    # Pretrained model name or path. Initial value for dropdown, e.g. "runwayml/stable-diffusion-v1-5"
+pretrained_model_name_or_path = "runwayml/stable-diffusion-v1-5" # Default actual model path/name for dropdown
 output_name = "last"                       # Trained model output name
 train_data_dir = ""                        # Image folder (containing training images subfolders) / Image folder (containing training images). Initial value for dropdown.
 dataset_config = ""                        # Dataset config file (Optional. Select the toml configuration file to use for the dataset). Initial value for dropdown.
@@ -174,6 +175,9 @@ expand_basic_accordion = true
 
 [finetune] # Section for Finetune specific UI settings
 expand_basic_accordion = true
+# [finetune.advanced] for elements in finetune_gui's advanced section (if any specific beyond general advanced)
+[finetune.advanced]
+block_lr = ""                             # Block LR (SDXL) for finetuning
 # [finetune.basic] for elements directly in finetune_gui's basic section
 [finetune.basic]
 dataset_repeats = "40"
@@ -194,10 +198,12 @@ weighted_captions = false
 
 [lora] # Section for LoRA specific UI settings
 expand_basic_accordion = true
+expand_lycoris_accordion = false # control visibility of LyCORIS specific section
 # [lora.basic] for elements directly in lora_gui's basic section
 [lora.basic]
 lora_type = "Standard"
 lycoris_preset = "full" # Default for LyCORIS preset dropdown
+network_weights = ""    # Path to existing LoRA network weights
 dim_from_weights = false
 text_encoder_lr = 0.0 # Explicitly float
 t5xxl_lr = 0.0        # Explicitly float
@@ -217,6 +223,18 @@ unit = 1 # For DyLoRA
 train_lora_ggpo = false
 ggpo_sigma = 0.03
 ggpo_beta = 0.01
+
+# [lora.advanced] for LoRA specific advanced settings (weights, blocks, conv layers)
+[lora.advanced]
+down_lr_weight = ""
+mid_lr_weight = ""
+up_lr_weight = ""
+block_lr_zero_threshold = ""
+block_dims = ""
+block_alphas = ""
+conv_block_dims = ""
+conv_block_alphas = ""
+
 # [lora.lycoris] for LyCORIS specific parameters
 [lora.lycoris]
 factor = -1
@@ -240,6 +258,7 @@ token_string = "" # Default is empty as per current code
 init_word = "*"
 num_vectors_per_token = 1
 template = "caption"
+weights = "" # Path to existing TI embedding file to resume training
 
 [sd3] # SD3 specific parameters from class_sd3.py
 weighting_scheme = "logit_normal"

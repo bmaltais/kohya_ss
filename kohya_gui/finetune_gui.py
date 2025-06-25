@@ -1350,6 +1350,7 @@ def finetune_tab(
                         label="Block LR (SDXL)",
                         placeholder="(Optional)",
                         info="Specify the different learning rates for each U-Net block. Specify 23 values separated by commas like 1e-3,1e-3 ... 1e-3",
+                        value=config.get("finetune.advanced.block_lr", ""),
                     )
                 advanced_training = AdvancedTraining(
                     headless=headless, finetuning=True, config=config

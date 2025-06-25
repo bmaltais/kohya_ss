@@ -1206,7 +1206,7 @@ def dreambooth_tab(
             gradio_dataset_balancing_tab(headless=headless)
 
         with gr.Accordion("Parameters", open=config.get("settings.expand_all_accordions", False)), gr.Column():
-            with gr.Accordion("Basic", open="True"):
+            with gr.Accordion("Basic", open=config.get("dreambooth.expand_basic_accordion", True)):
                 with gr.Group(elem_id="basic_tab"):
                     basic_training = BasicTraining(
                         learning_rate_value=1e-5,

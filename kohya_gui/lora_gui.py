@@ -1956,6 +1956,7 @@ def lora_tab(
                                 label="Network weights",
                                 placeholder="(Optional)",
                                 info="Path to an existing LoRA network weights to resume training from",
+                                value=config.get("lora.basic.network_weights", ""),
                             )
                             network_weights_file = gr.Button(
                                 document_symbol,
@@ -2690,21 +2691,25 @@ def lora_tab(
                                 label="Down LR weights",
                                 placeholder="(Optional) eg: 0,0,0,0,0,0,1,1,1,1,1,1",
                                 info="Specify the learning rate weight of the down blocks of U-Net.",
+                                value=config.get("lora.advanced.down_lr_weight", ""),
                             )
                             mid_lr_weight = gr.Textbox(
                                 label="Mid LR weights",
                                 placeholder="(Optional) eg: 0.5",
                                 info="Specify the learning rate weight of the mid block of U-Net.",
+                                value=config.get("lora.advanced.mid_lr_weight", ""),
                             )
                             up_lr_weight = gr.Textbox(
                                 label="Up LR weights",
                                 placeholder="(Optional) eg: 0,0,0,0,0,0,1,1,1,1,1,1",
                                 info="Specify the learning rate weight of the up blocks of U-Net. The same as down_lr_weight.",
+                                value=config.get("lora.advanced.up_lr_weight", ""),
                             )
                             block_lr_zero_threshold = gr.Textbox(
                                 label="Blocks LR zero threshold",
                                 placeholder="(Optional) eg: 0.1",
                                 info="If the weight is not more than this value, the LoRA module is not created. The default is 0.",
+                                value=config.get("lora.advanced.block_lr_zero_threshold", ""),
                             )
                     with gr.Tab(label="Blocks"):
                         with gr.Row(visible=True):
@@ -2712,11 +2717,13 @@ def lora_tab(
                                 label="Block dims",
                                 placeholder="(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2",
                                 info="Specify the dim (rank) of each block. Specify 25 numbers.",
+                                value=config.get("lora.advanced.block_dims", ""),
                             )
                             block_alphas = gr.Textbox(
                                 label="Block alphas",
                                 placeholder="(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2",
                                 info="Specify the alpha of each block. Specify 25 numbers as with block_dims. If omitted, the value of network_alpha is used.",
+                                value=config.get("lora.advanced.block_alphas", ""),
                             )
                     with gr.Tab(label="Conv"):
                         with gr.Row(visible=True):
@@ -2724,11 +2731,13 @@ def lora_tab(
                                 label="Conv dims",
                                 placeholder="(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2",
                                 info="Extend LoRA to Conv2d 3x3 and specify the dim (rank) of each block. Specify 25 numbers.",
+                                value=config.get("lora.advanced.conv_block_dims", ""),
                             )
                             conv_block_alphas = gr.Textbox(
                                 label="Conv alphas",
                                 placeholder="(Optional) eg: 2,2,2,2,4,4,4,4,6,6,6,6,8,6,6,6,6,4,4,4,4,2,2,2,2",
                                 info="Specify the alpha of each block when expanding LoRA to Conv2d 3x3. Specify 25 numbers. If omitted, the value of conv_alpha is used.",
+                                value=config.get("lora.advanced.conv_block_alphas", ""),
                             )
                 advanced_training = AdvancedTraining(
                     headless=headless, training_type="lora", config=config
