@@ -89,8 +89,8 @@ class BasicTraining:
                 minimum=1,
                 maximum=64,
                 label="Train batch size",
-                value=1,
-                step=self.config.get("basic.train_batch_size", 1),
+                value=self.config.get("basic.train_batch_size", 1),
+                step=1,
             )
             # Initialize the epoch number input
             self.epoch = gr.Number(

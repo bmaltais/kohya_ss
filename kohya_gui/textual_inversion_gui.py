@@ -1032,7 +1032,7 @@ def ti_tab(
                         weights = gr.Dropdown(
                             label="Resume TI training (Optional. Path to existing TI embedding file to keep training)",
                             choices=[""] + list_embedding_files(current_embedding_dir),
-                            value="",
+                            value=config.get("textual_inversion.basic.weights", ""),
                             interactive=True,
                             allow_custom_value=True,
                         )
