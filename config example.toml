@@ -1,358 +1,463 @@
-# Copy this file and name it config.toml
-# Edit the values to suit your needs
+# Copy this file to config.toml and customize it for your setup.
+# This file provides default settings for the Kohya_ss GUI.
+# Lines starting with '#' are comments and are ignored.
 
 [settings]
-use_shell = false            # Use shell during process run of sd-scripts oython code. Most secure is false but some systems may require it to be true to properly run sd-scripts.
-expand_all_accordions = true # Expand all accordions in the UI by default
+# General UI behavior settings.
+use_shell             = false  # Use shell for running sd-scripts. Set to true only if necessary for your system. (Default: false)
+expand_all_accordions = true   # Expand all UI accordions by default. (Default: true)
 
-# Default folders location
 [model]
-models_dir = "./models"                                          # Pretrained model name or path. Initial value for dropdown, e.g. "runwayml/stable-diffusion-v1-5"
-pretrained_model_name_or_path = "runwayml/stable-diffusion-v1-5" # Default actual model path/name for dropdown
-output_name = "last"                                             # Trained model output name
-train_data_dir = ""                                              # Image folder (containing training images subfolders) / Image folder (containing training images). Initial value for dropdown.
-dataset_config = ""                                              # Dataset config file (Optional. Select the toml configuration file to use for the dataset). Initial value for dropdown.
-training_comment = ""                                            # Training comment
-save_model_as = "safetensors"                                    # Save model as (ckpt, safetensors, diffusers, diffusers_safetensors)
-save_precision = "fp16"                                          # Save model precision (fp16, bf16, float)
-v2 = false                                                       # v2 model
-v_parameterization = false                                       # v_parameterization
-sdxl = false                                                     # SDXL model
-sd3 = false                                                      # SD3 model
-flux1 = false                                                    # Flux.1 model
+# Default paths and options related to the primary model.
+models_dir                    = "./models"                                           # Base directory for pretrained models. Initial value for model dropdown.
+pretrained_model_name_or_path = "runwayml/stable-diffusion-v1-5"                   # Default specific model path/name. Initial value for model dropdown.
+output_name                   = "last"                                               # Default name for the trained model output files.
+train_data_dir                = ""                                                   # Default directory for training images. Initial value for dropdown.
+dataset_config                = ""                                                   # Default path to dataset TOML configuration file. Initial value for dropdown.
+training_comment              = ""                                                   # Optional comment to store in metadata.
 
+# Model saving options.
+save_model_as    = "safetensors"  # Format for saving the model (ckpt, safetensors, diffusers, diffusers_safetensors). (Default: safetensors)
+save_precision   = "fp16"         # Precision for saving the model (fp16, bf16, float). (Default: fp16)
+
+# Model architecture flags.
+v2                 = false  # True if using a Stable Diffusion v2 model. (Default: false)
+v_parameterization = false  # True if using v_parameterization. (Default: false)
+sdxl               = false  # True if using an SDXL model. (Default: false)
+sd3                = false  # True if using an SD3 model. (Default: false)
+flux1              = false  # True if using a Flux.1 model. (Default: false)
 
 [folders]
-output_dir = "./outputs"    # Output directory for trained model. Initial value for dropdown.
-reg_data_dir = "./data/reg" # Regularisation directory. Initial value for dropdown.
-logging_dir = "./logs"      # Logging directory. Initial value for dropdown.
+# Default locations for various output and data directories.
+output_dir  = "./outputs"    # Directory for trained model outputs. Initial value for dropdown.
+reg_data_dir = "./data/reg"  # Directory for regularization images. Initial value for dropdown.
+logging_dir = "./logs"       # Directory for logs (e.g., TensorBoard). Initial value for dropdown.
 
 [configuration]
-config_dir = "./presets" # Load/Save Config file. Initial value for dropdown.
+# Settings for loading and saving GUI configuration presets (typically .json files).
+config_dir = "./presets"   # Directory for storing and loading UI configuration presets. Initial value for dropdown.
 
 [accelerate_launch]
-mixed_precision = "fp16"          # Mixed precision (no, fp16, bf16, fp8)
-num_processes = 1                 # The total number of processes to be launched in parallel.
-num_machines = 1                  # The total number of machines used in this training.
-num_cpu_threads_per_process = 2   # The number of CPU threads per process.
-dynamo_backend = "no"             # Dynamo backend (no, eager, aot_eager, inductor, etc.)
-dynamo_mode = "default"           # Dynamo mode (default, reduce-overhead, max-autotune)
-dynamo_use_fullgraph = false      # Dynamo use fullgraph
-dynamo_use_dynamic = false        # Dynamo use dynamic
-multi_gpu = false                 # Multi GPU
-gpu_ids = ""                      # GPU IDs (e.g., 0,1)
-main_process_port = 0             # Main process port (0 for default)
-extra_accelerate_launch_args = "" # Extra accelerate launch args
+# Parameters for Hugging Face Accelerate.
+mixed_precision             = "fp16"  # Mixed precision mode (no, fp16, bf16, fp8). (Default: fp16)
+num_processes               = 1       # Total number of parallel processes. (Default: 1)
+num_machines                = 1       # Total number of machines for distributed training. (Default: 1)
+num_cpu_threads_per_process = 2       # Number of CPU threads per process. (Default: 2)
+
+# Dynamo backend options (experimental).
+dynamo_backend         = "no"     # Dynamo backend (no, eager, aot_eager, inductor, etc.). (Default: no)
+dynamo_mode            = "default" # Dynamo mode (default, reduce-overhead, max-autotune). (Default: default)
+dynamo_use_fullgraph   = false    # Dynamo use_fullgraph option. (Default: false)
+dynamo_use_dynamic     = false    # Dynamo use_dynamic option. (Default: false)
+
+# Multi-GPU and process communication.
+multi_gpu                    = false  # True if using multiple GPUs. (Default: false)
+gpu_ids                      = ""     # Comma-separated list of GPU IDs (e.g., 0,1). Leave empty for Accelerate default.
+main_process_port            = 0      # Main process port for Accelerate (0 for default). (Default: 0)
+extra_accelerate_launch_args = ""     # Extra arguments for `accelerate launch`.
 
 [basic]
-train_batch_size = 1           # Train batch size
-epoch = 1                      # Epoch
-max_train_epochs = 0           # Max train epoch (overrides max_train_steps). 0 = no override
-max_train_steps = 1600         # Max train steps. 0 = no override (sd-scripts default is 1600)
-save_every_n_epochs = 1        # Save every N epochs
-caption_extension = ".txt"     # Caption file extension ("", .cap, .caption, .txt)
-seed = 0                       # Seed (0 for random)
-cache_latents = true           # Cache latents
-cache_latents_to_disk = false  # Cache latents to disk
-lr_scheduler = "cosine"        # LR Scheduler (adafactor, constant, constant_with_warmup, cosine, etc.)
-lr_scheduler_type = ""         # LR Scheduler type (Optional, e.g., CosineAnnealingLR)
-optimizer = "AdamW8bit"        # Optimizer (AdamW, AdamW8bit, Adafactor, Lion, Prodigy, etc.)
-max_grad_norm = 1.0            # Max grad norm
-lr_scheduler_args = ""         # LR scheduler extra arguments (e.g., milestones=[1,10,30,50] gamma=0.1)
-optimizer_args = ""            # Optimizer extra arguments (e.g., relative_step=True scale_parameter=True warmup_init=True)
-learning_rate = 0.0001         # Learning rate (Unet or general)
-learning_rate_te = 0.0001      # Learning rate TE (Text Encoder for SD1.5)
-learning_rate_te1 = 0.0001     # Learning rate TE1 (Text Encoder 1 for SDXL)
-learning_rate_te2 = 0.0001     # Learning rate TE2 (Text Encoder 2 for SDXL)
-lr_warmup = 10                 # LR warmup (% of total steps). Default for most GUIs. config example.toml had 0.
-lr_warmup_steps = 0            # LR warmup steps (override % if > 0)
-lr_scheduler_num_cycles = 1    # LR # cycles for cosine_with_restarts or polynomial
-lr_scheduler_power = 1.0       # LR power for polynomial scheduler
-max_resolution = "512,512"     # Max resolution (width,height)
-stop_text_encoder_training = 0 # Stop TE (% of total steps)
-enable_bucket = true           # Enable buckets
-min_bucket_reso = 256          # Minimum bucket resolution
-max_bucket_reso = 2048         # Maximum bucket resolution
+# Basic training parameters.
+train_batch_size = 1     # Number of samples per batch. (Default: 1)
+epoch            = 1     # Number of training epochs. (Default: 1)
+max_train_epochs = 0     # Maximum training epochs (overrides max_train_steps if > 0). (Default: 0)
+max_train_steps  = 1600  # Maximum training steps (sd-scripts default is 1600). (Default: 1600)
+
+save_every_n_epochs = 1     # Frequency of saving checkpoints (in epochs). (Default: 1)
+caption_extension   = ".txt"  # File extension for caption files. (Default: .txt)
+seed                = 0     # Random seed for reproducibility (0 for random). (Default: 0)
+
+# Latent caching options.
+cache_latents         = true   # Cache latents in VRAM. (Default: true)
+cache_latents_to_disk = false  # Cache latents to disk (if VRAM caching is disabled or fills up). (Default: false)
+
+# Learning rate scheduler and optimizer settings.
+lr_scheduler      = "cosine"     # LR scheduler type (adafactor, constant, constant_with_warmup, cosine, etc.). (Default: cosine)
+lr_scheduler_type = ""           # Specific LR scheduler class (Optional, e.g., CosineAnnealingLR).
+optimizer         = "AdamW8bit"  # Optimizer type (AdamW, AdamW8bit, Adafactor, Lion, Prodigy, etc.). (Default: AdamW8bit)
+max_grad_norm     = 1.0          # Maximum gradient norm for clipping. (Default: 1.0)
+lr_scheduler_args = ""           # Extra arguments for the LR scheduler (e.g., "milestones=[1,10,30,50] gamma=0.1").
+optimizer_args    = ""           # Extra arguments for the optimizer (e.g., "relative_step=True scale_parameter=True warmup_init=True").
+
+# Learning rates.
+learning_rate     = 0.0001  # Learning rate for U-Net (or general if others are not set). (Default: 0.0001)
+learning_rate_te  = 0.0001  # Learning rate for Text Encoder (SD1.5). (Default: 0.0001)
+learning_rate_te1 = 0.0001  # Learning rate for Text Encoder 1 (SDXL). (Default: 0.0001)
+learning_rate_te2 = 0.0001  # Learning rate for Text Encoder 2 (SDXL). (Default: 0.0001)
+
+# Learning rate warmup settings.
+lr_warmup       = 10  # LR warmup percentage of total steps. (Default: 10)
+lr_warmup_steps = 0   # LR warmup steps (overrides percentage if > 0). (Default: 0)
+
+# Scheduler-specific parameters.
+lr_scheduler_num_cycles = 1    # Number of cycles for cosine_with_restarts or polynomial schedulers. (Default: 1)
+lr_scheduler_power      = 1.0  # Power for polynomial scheduler. (Default: 1.0)
+
+# Resolution and bucketing.
+max_resolution    = "512,512"  # Maximum training resolution (width,height). (Default: "512,512")
+stop_text_encoder_training = 0  # Percentage of total steps after which to stop Text Encoder training. (Default: 0)
+enable_bucket     = true       # Enable image bucketing. (Default: true)
+min_bucket_reso   = 256        # Minimum bucket resolution. (Default: 256)
+max_bucket_reso   = 2048       # Maximum bucket resolution. (Default: 2048)
 
 [advanced]
-no_token_padding = false                  # No token padding
-gradient_accumulation_steps = 1           # Gradient accumulate steps
-weighted_captions = false                 # Weighted captions
-prior_loss_weight = 1.0                   # Prior loss weight
-vae_dir = "./models/vae"                  # VAE (Optional: Path to checkpoint of vae for training). Initial value for dropdown.
-additional_parameters = ""                # Additional parameters (e.g., --some_parameters "value")
-loss_type = "l2"                          # Loss type (huber, smooth_l1, l1, l2)
-huber_schedule = "snr"                    # Huber schedule (constant, exponential, snr)
-huber_c = 0.1                             # Huber C (delta for Huber loss)
-huber_scale = 1.0                         # Huber scale
-save_every_n_steps = 0                    # Save every N steps
-save_last_n_steps = 0                     # Save last N steps
-save_last_n_steps_state = 0               # Save last N steps state
-save_last_n_epochs = 0                    # Save last N epochs
-save_last_n_epochs_state = 0              # Save last N epochs state
-keep_tokens = 0                           # Keep n tokens
-clip_skip = 1                             # Clip skip
-max_token_length = 75                     # Max Token Length (75, 150, 225)
-fp8_base = false                          # fp8 base training (experimental)
-fp8_base_unet = false                     # fp8 base unet (Flux.1 specific)
-full_fp16 = false                         # Full fp16 training (experimental)
-full_bf16 = false                         # Full bf16 training (experimental)
-highvram = false                          # Disable low VRAM optimization
-lowvram = false                           # Enable low RAM optimization
-skip_cache_check = false                  # Skip cache check for faster training start
-gradient_checkpointing = false            # Gradient checkpointing
-shuffle_caption = false                   # Shuffle caption
-persistent_data_loader_workers = false    # Persistent data loader workers
-mem_eff_attn = false                      # Memory efficient attention
-xformers = "xformers"                     # CrossAttention (none, sdpa, xformers)
-color_aug = false                         # Color augmentation
-flip_aug = false                          # Flip augmentation
-masked_loss = false                       # Masked loss
-scale_v_pred_loss_like_noise_pred = false # Scale v prediction loss (SD v2 models)
-min_snr_gamma = 0                         # Min SNR gamma (0 to disable)
-debiased_estimation_loss = false          # Debiased Estimation loss
-bucket_no_upscale = true                  # Don't upscale bucket resolution
-bucket_reso_steps = 64                    # Bucket resolution steps
-random_crop = false                       # Random crop instead of center crop
-v_pred_like_loss = 0                      # V Pred like loss (0 to disable)
-min_timestep = 0                          # Min Timestep for noise scheduling (0 for image only)
-max_timestep = 1000                       # Max Timestep for noise scheduling (1000 for noise only)
-noise_offset_type = "Original"            # Noise offset type ("Original", "Multires")
-noise_offset = 0                          # Noise offset (0 to disable, recommended 0.05-0.15 for Original)
-noise_offset_random_strength = false      # Noise offset random strength
-adaptive_noise_scale = 0                  # Adaptive noise scale (adds to noise_offset)
-multires_noise_iterations = 0             # Multires noise iterations (0 to disable, recommended 6-10 for Multires)
-multires_noise_discount = 0.3             # Multires noise discount (recommended 0.8, 0.1-0.3 for small LoRA datasets)
-ip_noise_gamma = 0                        # IP noise gamma (0 to disable, recommended ~0.1)
-ip_noise_gamma_random_strength = false    # IP noise gamma random strength
-caption_dropout_every_n_epochs = 0        # Dropout caption every n epochs (0 to disable)
-caption_dropout_rate = 0                  # Rate of caption dropout (0 to disable)
-vae_batch_size = 0                        # VAE batch size (0 for disabled/default)
-blocks_to_swap = 0                        # Blocks to swap for fused backward/optimizer (0 for no swap)
-save_state = false                        # Save training state
-save_state_on_train_end = false           # Save training state at end of training
-state_dir = "./outputs"                   # Resume from saved training state. Initial value for dropdown.
-max_data_loader_n_workers = 0             # Max num workers for DataLoader
-log_with = ""                             # Logging (wandb, tensorboard, all, "")
-wandb_api_key = ""                        # WANDB API Key
-wandb_run_name = ""                       # WANDB run name
-log_config = false                        # Log training parameter to WANDB
-log_tracker_name = ""                     # Log tracker name
-log_tracker_config_dir = "./logs"         # Log tracker config. Initial value for dropdown.
+# Advanced training parameters.
+no_token_padding            = false  # Disable token padding. (Default: false)
+gradient_accumulation_steps = 1      # Number of steps to accumulate gradients before an optimizer update. (Default: 1)
+weighted_captions           = false  # Enable weighted captions. (Default: false)
+prior_loss_weight           = 1.0    # Weight for prior preservation loss (Dreambooth). (Default: 1.0)
+vae_dir                     = "./models/vae"  # Path to VAE model directory or file. Initial value for dropdown.
+additional_parameters       = ""     # Additional command-line parameters for sd-scripts.
+
+# Loss function settings.
+loss_type      = "l2"    # Loss type (huber, smooth_l1, l1, l2). (Default: "l2")
+huber_schedule = "snr"   # Huber schedule (constant, exponential, snr). (Default: "snr")
+huber_c        = 0.1     # Delta for Huber loss. (Default: 0.1)
+huber_scale    = 1.0     # Scale for Huber loss. (Default: 1.0)
+
+# Checkpoint saving frequency (step-based).
+save_every_n_steps      = 0  # Save checkpoint every N steps (0 to disable). (Default: 0)
+save_last_n_steps       = 0  # Number of recent step-based checkpoints to keep (0 to keep all). (Default: 0)
+save_last_n_steps_state = 0  # Number of recent step-based training states to keep. (Default: 0)
+
+# Checkpoint saving frequency (epoch-based, supplements basic.save_every_n_epochs).
+save_last_n_epochs       = 0  # Number of recent epoch-based checkpoints to keep (0 to keep all). (Default: 0)
+save_last_n_epochs_state = 0  # Number of recent epoch-based training states to keep. (Default: 0)
+
+# Tokenizer and text encoder settings.
+keep_tokens      = 0    # Keep N tokens from text tokenizer. (Default: 0)
+clip_skip        = 1    # Number of CLIP layers to skip. (Default: 1)
+max_token_length = 75   # Maximum token length (75, 150, 225). (Default: 75)
+
+# Precision and performance settings.
+fp8_base                       = false  # Enable fp8 base training (experimental). (Default: false)
+fp8_base_unet                  = false  # Enable fp8 base unet (Flux.1 specific). (Default: false)
+full_fp16                      = false  # Full fp16 training (experimental). (Default: false)
+full_bf16                      = false  # Full bf16 training (experimental). (Default: false)
+highvram                       = false  # Disable VRAM optimizations (for systems with ample VRAM). (Default: false)
+lowvram                        = false  # Enable VRAM optimizations (for systems with limited VRAM). (Default: false)
+skip_cache_check               = false  # Skip checking cache for latents, speeding up start but risky if data changes. (Default: false)
+gradient_checkpointing         = false  # Enable gradient checkpointing to save VRAM. (Default: false)
+persistent_data_loader_workers = false  # Use persistent workers for DataLoader. (Default: false)
+mem_eff_attn                   = false  # Enable memory-efficient attention. (Default: false)
+xformers                       = "xformers" # Cross-attention implementation (none, sdpa, xformers). (Default: "xformers")
+
+# Augmentation settings.
+color_aug       = false  # Enable color augmentation. (Default: false)
+flip_aug        = false  # Enable flip augmentation. (Default: false)
+shuffle_caption = false  # Enable caption shuffling. (Default: false)
+
+# Loss and bucketing adjustments.
+masked_loss                       = false  # Enable masked loss. (Default: false)
+scale_v_pred_loss_like_noise_pred = false  # Scale v_prediction loss like noise prediction (for SD v2 models). (Default: false)
+min_snr_gamma                     = 0      # Minimum SNR gamma (0 to disable). (Default: 0)
+debiased_estimation_loss          = false  # Enable debiased estimation loss. (Default: false)
+bucket_no_upscale                 = true   # Disable upscaling for bucketing. (Default: true)
+bucket_reso_steps                 = 64     # Resolution step size for bucketing. (Default: 64)
+random_crop                       = false  # Use random crop instead of center crop for bucketing. (Default: false)
+v_pred_like_loss                  = 0      # V Pred like loss (0 to disable). (Default: 0)
+
+# Noise scheduling and offset parameters.
+min_timestep                   = 0       # Minimum timestep for noise scheduling (0 for image only). (Default: 0)
+max_timestep                   = 1000    # Maximum timestep for noise scheduling (1000 for noise only). (Default: 1000)
+noise_offset_type              = "Original" # Type of noise offset ("Original", "Multires"). (Default: "Original")
+noise_offset                   = 0       # Noise offset value (0 to disable; recommended 0.05-0.15 for "Original"). (Default: 0)
+noise_offset_random_strength   = false   # Use random strength for noise offset. (Default: false)
+adaptive_noise_scale           = 0       # Adaptive noise scale (adds to noise_offset; 0 to disable). (Default: 0)
+multires_noise_iterations      = 0       # Multires noise iterations (0 to disable; recommended 6-10 for "Multires"). (Default: 0)
+multires_noise_discount        = 0.3     # Multires noise discount (recommended 0.8; 0.1-0.3 for small LoRA datasets). (Default: 0.3)
+ip_noise_gamma                 = 0       # IP noise gamma (0 to disable; recommended ~0.1). (Default: 0)
+ip_noise_gamma_random_strength = false   # Use random strength for IP noise gamma. (Default: false)
+
+# Caption dropout.
+caption_dropout_every_n_epochs = 0  # Frequency of caption dropout (in epochs; 0 to disable). (Default: 0)
+caption_dropout_rate           = 0  # Rate of caption dropout (0 to disable). (Default: 0)
+
+# VAE and memory management.
+vae_batch_size = 0  # Batch size for VAE processing (0 for default/disabled). (Default: 0)
+blocks_to_swap = 0  # Number of blocks to swap for fused backward/optimizer (0 for no swap). (Default: 0)
+
+# Training state saving and resuming.
+save_state                = false        # Save training state periodically. (Default: false)
+save_state_on_train_end   = false        # Save training state at the end of training. (Default: false)
+state_dir                 = "./outputs"  # Directory to resume training state from. Initial value for dropdown.
+max_data_loader_n_workers = 0            # Maximum number of workers for DataLoader (0 for system default). (Default: 0)
+
+# Logging settings.
+log_with               = ""         # Logging integration (wandb, tensorboard, all, or empty for none). (Default: "")
+wandb_api_key          = ""         # Weights & Biases API key.
+wandb_run_name         = ""         # Weights & Biases run name.
+log_config             = false      # Log training parameters to W&B. (Default: false)
+log_tracker_name       = ""         # Name for the log tracker.
+log_tracker_config_dir = "./logs"    # Directory for log tracker configuration. Initial value for dropdown.
 
 [sdxl]
-sdxl_cache_text_encoder_outputs = false # Cache text encoder outputs
-sdxl_no_half_vae = false                # No half VAE (Code default is False, example had True)
-fused_backward_pass = false             # Fused backward pass
-fused_optimizer_groups = 0              # Fused optimizer groups
-disable_mmap_load_safetensors = false   # Disable mmap load safe tensors
+# SDXL specific parameters.
+sdxl_cache_text_encoder_outputs = false  # Cache SDXL text encoder outputs in VRAM. (Default: false)
+sdxl_no_half_vae                = false  # Disable half-precision VAE for SDXL (original example was true). (Default: false)
+fused_backward_pass             = false  # Enable fused backward pass for SDXL. (Default: false)
+fused_optimizer_groups          = 0      # Number of fused optimizer groups for SDXL. (Default: 0)
+disable_mmap_load_safetensors   = false  # Disable memory-mapped loading of safetensors for SDXL. (Default: false)
 
 [huggingface]
-repo_id = ""                      # Huggingface repo id
-token = ""                        # Huggingface token
-repo_type = ""                    # Huggingface repo type
-repo_visibility = ""              # Huggingface repo visibility (public, private)
-path_in_repo = ""                 # Huggingface path in repo
-save_state_to_huggingface = false # Save state to huggingface
-resume_from_huggingface = ""      # Resume from huggingface (repo_id/path:revision:type)
-async_upload = false              # Async upload
+# Hugging Face Hub integration settings.
+repo_id         = ""     # Repository ID on Hugging Face Hub (e.g., username/my-model).
+token           = ""     # Hugging Face API token.
+repo_type       = ""     # Type of repository on Hugging Face Hub (e.g., model, dataset).
+repo_visibility = ""     # Visibility of the repository (public, private).
+path_in_repo    = ""     # Path within the repository to save/load files.
+
+# Hugging Face state saving/resuming.
+save_state_to_huggingface = false  # Save training state to Hugging Face Hub. (Default: false)
+resume_from_huggingface   = ""     # Resume training from Hugging Face Hub (format: repo_id/path:revision:type).
+async_upload              = false  # Enable asynchronous uploads to Hugging Face Hub. (Default: false)
 
 [metadata]
-metadata_title = ""       # Title for model metadata (default is output_name)
-metadata_author = ""      # Author name for model metadata
-metadata_description = "" # Description for model metadata
-metadata_license = ""     # License for model metadata
-metadata_tags = ""        # Tags for model metadata, separated by comma
+# Metadata to embed in the trained model.
+metadata_title       = ""  # Title for the model (defaults to output_name if empty).
+metadata_author      = ""  # Author of the model.
+metadata_description = ""  # Description of the model.
+metadata_license     = ""  # License information for the model.
+metadata_tags        = ""  # Comma-separated tags for the model.
 
 [samples]
-sample_every_n_steps = 0   # Sample every n steps (0 to disable)
-sample_every_n_epochs = 0  # Sample every n epochs (0 to disable)
-sample_sampler = "euler_a" # Sampler to use for image sampling
-sample_prompts = ""        # Sample prompts (one per line)
+# Image sample generation during training.
+sample_every_n_steps  = 0         # Frequency of generating samples (in steps; 0 to disable). (Default: 0)
+sample_every_n_epochs = 0         # Frequency of generating samples (in epochs; 0 to disable). (Default: 0)
+sample_sampler        = "euler_a" # Sampler to use for image generation (e.g., euler_a, dpm++_2m_karras). (Default: "euler_a")
+sample_prompts        = ""        # Prompts for sample generation (one per line).
 
-[dreambooth] # Section for Dreambooth specific UI settings
-expand_basic_accordion = true
+# --- UI Specific Default Settings ---
+# These sections define default values for specific tabs in the Kohya_ss GUI.
 
-[finetune] # Section for Finetune specific UI settings
-expand_basic_accordion = true
-# [finetune.advanced] for elements in finetune_gui's advanced section (if any specific beyond general advanced)
+[dreambooth]
+# Default UI settings for the Dreambooth tab.
+expand_basic_accordion = true  # Expand the 'Basic Configuration' accordion by default. (Default: true)
+
+[finetune]
+# Default UI settings for the Finetune tab.
+expand_basic_accordion = true  # Expand the 'Basic Configuration' accordion by default. (Default: true)
+
 [finetune.advanced]
-block_lr = ""                             # Block LR (SDXL) for finetuning
-# [finetune.basic] for elements directly in finetune_gui's basic section
+# Default UI settings for the 'Advanced' section within the Finetune tab.
+block_lr = ""  # Block learning rates (SDXL specific for finetuning).
+
 [finetune.basic]
-dataset_repeats = "40"
-train_text_encoder = true
-# [finetune.dataset_preparation] for elements in finetune_gui's dataset_preparation section
+# Default UI settings for the 'Basic' section within the Finetune tab.
+dataset_repeats    = "40"  # Number of times to repeat the dataset per epoch. (Default: "40")
+train_text_encoder = true    # Train the text encoder during finetuning. (Default: true)
+
 [finetune.dataset_preparation]
-max_resolution = "512,512"
-min_bucket_reso = "256"
-max_bucket_reso = "1024"
-batch_size = "1"
-create_caption = true
-create_buckets = true
-use_latent_files = "Yes"
-caption_metadata_filename = "meta_cap.json"
-latent_metadata_filename = "meta_lat.json"
-full_path = true
-weighted_captions = false
+# Default UI settings for the 'Dataset Preparation' section within the Finetune tab.
+max_resolution            = "512,512"      # Max resolution for dataset processing. (Default: "512,512")
+min_bucket_reso           = "256"          # Min bucket resolution for dataset processing. (Default: "256")
+max_bucket_reso           = "1024"         # Max bucket resolution for dataset processing. (Default: "1024")
+batch_size                = "1"            # Batch size for dataset processing. (Default: "1")
+create_caption            = true           # Generate caption metadata. (Default: true)
+create_buckets            = true           # Generate image bucket metadata. (Default: true)
+use_latent_files          = "Yes"          # Use latent files ("Yes", "No", "Only"). (Default: "Yes")
+caption_metadata_filename = "meta_cap.json" # Filename for caption metadata. (Default: "meta_cap.json")
+latent_metadata_filename  = "meta_lat.json" # Filename for latent metadata. (Default: "meta_lat.json")
+full_path                 = true           # Use full paths in metadata files. (Default: true)
+weighted_captions         = false          # Enable weighted captions for dataset. (Default: false)
 
-[lora] # Section for LoRA specific UI settings
-expand_basic_accordion = true
-expand_lycoris_accordion = false # control visibility of LyCORIS specific section
-# [lora.basic] for elements directly in lora_gui's basic section
+[lora]
+# Default UI settings for the LoRA and LyCORIS tab.
+expand_basic_accordion   = true   # Expand the 'Basic Configuration' accordion by default. (Default: true)
+expand_lycoris_accordion = false  # Expand the 'LyCORIS' specific accordion by default. (Default: false)
+
 [lora.basic]
-lora_type = "Standard"
-lycoris_preset = "full"  # Default for LyCORIS preset dropdown
-network_weights = ""     # Path to existing LoRA network weights
-dim_from_weights = false
-text_encoder_lr = 0.0    # Explicitly float
-t5xxl_lr = 0.0           # Explicitly float
-unet_lr = 0.0001
-loraplus_lr_ratio = 0
-loraplus_unet_lr_ratio = 0
-loraplus_text_encoder_lr_ratio = 0
-network_dim = 8
-network_alpha = 1.0      # Explicitly float
-conv_dim = 1
-conv_alpha = 1.0         # Explicitly float
-scale_weight_norms = 0.0 # Explicitly float
-network_dropout = 0.0    # Explicitly float
-rank_dropout = 0.0       # Explicitly float
-module_dropout = 0.0
-unit = 1 # For DyLoRA
-train_lora_ggpo = false
-ggpo_sigma = 0.03
-ggpo_beta = 0.01
+# Default UI settings for the 'Basic' section within the LoRA tab.
+lora_type        = "Standard" # Type of LoRA network (Standard, LoCon, LoHa, etc.). (Default: "Standard")
+lycoris_preset   = "full"     # Default preset for LyCORIS if selected. (Default: "full")
+network_weights  = ""         # Path to existing LoRA network weights to resume training.
+dim_from_weights = false      # Determine network dimension from weights automatically. (Default: false)
 
-# [lora.advanced] for LoRA specific advanced settings (weights, blocks, conv layers)
+# Learning rates for LoRA components.
+text_encoder_lr                = 0.0     # Learning rate for text encoder LoRA components. (Default: 0.0)
+t5xxl_lr                       = 0.0     # Learning rate for T5XXL LoRA components. (Default: 0.0)
+unet_lr                        = 0.0001  # Learning rate for U-Net LoRA components. (Default: 0.0001)
+loraplus_lr_ratio              = 0.0     # LoRA+ learning rate ratio. (Default: 0.0)
+loraplus_unet_lr_ratio         = 0.0     # LoRA+ U-Net learning rate ratio. (Default: 0.0)
+loraplus_text_encoder_lr_ratio = 0.0     # LoRA+ Text Encoder learning rate ratio. (Default: 0.0)
+
+# Network dimensions and alpha values.
+network_dim   = 8      # Rank of the LoRA decomposition. (Default: 8)
+network_alpha = 1.0    # Alpha for LoRA scaling (often same as network_dim). (Default: 1.0)
+conv_dim      = 1      # Rank for convolutional layers in LoCon/LyCORIS. (Default: 1)
+conv_alpha    = 1.0    # Alpha for convolutional layers. (Default: 1.0)
+
+# Dropout and normalization.
+scale_weight_norms = 0.0  # Scale weight norms (0.0 to disable). (Default: 0.0)
+network_dropout    = 0.0  # Dropout rate for LoRA network. (Default: 0.0)
+rank_dropout       = 0.0  # Rank dropout rate. (Default: 0.0)
+module_dropout     = 0.0  # Module dropout rate. (Default: 0.0)
+
+# DyLoRA specific.
+unit = 1  # Unit value for DyLoRA. (Default: 1)
+
+# GGPO specific (experimental).
+train_lora_ggpo = false  # Train LoRA with GGPO. (Default: false)
+ggpo_sigma      = 0.03   # GGPO sigma value. (Default: 0.03)
+ggpo_beta       = 0.01   # GGPO beta value. (Default: 0.01)
+
 [lora.advanced]
-down_lr_weight = ""
-mid_lr_weight = ""
-up_lr_weight = ""
-block_lr_zero_threshold = ""
-block_dims = ""
-block_alphas = ""
-conv_block_dims = ""
-conv_block_alphas = ""
+# Default UI settings for LoRA specific advanced parameters (weights, blocks, conv layers).
+down_lr_weight          = ""  # Learning rate weights for down blocks.
+mid_lr_weight           = ""  # Learning rate weights for mid block.
+up_lr_weight            = ""  # Learning rate weights for up blocks.
+block_lr_zero_threshold = ""  # Threshold for zeroing block learning rates.
+block_dims              = ""  # Dimensions for specific blocks.
+block_alphas            = ""  # Alphas for specific blocks.
+conv_block_dims         = ""  # Dimensions for specific convolutional blocks.
+conv_block_alphas       = ""  # Alphas for specific convolutional blocks.
 
-# [lora.lycoris] for LyCORIS specific parameters
 [lora.lycoris]
-factor = -1
-bypass_mode = false
-dora_wd = false
-use_cp = false
-use_tucker = false
-use_scalar = false
-rank_dropout_scale = false
-constrain = 0.0
-rescaled = false
-train_norm = false
-decompose_both = false
-train_on_input = true
+# Default UI settings for LyCORIS specific parameters.
+factor           = -1     # Factor for LyCORIS algorithms. (Default: -1)
+bypass_mode      = false  # Enable bypass mode for LyCORIS. (Default: false)
+dora_wd          = false  # Enable DoRA Weight Decompsition. (Default: false)
+use_cp           = false  # Use CP decomposition for LoKR. (Default: false)
+use_tucker       = false  # Use Tucker decomposition for LoKR. (Default: false)
+use_scalar       = false  # Use scalar values in LoKR. (Default: false)
+rank_dropout_scale = false # Scale rank dropout. (Default: false)
+constrain        = 0.0    # Constraint value for LoKR. (Default: 0.0)
+rescaled         = false  # Enable rescaled LoKR. (Default: false)
+train_norm       = false  # Train normalization layers with LyCORIS. (Default: false)
+decompose_both   = false  # Decompose both layers in LyCORIS. (Default: false)
+train_on_input   = true   # Train LyCORIS on input. (Default: true)
 
-[textual_inversion] # Section for Textual Inversion specific UI settings
-expand_basic_accordion = true
-# [textual_inversion.basic] for elements directly in textual_inversion_gui's basic section
+[textual_inversion]
+# Default UI settings for the Textual Inversion tab.
+expand_basic_accordion = true  # Expand the 'Basic Configuration' accordion by default. (Default: true)
+
 [textual_inversion.basic]
-token_string = "" # Default is empty as per current code
-init_word = "*"
-num_vectors_per_token = 1
-template = "caption"
-weights = "" # Path to existing TI embedding file to resume training
+# Default UI settings for the 'Basic' section within the Textual Inversion tab.
+token_string            = ""       # Trigger token string for the embedding.
+init_word               = "*"      # Initialization word for the embedding. (Default: "*")
+num_vectors_per_token   = 1        # Number of vectors per token in the embedding. (Default: 1)
+template                = "caption" # Template file for training. (Default: "caption")
+weights                 = ""       # Path to existing TI embedding file to resume training.
 
-[sd3] # SD3 specific parameters from class_sd3.py
-weighting_scheme = "logit_normal"
-logit_mean = 0.0
-logit_std = 1.0
-mode_scale = 1.29
-clip_l = ""
-clip_g = ""
-t5xxl = ""
-save_clip = false
-save_t5xxl = false
-t5xxl_device = ""
-t5xxl_dtype = "bf16"
-text_encoder_batch_size = 1
-cache_text_encoder_outputs = false
-cache_text_encoder_outputs_to_disk = false
-clip_l_dropout_rate = 0.0
-clip_g_dropout_rate = 0.0
-t5_dropout_rate = 0.0
-fused_backward_pass = false
-disable_mmap_load_safetensors = false
-enable_scaled_pos_embed = false
-pos_emb_random_crop_rate = 0.0
+[sd3]
+# SD3 specific parameters.
+weighting_scheme = "logit_normal"  # Weighting scheme for SD3. (Default: "logit_normal")
+logit_mean       = 0.0            # Logit mean for SD3. (Default: 0.0)
+logit_std        = 1.0            # Logit standard deviation for SD3. (Default: 1.0)
+mode_scale       = 1.29           # Mode scale for SD3. (Default: 1.29)
 
-[flux1] # Flux.1 specific parameters from class_flux1.py
-expand_accordion = true # For the main Flux.1 accordion
-ae = ""
-clip_l = ""
-t5xxl = ""
-discrete_flow_shift = 3.0
-model_prediction_type = "sigma_scaled"
-timestep_sampling = "sigma"
-apply_t5_attn_mask = false
-split_mode = false
-train_blocks = "all"
-split_qkv = false
-train_t5xxl = false
-cpu_offload_checkpointing = false # This key appears twice, assuming one for finetuning context and one for lora.
-guidance_scale = 3.5
-t5xxl_max_token_length = 512
-enable_all_linear = false
-cache_text_encoder_outputs = false
-cache_text_encoder_outputs_to_disk = false
-mem_eff_save = false
-single_blocks_to_swap = 0
-double_blocks_to_swap = 0
-blockwise_fused_optimizers = false
-flux_fused_backward_pass = false # Specific key for flux
-train_double_block_indices = "all"
-train_single_block_indices = "all"
-img_attn_dim = ""
-img_mlp_dim = ""
-img_mod_dim = ""
-single_dim = ""
-txt_attn_dim = ""
-txt_mlp_dim = ""
-txt_mod_dim = ""
-single_mod_dim = ""
-in_dims = ""
+# Paths to SD3 components.
+clip_l = ""  # Path to SD3 CLIP-L model.
+clip_g = ""  # Path to SD3 CLIP-G model.
+t5xxl  = ""  # Path to SD3 T5XXL model.
 
-# This next section can be used to set default values for the Dataset Preparation section
-# The "Destination training direcroty" field will be equal to "train_data_dir" as specified above
-# These are not directly loaded by Gradio elements via config.get in the same way as above,
-# but are here for user reference or if other parts of the code might use them.
-# The finetune GUI elements for dataset prep have their own keys under [finetune.dataset_preparation]
+# Saving options for SD3 components.
+save_clip  = false  # Save CLIP model during SD3 training. (Default: false)
+save_t5xxl = false  # Save T5XXL model during SD3 training. (Default: false)
+
+# T5XXL settings for SD3.
+t5xxl_device = ""     # Device for T5XXL processing (e.g., "cpu", "cuda").
+t5xxl_dtype  = "bf16" # Data type for T5XXL (e.g., "bf16", "fp16", "float32"). (Default: "bf16")
+
+# Batch size and caching for SD3 text encoders.
+text_encoder_batch_size          = 1      # Batch size for SD3 text encoders. (Default: 1)
+cache_text_encoder_outputs       = false  # Cache SD3 text encoder outputs in VRAM. (Default: false)
+cache_text_encoder_outputs_to_disk = false  # Cache SD3 text encoder outputs to disk. (Default: false)
+
+# Dropout rates for SD3 text encoders.
+clip_l_dropout_rate = 0.0  # Dropout rate for SD3 CLIP-L. (Default: 0.0)
+clip_g_dropout_rate = 0.0  # Dropout rate for SD3 CLIP-G. (Default: 0.0)
+t5_dropout_rate     = 0.0  # Dropout rate for SD3 T5. (Default: 0.0)
+
+# Performance options for SD3.
+fused_backward_pass           = false  # Enable fused backward pass for SD3. (Default: false)
+disable_mmap_load_safetensors = false  # Disable memory-mapped loading of safetensors for SD3. (Default: false)
+enable_scaled_pos_embed       = false  # Enable scaled positional embeddings for SD3. (Default: false)
+pos_emb_random_crop_rate      = 0.0    # Random crop rate for positional embeddings in SD3. (Default: 0.0)
+
+[flux1]
+# Flux.1 specific parameters.
+expand_accordion = true  # Expand the main Flux.1 accordion in UI by default. (Default: true)
+
+# Paths to Flux.1 components.
+ae     = ""  # Path to Flux.1 Autoencoder model.
+clip_l = ""  # Path to Flux.1 CLIP-L model.
+t5xxl  = ""  # Path to Flux.1 T5XXL model.
+
+# Core Flux.1 parameters.
+discrete_flow_shift   = 3.0           # Discrete flow shift value. (Default: 3.0)
+model_prediction_type = "sigma_scaled" # Model prediction type (e.g., "sigma_scaled"). (Default: "sigma_scaled")
+timestep_sampling     = "sigma"        # Timestep sampling method (e.g., "sigma"). (Default: "sigma")
+apply_t5_attn_mask    = false          # Apply T5 attention mask. (Default: false)
+split_mode            = false          # Enable split mode. (Default: false)
+train_blocks          = "all"          # Blocks to train (e.g., "all", "single", "double"). (Default: "all")
+split_qkv             = false          # Split QKV computations. (Default: false)
+train_t5xxl           = false          # Train T5XXL component. (Default: false)
+cpu_offload_checkpointing = false      # Offload checkpoints to CPU to save VRAM. Appears once in this TOML. (Default: false)
+guidance_scale        = 3.5            # Guidance scale for inference. (Default: 3.5)
+
+# T5XXL settings for Flux.1.
+t5xxl_max_token_length = 512  # Maximum token length for T5XXL. (Default: 512)
+
+# Performance and memory options for Flux.1.
+enable_all_linear     = false  # Enable all linear layers. (Default: false)
+cache_text_encoder_outputs = false  # Cache Flux.1 text encoder outputs in VRAM. (Default: false)
+cache_text_encoder_outputs_to_disk = false # Cache Flux.1 text encoder outputs to disk. (Default: false)
+mem_eff_save          = false  # Enable memory-efficient saving. (Default: false)
+single_blocks_to_swap = 0      # Number of single blocks to swap. (Default: 0)
+double_blocks_to_swap = 0      # Number of double blocks to swap. (Default: 0)
+blockwise_fused_optimizers = false # Enable blockwise fused optimizers. (Default: false)
+flux_fused_backward_pass = false # Enable fused backward pass specific to Flux.1. (Default: false)
+
+# Block indices for training.
+train_double_block_indices = "all"  # Indices of double blocks to train. (Default: "all")
+train_single_block_indices = "all"  # Indices of single blocks to train. (Default: "all")
+
+# Dimensionality settings for Flux.1 components.
+img_attn_dim = ""  # Image attention dimension.
+img_mlp_dim  = ""  # Image MLP dimension.
+img_mod_dim  = ""  # Image modulator dimension.
+single_dim   = ""  # Single dimension.
+txt_attn_dim = ""  # Text attention dimension.
+txt_mlp_dim  = ""  # Text MLP dimension.
+txt_mod_dim  = ""  # Text modulator dimension.
+single_mod_dim = "" # Single modulator dimension.
+in_dims      = ""  # Input dimensions.
+
+# --- Standalone Tool Default Settings ---
+
 [dataset_preparation]
-class_prompt = "class"                                  # Class prompt
-images_folder = "/some/folder/where/images/are"         # Training images directory
-instance_prompt = "instance"                            # Instance prompt
-reg_images_folder = "/some/folder/where/reg/images/are" # Regularisation images directory
-reg_images_repeat = 1                                   # Regularisation images repeat
-util_regularization_images_repeat_input = 1             # Regularisation images repeat input
-util_training_images_repeat_input = 40                  # Training images repeat input
+# Default values for the standalone "Dreambooth Folder Creation" utility (not the Finetune tab's dataset prep).
+# The "Destination training directory" field in that utility will use `[model].train_data_dir`.
+class_prompt                            = "class"                                  # Class prompt for Dreambooth style training. (Default: "class")
+images_folder                           = "/some/folder/where/images/are"          # Example path for training images directory.
+instance_prompt                         = "instance"                               # Instance prompt for Dreambooth style training. (Default: "instance")
+reg_images_folder                       = "/some/folder/where/reg/images/are"      # Example path for regularization images directory.
+reg_images_repeat                       = 1                                        # Repeats for regularization images. (Default: 1)
+util_regularization_images_repeat_input = 1                                        # Input field for regularization image repeats in the utility. (Default: 1)
+util_training_images_repeat_input       = 40                                       # Input field for training image repeats in the utility. (Default: 40)
 
 [wd14_caption]
-always_first_tags = ""                        # comma-separated list of tags to always put at the beginning, e.g. 1girl,1boy
-append_tags = false                           # Append TAGs
-batch_size = 8                                # Batch size
-caption_extension = ".txt"                    # Extension for caption file (e.g., .caption, .txt)
-caption_separator = ", "                      # Caption Separator
-character_tag_expand = false                  # Expand tag tail parenthesis to another tag for character tags. `chara_name_(series)` becomes `chara_name, series`
-character_threshold = 0.35                    # Character threshold
-debug = false                                 # Debug mode
-force_download = false                        # Force model re-download when switching to onnx
-frequency_tags = false                        # Frequency tags
-general_threshold = 0.35                      # General threshold
-max_data_loader_n_workers = 2                 # Max dataloader workers
-onnx = true                                   # ONNX
-recursive = false                             # Recursive
-remove_underscore = false                     # Remove underscore
-repo_id = "SmilingWolf/wd-convnext-tagger-v3" # Repo id for wd14 tagger on Hugging Face
-tag_replacement = ""                          # Tag replacement in the format of `source1,target1;source2,target2; ...`. Escape `,` and `;` with `\`. e.g. `tag1,tag2;tag3,tag4`
-thresh = 0.36                                 # Threshold
-train_data_dir = ""                           # Image folder to caption (containing the images to caption)
-undesired_tags = ""                           # comma-separated list of tags to remove, e.g. 1girl,1boy
-use_rating_tags = false                       # Use rating tags
-use_rating_tags_as_last_tag = false           # Use rating tags as last tagging tags
+# Default settings for the WD14 Tagger utility.
+always_first_tags = ""                           # Comma-separated tags to always place at the beginning (e.g., "1girl,1boy").
+append_tags       = false                        # Append new tags instead of overwriting caption file. (Default: false)
+batch_size        = 8                            # Batch size for processing images. (Default: 8)
+caption_extension = ".txt"                       # Extension for caption files (e.g., ".caption", ".txt"). (Default: ".txt")
+caption_separator = ", "                         # Separator used between tags in the caption file. (Default: ", ")
+character_tag_expand = false                   # Expand character tags like `name_(series)` to `name, series`. (Default: false)
+character_threshold  = 0.35                      # Confidence threshold for character tags. (Default: 0.35)
+debug             = false                        # Enable debug mode for verbose logging. (Default: false)
+force_download    = false                        # Force re-download of the tagging model. (Default: false)
+frequency_tags    = false                        # Include frequency of tags in output. (Default: false)
+general_threshold = 0.35                       # Confidence threshold for general tags. (Default: 0.35)
+max_data_loader_n_workers = 2                    # Max workers for DataLoader. (Default: 2)
+onnx              = true                         # Use ONNX runtime for inference (if available). (Default: true)
+recursive         = false                        # Process images in subdirectories recursively. (Default: false)
+remove_underscore = false                        # Replace underscores with spaces in tags. (Default: false)
+repo_id           = "SmilingWolf/wd-convnext-tagger-v3" # Hugging Face repository ID for the tagger model.
+tag_replacement   = ""                           # Tag replacement rules (e.g., "source1,target1;source2,target2").
+thresh            = 0.36                         # General confidence threshold (alternative to general_threshold). (Default: 0.36)
+train_data_dir    = ""                           # Directory of images to caption. Initial value for dropdown.
+undesired_tags    = ""                           # Comma-separated list of tags to remove from captions.
+use_rating_tags   = false                        # Include rating tags (e.g., general, sensitive, questionable, explicit). (Default: false)
+use_rating_tags_as_last_tag = false              # Place rating tags at the end of the caption. (Default: false)
