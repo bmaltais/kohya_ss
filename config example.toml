@@ -7,19 +7,19 @@ expand_all_accordions = true # Expand all accordions in the UI by default
 
 # Default folders location
 [model]
-models_dir = "./models"                    # Pretrained model name or path. Initial value for dropdown, e.g. "runwayml/stable-diffusion-v1-5"
+models_dir = "./models"                                          # Pretrained model name or path. Initial value for dropdown, e.g. "runwayml/stable-diffusion-v1-5"
 pretrained_model_name_or_path = "runwayml/stable-diffusion-v1-5" # Default actual model path/name for dropdown
-output_name = "last"                       # Trained model output name
-train_data_dir = ""                        # Image folder (containing training images subfolders) / Image folder (containing training images). Initial value for dropdown.
-dataset_config = ""                        # Dataset config file (Optional. Select the toml configuration file to use for the dataset). Initial value for dropdown.
-training_comment = ""                      # Training comment
-save_model_as = "safetensors"              # Save model as (ckpt, safetensors, diffusers, diffusers_safetensors)
-save_precision = "fp16"                    # Save model precision (fp16, bf16, float)
-v2 = false                                 # v2 model
-v_parameterization = false                 # v_parameterization
-sdxl = false                               # SDXL model
-sd3 = false                                # SD3 model
-flux1 = false                              # Flux.1 model
+output_name = "last"                                             # Trained model output name
+train_data_dir = ""                                              # Image folder (containing training images subfolders) / Image folder (containing training images). Initial value for dropdown.
+dataset_config = ""                                              # Dataset config file (Optional. Select the toml configuration file to use for the dataset). Initial value for dropdown.
+training_comment = ""                                            # Training comment
+save_model_as = "safetensors"                                    # Save model as (ckpt, safetensors, diffusers, diffusers_safetensors)
+save_precision = "fp16"                                          # Save model precision (fp16, bf16, float)
+v2 = false                                                       # v2 model
+v_parameterization = false                                       # v_parameterization
+sdxl = false                                                     # SDXL model
+sd3 = false                                                      # SD3 model
+flux1 = false                                                    # Flux.1 model
 
 
 [folders]
@@ -202,19 +202,19 @@ expand_lycoris_accordion = false # control visibility of LyCORIS specific sectio
 # [lora.basic] for elements directly in lora_gui's basic section
 [lora.basic]
 lora_type = "Standard"
-lycoris_preset = "full" # Default for LyCORIS preset dropdown
-network_weights = ""    # Path to existing LoRA network weights
+lycoris_preset = "full"  # Default for LyCORIS preset dropdown
+network_weights = ""     # Path to existing LoRA network weights
 dim_from_weights = false
-text_encoder_lr = 0.0 # Explicitly float
-t5xxl_lr = 0.0        # Explicitly float
+text_encoder_lr = 0.0    # Explicitly float
+t5xxl_lr = 0.0           # Explicitly float
 unet_lr = 0.0001
 loraplus_lr_ratio = 0
 loraplus_unet_lr_ratio = 0
 loraplus_text_encoder_lr_ratio = 0
 network_dim = 8
-network_alpha = 1.0 # Explicitly float
+network_alpha = 1.0      # Explicitly float
 conv_dim = 1
-conv_alpha = 1.0 # Explicitly float
+conv_alpha = 1.0         # Explicitly float
 scale_weight_norms = 0.0 # Explicitly float
 network_dropout = 0.0    # Explicitly float
 rank_dropout = 0.0       # Explicitly float
