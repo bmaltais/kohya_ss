@@ -345,4 +345,4 @@ def gradio_kontext_manual_caption_gui_tab(headless=False, default_images_dir=Non
         image_files_state.change(update_images, inputs=update_trigger_inputs, outputs=update_outputs, show_progress=False)
 
         auto_save.change(lambda is_auto_save: [gr.Button(visible=not is_auto_save)] * IMAGES_TO_SHOW, inputs=auto_save, outputs=save_buttons)
-        page.change(lambda p, m: [f"Page {int(p)} / {int(m)}"] * 2, inputs=[page, max_page], outputs=[page_count1, page_count2], show_progress=False)
+        page.change(lambda p, m: (f"Page {int(p)} / {int(m)}", f"Page {int(p)} / {int(m)}"), inputs=[page, max_page], outputs=[page_count1, page_count2], show_progress=False)
