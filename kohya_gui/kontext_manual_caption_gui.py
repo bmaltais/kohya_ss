@@ -276,6 +276,18 @@ def gradio_kontext_manual_caption_gui_tab(headless=False, default_images_dir=Non
 
         with gr.Group():
             with gr.Row():
+                control_images_dir = gr.Dropdown(
+                    label="Control image folder",
+                    choices=[""] + list_dirs_wrapper(default_images_dir, "control"),
+                    value="",
+                    interactive=True,
+                    allow_custom_value=True,
+                    scale=2,
+                )
+                create_refresh_button(control_images_dir, lambda: None, lambda: {"choices": list_dirs_wrapper(current_control_images_dir, "control")}, "open_folder_small")
+                control_folder_button = gr.Button("📂", elem_id="open_folder_small", elem_classes=["tool"], visible=(not headless))
+                control_folder_button.click(get_folder_path, outputs=control_images_dir, show_progress=False)
+                
                 target_images_dir = gr.Dropdown(
                     label="Target image folder",
                     choices=[""] + list_dirs_wrapper(default_images_dir, "target"),
@@ -288,17 +300,6 @@ def gradio_kontext_manual_caption_gui_tab(headless=False, default_images_dir=Non
                 folder_button = gr.Button("📂", elem_id="open_folder_small", elem_classes=["tool"], visible=(not headless))
                 folder_button.click(get_folder_path, outputs=target_images_dir, show_progress=False)
 
-                control_images_dir = gr.Dropdown(
-                    label="Control image folder",
-                    choices=[""] + list_dirs_wrapper(default_images_dir, "control"),
-                    value="",
-                    interactive=True,
-                    allow_custom_value=True,
-                    scale=2,
-                )
-                create_refresh_button(control_images_dir, lambda: None, lambda: {"choices": list_dirs_wrapper(current_control_images_dir, "control")}, "open_folder_small")
-                control_folder_button = gr.Button("📂", elem_id="open_folder_small", elem_classes=["tool"], visible=(not headless))
-                control_folder_button.click(get_folder_path, outputs=control_images_dir, show_progress=False)
 
             with gr.Row():
                 caption_ext = gr.Dropdown(
