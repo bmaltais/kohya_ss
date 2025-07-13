@@ -59,6 +59,11 @@ def initialize_ui_interface(config, headless, use_shell, release_info, readme_co
             )
             with gr.Tab("LoRA"):
                 _ = LoRATools(headless=headless)
+            from kohya_gui.flux_manual_caption_gui import (
+                gradio_flux_manual_caption_gui_tab,
+            )
+
+            gradio_flux_manual_caption_gui_tab(headless=headless)
         with gr.Tab("About"):
             # About tab to display release information and README content
             gr.Markdown(f"kohya_ss GUI release {release_info}")
