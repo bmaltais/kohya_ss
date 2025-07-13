@@ -174,8 +174,10 @@ def import_tags_from_captions(
                                 tags.append(tag)
                                 tags_set.add(tag_key)
 
-    gr.Info(f"Imported {len(tags)} unique tags.")
-    return ", ".join(sorted(tags, key=str.lower)) # REFACTOR: Sort alphabetically for consistency
+    # Ensure tags are alphabetically sorted (case-insensitive)
+    tags_sorted = sorted(tags, key=lambda t: t.lower())
+    gr.Info(f"Imported {len(tags_sorted)} unique tags.")
+    return ", ".join(tags_sorted)
 
 
 def load_images(
