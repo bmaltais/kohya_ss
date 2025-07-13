@@ -253,11 +253,14 @@ def gradio_manual_caption_gui_tab(headless=False, default_images_dir=None):
                 images_dir = gr.Dropdown(label="Image folder to caption", choices=[""] + list(list_dirs(default_images_dir)), value="", interactive=True, allow_custom_value=True)
                 create_refresh_button(images_dir, lambda: None, lambda: {"choices": list(list_dirs(images_dir.value or default_images_dir))}, "open_folder_small")
                 gr.Button("📂", elem_id="open_folder_small", elem_classes=["tool"], visible=not headless).click(get_folder_path, outputs=images_dir, show_progress=False)
-                load_images_button = gr.Button("Load Images", variant="primary")
+
 
             with gr.Row():
                 caption_ext = gr.Dropdown(label="Caption file extension", choices=[".cap", ".caption", ".txt"], value=".txt", interactive=True, allow_custom_value=True)
                 auto_save = gr.Checkbox(label="Autosave", value=True, interactive=True)
+                
+            with gr.Row():
+                load_images_button = gr.Button("Load Images", variant="primary")
 
             images_dir.change(update_dir_list, inputs=images_dir, outputs=images_dir, show_progress=False)
 
@@ -265,6 +268,8 @@ def gradio_manual_caption_gui_tab(headless=False, default_images_dir=None):
             quick_tags_text = gr.Textbox(label="Quick Tags", placeholder="Comma separated list of tags", interactive=True)
             with gr.Row():
                 ignore_load_tags_word_count = gr.Slider(minimum=1, maximum=100, value=10, step=1, label="Ignore Imported Tags Above Word Count", interactive=True, scale=2)
+            
+            with gr.Row():
                 import_tags_button = gr.Button("Import tags from captions", scale=1)
 
         pagination_row1, page_count1 = render_pagination_with_logic(page, max_page)

@@ -300,6 +300,8 @@ def gradio_kontext_manual_caption_gui_tab(headless=False, default_images_dir=Non
             quick_tags_text = gr.Textbox(label="Quick Tags", placeholder="Comma separated list of tags", interactive=True)
             with gr.Row():
                 ignore_load_tags_word_count = gr.Slider(minimum=1, maximum=100, value=10, step=1, label="Ignore Imported Tags Above Word Count", interactive=True, scale=2)
+            
+            with gr.Row():
                 import_tags_button = gr.Button("Import tags from captions", scale=1)
 
         pagination_row1, page_count1 = render_pagination_with_logic(page, max_page)
