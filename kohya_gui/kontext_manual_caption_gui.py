@@ -57,6 +57,21 @@ def paginate_go(page, max_page):
         return gr.update()
 
 
+def derive_target_folder(control_folder):
+    if not control_folder or not os.path.exists(control_folder):
+        return ""
+
+    parent_dir = os.path.dirname(control_folder)
+    control_folder_name = os.path.basename(control_folder)
+
+    for item in os.listdir(parent_dir):
+        if os.path.isdir(os.path.join(parent_dir, item)):
+            if "control" in item.lower() and item.lower() != control_folder_name.lower():
+                return os.path.join(parent_dir, item)
+
+    return control_folder_name
+
+
 def paginate(page, max_page, page_change):
     # REFACTOR: Ensure page is treated as an integer
     return int(max(min(int(page) + page_change, max_page), 1))
@@ -294,7 +309,12 @@ def gradio_kontext_manual_caption_gui_tab(headless=False, default_images_dir=Non
             load_images_button = gr.Button("Load Images", variant="primary")
 
             target_images_dir.change(update_dir_list, inputs=target_images_dir, outputs=target_images_dir, show_progress=False)
-            control_images_dir.change(update_dir_list, inputs=control_images_dir, outputs=control_images_dir, show_progress=False)
+            control_images_dir.change(
+                lambda path: (update_dir_list(path), derive_target_folder(path)),
+                inputs=control_images_dir,
+                outputs=[control_images_dir, target_images_dir],
+                show_progress=False
+            )
 
         with gr.Group():
             quick_tags_text = gr.Textbox(label="Quick Tags", placeholder="Comma separated list of tags", interactive=True)
