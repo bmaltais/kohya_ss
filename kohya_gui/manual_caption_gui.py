@@ -244,7 +244,7 @@ def gradio_manual_caption_gui_tab(headless=False, default_images_dir=None):
         image_files_state = gr.State([])
 
         info_box = gr.Markdown(visible=False)
-        page = gr.Number(value=1, visible=False)
+        page = gr.State(value=1)
         max_page = gr.Number(value=1, visible=False)
         loaded_images_dir = gr.Text(visible=False)
 
