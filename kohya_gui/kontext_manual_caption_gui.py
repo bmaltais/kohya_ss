@@ -69,7 +69,7 @@ def derive_target_folder(control_folder):
             if "control" in item.lower() and item.lower() != control_folder_name.lower():
                 return os.path.join(parent_dir, item)
 
-    return control_folder_name
+    return control_folder
 
 
 def paginate(page, max_page, page_change):
@@ -310,10 +310,15 @@ def gradio_kontext_manual_caption_gui_tab(headless=False, default_images_dir=Non
 
             target_images_dir.change(update_dir_list, inputs=target_images_dir, outputs=target_images_dir, show_progress=False)
             control_images_dir.change(
-                lambda path: (update_dir_list(path), derive_target_folder(path)),
-                inputs=control_images_dir,
+                lambda path, current_target: (
+                    update_dir_list(path),
+                    derive_target_folder(path)
+                    if not current_target
+                    else gr.update(),
+                ),
+                inputs=[control_images_dir, target_images_dir],
                 outputs=[control_images_dir, target_images_dir],
-                show_progress=False
+                show_progress=False,
             )
 
         with gr.Group():
