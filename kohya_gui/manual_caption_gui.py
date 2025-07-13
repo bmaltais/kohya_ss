@@ -244,7 +244,7 @@ def gradio_manual_caption_gui_tab(headless=False, default_images_dir=None):
         image_files_state = gr.State([])
 
         info_box = gr.Markdown(visible=False)
-        page = gr.Number(value=1, visible=False)
+        page = gr.State(value=1)
         max_page = gr.Number(value=1, visible=False)
         loaded_images_dir = gr.Text(visible=False)
 
@@ -316,4 +316,5 @@ def gradio_manual_caption_gui_tab(headless=False, default_images_dir=None):
 
         auto_save.change(lambda is_auto_save: [gr.Button(visible=not is_auto_save)] * IMAGES_TO_SHOW, inputs=auto_save, outputs=save_buttons)
         page.change(lambda p, m: (f"Page {int(p)} / {int(m)}", f"Page {int(p)} / {int(m)}"), inputs=[page, max_page], outputs=[page_count1, page_count2], show_progress=False)
+        image_files_state.change(lambda p, m: (f"Page {int(p)} / {int(m)}", f"Page {int(p)} / {int(m)}"), inputs=[page, max_page], outputs=[page_count1, page_count2], show_progress=False)
         max_page.change(lambda p, m: (f"Page {int(p)} / {int(m)}", f"Page {int(p)} / {int(m)}"), inputs=[page, max_page], outputs=[page_count1, page_count2], show_progress=False)
