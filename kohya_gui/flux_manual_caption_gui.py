@@ -287,8 +287,14 @@ def update_images(
         captions.append(caption)
         tag_checkbox_groups.append(tag_checkboxes)
 
+    image_files_to_return = [
+        image_files[start_index + i] if start_index + i < len(image_files) else None
+        for i in range(IMAGES_TO_SHOW)
+    ]
+
     return (
         rows
+        + image_files_to_return
         + target_image_paths
         + control_image_paths
         + captions
@@ -573,7 +579,7 @@ def gradio_flux_manual_caption_gui_tab(headless=False, default_images_dir=None):
         # sources (page, image_dir)
         image_update_key = gr.Text(visible=False)
         image_update_key.change(
-            update_images,
+            fn=update_images,
             inputs=[
                 loaded_images_dir,
                 loaded_control_images_dir,
