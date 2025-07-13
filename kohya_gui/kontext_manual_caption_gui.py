@@ -62,14 +62,13 @@ def derive_target_folder(control_folder):
         return ""
 
     parent_dir = os.path.dirname(control_folder)
-    control_folder_name = os.path.basename(control_folder)
 
     for item in os.listdir(parent_dir):
         if os.path.isdir(os.path.join(parent_dir, item)):
-            if "control" in item.lower() and item.lower() != control_folder_name.lower():
+            if "target" in item.lower():
                 return os.path.join(parent_dir, item)
 
-    return control_folder
+    return os.path.join(parent_dir, "target")
 
 
 def paginate(page, max_page, page_change):
