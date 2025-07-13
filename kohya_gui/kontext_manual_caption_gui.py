@@ -314,7 +314,7 @@ def gradio_kontext_manual_caption_gui_tab(headless=False, default_images_dir=Non
                     update_dir_list(path),
                     derive_target_folder(path)
                     if not current_target
-                    else gr.update(),
+                    else current_target,
                 ),
                 inputs=[control_images_dir, target_images_dir],
                 outputs=[control_images_dir, target_images_dir],
