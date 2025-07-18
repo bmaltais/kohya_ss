@@ -87,6 +87,37 @@ def save_caption(caption, caption_ext, image_file, images_dir):
     return gr.Markdown(visible=False)
 
 
+def delete_images_and_caption(
+    image_file, control_images_dir, target_images_dir, caption_ext
+):
+    if not image_file:
+        return gr.Markdown(visible=False)
+
+    # Delete control image
+    control_image_path = os.path.join(control_images_dir, image_file)
+    if os.path.exists(control_image_path):
+        os.remove(control_image_path)
+        log.info(f"Deleted control image: {control_image_path}")
+
+    # Delete target image
+    target_image_path = os.path.join(target_images_dir, image_file)
+    if os.path.exists(target_image_path):
+        os.remove(target_image_path)
+        log.info(f"Deleted target image: {target_image_path}")
+
+    # Delete caption file
+    caption_path = _get_caption_path(
+        image_file, target_images_dir, caption_ext
+    )
+    if caption_path and os.path.exists(caption_path):
+        os.remove(caption_path)
+        log.info(f"Deleted caption file: {caption_path}")
+
+    return gr.Markdown(
+        f"🗑️ Deleted files for `{image_file}`", visible=True
+    )
+
+
 def update_quick_tags(quick_tags_text, *image_caption_texts):
     quick_tags, quick_tags_set = _get_quick_tags(quick_tags_text)
     return [
@@ -374,7 +405,7 @@ def gradio_kontext_manual_caption_gui_tab(headless=False, default_images_dir=Non
 
         pagination_row1, page_count1 = render_pagination_with_logic(page, max_page)
 
-        image_rows, image_files, target_image_images, control_image_images, image_caption_texts, image_tag_checks, save_buttons = [], [], [], [], [], [], []
+        image_rows, image_files, target_image_images, control_image_images, image_caption_texts, image_tag_checks, save_buttons, delete_buttons = [], [], [], [], [], [], [], []
         for i in range(IMAGES_TO_SHOW):
             with gr.Row(visible=False) as row:
                 image_file = gr.Text(visible=False)
@@ -387,13 +418,42 @@ def gradio_kontext_manual_caption_gui_tab(headless=False, default_images_dir=Non
                     tag_checkboxes = gr.CheckboxGroup([], label="Tags", interactive=True)
                 with gr.Column(min_width=40):
                     save_button = gr.Button("💾", elem_id="save_button", visible=False)
+                    delete_button = gr.Button("🗑️", elem_id="delete_button")
 
                 image_rows.append(row); image_files.append(image_file); control_image_images.append(control_image_image); target_image_images.append(target_image_image)
-                image_caption_texts.append(image_caption_text); image_tag_checks.append(tag_checkboxes); save_buttons.append(save_button)
+                image_caption_texts.append(image_caption_text); image_tag_checks.append(tag_checkboxes); save_buttons.append(save_button); delete_buttons.append(delete_button)
 
                 image_caption_text.input(update_image_caption, inputs=[quick_tags_text, image_caption_text, image_file, loaded_images_dir, caption_ext, auto_save], outputs=tag_checkboxes)
                 tag_checkboxes.input(update_image_tags, inputs=[quick_tags_text, tag_checkboxes, image_file, loaded_images_dir, caption_ext, auto_save], outputs=[image_caption_text])
                 save_button.click(save_caption, inputs=[image_caption_text, caption_ext, image_file, loaded_images_dir], outputs=info_box)
+                delete_button.click(
+                    delete_images_and_caption,
+                    inputs=[
+                        image_file,
+                        loaded_control_images_dir,
+                        loaded_images_dir,
+                        caption_ext,
+                    ],
+                    outputs=info_box,
+                ).then(
+                    load_images,
+                    inputs=[
+                        loaded_images_dir,
+                        loaded_control_images_dir,
+                        caption_ext,
+                        quick_tags_text,
+                        ignore_load_tags_word_count,
+                    ],
+                    outputs=[
+                        image_files_state,
+                        loaded_images_dir,
+                        loaded_control_images_dir,
+                        page,
+                        max_page,
+                        info_box,
+                        quick_tags_text,
+                    ],
+                )
 
         pagination_row2, page_count2 = render_pagination_with_logic(page, max_page)
 
