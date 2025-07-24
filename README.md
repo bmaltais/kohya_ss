@@ -101,9 +101,9 @@ I would like to express my gratitude to camenduru for their valuable contributio
 
 These options are for users running training on hosted GPU infrastructure or containers.
 
-- **[Runpod setup](docs/runpod_setup.md)** – Ready-made GPU background training via templates.
-- **[Novita setup](docs/novita_setup.md)** – Similar to Runpod, but integrated into the Novita UI.
-- **[Docker setup](docs/docker.md)** – For developers/sysadmins using containerized environments.
+- **[Runpod setup](docs/installation_runpod.md)** – Ready-made GPU background training via templates.
+- **[Novita setup](docs/installation_novita.md)** – Similar to Runpod, but integrated into the Novita UI.
+- **[Docker setup](docs/installation_docker.md)** – For developers/sysadmins using containerized environments.
 
 
 ## Custom Path Defaults with `config.toml`
