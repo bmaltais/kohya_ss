@@ -10,6 +10,7 @@ oneccl_bind_pt==2.7.0+xpu
 tensorboard==2.15.2
 tensorflow==2.15.0
 intel-extension-for-tensorflow[xpu]==2.15.0.2
+onnxruntime==1.22.1
 onnxruntime-openvino==1.22.0
 
 mkl==2025.0.1
