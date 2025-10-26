@@ -47,6 +47,6 @@ open-clip-torch==2.20.0
 rich==13.7.0
 
 # Kohya_ss library
-xformers==0.0.27.post2 --index-url https://download.pytorch.org/whl/cu121
-triton==2.3.0
+xformers --index-url https://download.pytorch.org/whl/cu128
+triton==3.0.0
 
