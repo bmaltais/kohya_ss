@@ -1,5 +1,5 @@
 # Python 3.11 + PyTorch 2.7.0 + CUDA 12.8 + CuDNN 9.5
-FROM pytorch/pytorch:2.7.0-cuda12.8-cudnn9-devel
+FROM pytorch/pytorch:2.7.1-cuda12.8-cudnn9-devel
 
 # 기본 작업 경로 설정
 WORKDIR /app
@@ -17,16 +17,20 @@ RUN pip install --upgrade pip setuptools wheel
 
 # kohya_ss 전체 복사 (모델 포함)
 COPY . /app/sdxl_train_captioner
-# 두 requirements.txt 모두 설치
+# requirements.txt 설치
 WORKDIR /app/sdxl_train_captioner
-RUN mkdir -p /app/sdxl_train_captioner/models
-RUN mkdir -p /app/sdxl_train_captioner/dataset
 
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install flash-attn --no-build-isolation
+
+RUN mkdir -p /app/sdxl_train_captioner/dataset
+RUN mkdir -p /app/sdxl_train_captioner/models
 
 # 모델 파일 복사 (미리 포함시킬 가중치)
 COPY ./models /app/sdxl_train_captioner/models
 
 WORKDIR /app/sdxl_train_captioner/sd-scripts
+
 RUN chmod +x ./entrypoint.sh
+
 ENTRYPOINT ["bash", "entrypoint.sh"]

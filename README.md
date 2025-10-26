@@ -16,7 +16,7 @@ cuDNN (예) C:\Program Files\NVIDIA\CUDNN\v9.5\bin 폴더 안에는 Cuda Major �
 C:\Program Files\NVIDIA\CUDNN\v9.5\bin\12.6 아래의 모든 dll 파일을 
 C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.4\bin으로 복사합니다. 
 
-
+[README.md](../sdxl_train_captioner_runtime/README.md)
 ## 3. SDXL 모델 다운로드
 - 도커 컨테이너가 실행될 때 models 하위에 StableDiffusion XL 1.0 모델이 다운로드 됩니다.
 - 만약에 해당 URL 지원이 종료 된 경우, 허깅페이지 또는 CIVITAI에서 다운로드 하세요.

@@ -21,4 +21,3 @@ logs/
 outputs/
 sd-scripts/venv
 models/sd_xl_base_1.0.safetensors
-#models/

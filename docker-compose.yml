@@ -15,8 +15,8 @@ services:
               count: all
               capabilities: [gpu]
 
-    ports:
-      - "7860:7860"
+    # ports:
+    #   - "7860:7860"
 
     # 볼륨 마운트 (호스트 ↔ 컨테이너)
     volumes:
