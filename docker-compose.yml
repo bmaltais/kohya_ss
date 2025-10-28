@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
     image: aicompanion/sdxl_train_captioner:latest
     container_name: sdxl_train_captioner
+    runtime: nvidia
 
     # GPU 설정
     deploy:
@@ -15,9 +16,6 @@ services:
               count: all
               capabilities: [gpu]
 
-    # ports:
-    #   - "7860:7860"
-
     # 볼륨 마운트 (호스트 ↔ 컨테이너)
     volumes:
       - ./models:/app/sdxl_train_captioner/models
@@ -27,7 +25,8 @@ services:
 
     environment:
       # GPU 선택 (필요 시 GPU ID 지정)
-      - CUDA_VISIBLE_DEVICES=3
+      - NVIDIA_VISIBLE_DEVICES=all      
+      - CUDA_VISIBLE_DEVICES=0
       - HF_HOME=/app/sdxl_train_captioner/models
       - HF_HUB_CACHE=/app/sdxl_train_captioner/models
       - PYTHONUNBUFFERED=1

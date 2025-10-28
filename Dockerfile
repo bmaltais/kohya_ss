@@ -7,7 +7,7 @@ WORKDIR /app
 # 필수 패키지 설치
 RUN sed -i 's|archive.ubuntu.com|mirror.kakao.com|g' /etc/apt/sources.list && \
     apt-get update && \
-    apt-get install -y apt-utils && \
+    apt-get install -y apt-utils libgl1 libglib2.0-0 && \
     apt-get install -y --no-install-recommends git wget curl && \
     rm -rf /var/lib/apt/lists/*
 
