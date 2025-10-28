@@ -1,52 +1,52 @@
 # Core packages
-accelerate==0.33.0
-transformers==4.44.0
-diffusers[torch]==0.25.0
+torch==2.7.1+cu128 --index-url https://download.pytorch.org/whl/cu128
+torchvision==0.22.1+cu128 --index-url https://download.pytorch.org/whl/cu128
+torchaudio==2.7.1 --index-url https://download.pytorch.org/whl/cu128
+accelerate==0.34.2
+transformers==4.45.2  # ✅ 업데이트
+diffusers[torch]==0.34.0  # ✅ 업데이트
 ftfy==6.1.1
 einops==0.7.0
-pytorch-lightning==1.9.0
+# pytorch-lightning==1.9.0  # ❌ 제거! (범인)
+lightning==2.5.5  # ✅ 최신 버전
 lion-pytorch==0.0.6
 schedulefree==1.4
 pytorch-optimizer==3.5.0
 prodigy-plus-schedule-free==1.9.0
 prodigyopt==1.1.2
 tensorboard
-safetensors==0.4.4
+safetensors==0.4.5  # ✅ 업데이트
 altair==4.2.2
 easygui==0.98.3
 toml==0.10.2
 voluptuous==0.13.1
-huggingface-hub==0.24.5
+huggingface-hub>=0.27.0  # ✅ 업데이트
 imagesize==1.4.1
-numpy<=2.0
-requests==2.28.2
-timm==0.4.12
-fairscale==0.4.4
-opencv-python==4.5.5.64
-opencv-python-headless==4.5.5.64
+numpy==1.26.4  # ✅ 구체적 버전
+requests==2.31.0  # ✅ 업데이트
+timm==1.0.21  # ✅ 업데이트 (2번째 범인)
+fairscale==0.4.13  # ✅ 업데이트 (3번째 범인)
+opencv-python==4.7.0.72
+opencv-python-headless==4.7.0.72
+numpy==1.26.4
 
-# WD14 captioning (optional)
-# tensorflow==2.10.1
-onnx==1.15.0
-# onnxruntime-gpu==1.17.1
-# onnxruntime==1.17.1
+# WD14 captioning
+onnx==1.16.0  # ✅ 업데이트
 onnxruntime-gpu --extra-index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-12/pypi/simple/
 
 # BLIP captioning
-blip==0.1.0
-# salesforce-lavis==1.0.2  # 필요 시 주석 해제
+# blip==0.1.0  # ❌ 주석처리 (구버전, 문제 가능)
+Pillow>=10.0.0  # ✅ BLIP 대신 필요하면
 
 # NLP utils
 nltk==3.9.2
 sentencepiece==0.2.0
 
 # OpenCLIP for SDXL
-open-clip-torch==2.20.0
+open-clip-torch==2.26.1  # ✅ 업데이트
 
 # Logging
-rich==13.7.0
+rich==13.9.4  # ✅ 업데이트
 
 # Kohya_ss library
-xformers --index-url https://download.pytorch.org/whl/cu128
-triton==3.0.0
-
+triton==3.3.1
