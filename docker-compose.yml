@@ -25,7 +25,7 @@ services:
 
     environment:
       # GPU 선택 (필요 시 GPU ID 지정)
-      - NVIDIA_VISIBLE_DEVICES=all      
+      - NVIDIA_VISIBLE_DEVICES=all
       - CUDA_VISIBLE_DEVICES=0
       - HF_HOME=/app/sdxl_train_captioner/models
       - HF_HUB_CACHE=/app/sdxl_train_captioner/models
