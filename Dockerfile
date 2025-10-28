@@ -26,8 +26,8 @@ WORKDIR /app/sdxl_train_captioner
 RUN pip install xformers==0.0.31
 
 RUN pip install --no-cache-dir -r requirements.txt
-# 문제 발생 시 버전 고정: ==2.7.4.post1
-RUN pip install flash-attn --no-build-isolation 
+# 문제 발생 시 버전 고정: ====2.8.0
+RUN pip install flash-attn==2.8.0.post2 --no-build-isolation 
 
 RUN mkdir -p /app/sdxl_train_captioner/dataset
 RUN mkdir -p /app/sdxl_train_captioner/models
@@ -38,5 +38,7 @@ COPY ./models /app/sdxl_train_captioner/models
 WORKDIR /app/sdxl_train_captioner/sd-scripts
 
 RUN chmod +x ./entrypoint.sh
+RUN chmod +x ./run-train-auto.sh
+RUN chmod +x ./run-train-single.sh
 
 ENTRYPOINT ["bash", "entrypoint.sh"]

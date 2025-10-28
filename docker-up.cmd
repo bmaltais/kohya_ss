@@ -1,1 +1,1 @@
-docker-compose up -d --gpus all
+docker-compose up -d
