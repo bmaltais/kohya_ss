@@ -38,6 +38,7 @@ COPY ./models /app/sdxl_train_captioner/models
 WORKDIR /app/sdxl_train_captioner/sd-scripts
 
 RUN chmod +x ./entrypoint.sh
+RUN chmod +x ./run-tensorboard.sh
 RUN chmod +x ./run-train-auto.sh
 RUN chmod +x ./run-train-single.sh
 

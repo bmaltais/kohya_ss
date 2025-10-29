@@ -22,6 +22,9 @@ services:
       - ./dataset:/app/sdxl_train_captioner/dataset
       - ./output_models:/app/sdxl_train_captioner/output_models
       - ./logs:/app/sdxl_train_captioner/logs
+      
+    ports:
+      - "6006:6006"
 
     environment:
       # GPU 선택 (필요 시 GPU ID 지정)
