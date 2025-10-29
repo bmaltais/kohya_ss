@@ -1,17 +1,21 @@
 # I. 단일폴더 수동 학습 사용 예시
 
 ## 1. 기본 사용 (자동 계산)
-```bash
+```cmd
 run-train-single --folder ../dataset/training/01_alice
 ```
 
 ##  2. Epochs만 수동 지정
-```bash
+```cmd
 run-train-single --folder ../dataset/training/01_alice --epochs 25
+
+또는
+
+run-train-single --folder ../training/mainchar/01_alic3 --epochs 17 --resume alic3-000009.safetensors  
 ```
  
 ## 3. 세밀한 조정
-```bash
+```cmd
 run-train-single ^
   --folder ../dataset/training/01_alice ^
   --epochs 30 ^
@@ -22,7 +26,7 @@ run-train-single ^
 ```
 
 ## 4. 고해상도 학습
-```bash
+```cmd
 run-train-single ^
   --folder ../dataset/training/01_alice ^
   --resolution 1024,1024 ^
@@ -30,7 +34,7 @@ run-train-single ^
 ```
 
 ## 5. 빠른 테스트
-```bash
+```cmd
 run-train-single ^
   --folder ../dataset/training/01_alice ^
   --epochs 5 ^
@@ -39,7 +43,7 @@ run-train-single ^
 ```
 
 ## 6. 완전 수동 모드
-```bash
+```cmd
 run-train-single ^
   --folder ../dataset/training/01_alice ^
   --no-auto ^
@@ -75,14 +79,14 @@ run-train-single ^
 
 ## 비교
 ### train_batch.py (일괄 자동)
-```bash
+```cmd
 # 여러 폴더 자동 학습
 python train_batch.py
 → 01_alice, 02_bob, 03_background 모두 학습
 ```
 
 ### train_single.py (단일 수동)
-```bash
+```cmd
 # 특정 폴더만 세밀 조정
 run-train-single --folder ../dataset/training/mainchar/01_alice --epochs 30 --lr 0.00015
 → alice만 커스텀 파라미터로 학습
@@ -91,7 +95,7 @@ run-train-single --folder ../dataset/training/mainchar/01_alice --epochs 30 --lr
 ## 워크플로우 추천
 
 ### 초보자
-```bash
+```cmd
 # 1. 먼저 일괄 자동으로 테스트
 python train_batch.py
 
@@ -100,7 +104,7 @@ run-train-single --folder ../dataset/training/mainchar/01_alice --epochs 25
 ```
 
 ### 고급 사용자
-```bash
+```cmd
 # 처음부터 세밀하게 조정
 run-train-single ^
   --folder ../dataset/training/mainchar/01_alice ^
