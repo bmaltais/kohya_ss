@@ -1,1 +1,1 @@
-run-train-single --resume ../output_models/alic3-000009.safetensors --epochs 17 --folder ../training/mainchar/01_alic3
+run-train-single --resume ../output_models/alic3-000009.safetensors --epochs 17 --folder ../dataset/training/mainchar/01_alic3_woman
