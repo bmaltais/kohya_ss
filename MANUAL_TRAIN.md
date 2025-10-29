@@ -227,3 +227,20 @@ run-train-single ^
 
 🚀 Starting training...
 ```
+
+
+## 💡 선택 가이드
+### State Resume을 써야 할 때
+
+✅ 학습이 중단됨 (컴퓨터 꺼짐, 에러 등)
+✅ Epoch 수를 늘리고 싶음 (10 → 20)
+✅ 데이터는 그대로, 학습만 더
+✅ Optimizer momentum 유지가 중요
+
+## Network Weights를 써야 할 때
+
+✅ 새로운 데이터 추가
+✅ 다른 스타일/컨셉 학습
+✅ Fine-tuning (특정 부분만 강화)
+✅ 기존 모델 기반으로 파생 모델 생성
+✅ State 폴더가 없음
