@@ -1,0 +1,1 @@
+docker logs -f sdxl_train_captioner

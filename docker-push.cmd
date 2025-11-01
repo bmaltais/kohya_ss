@@ -1,0 +1,1 @@
+docker push aicompanion/sdxl_train_captioner:latest

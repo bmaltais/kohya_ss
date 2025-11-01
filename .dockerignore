@@ -3,7 +3,6 @@ cudnn_windows/
 bitsandbytes_windows/
 bitsandbytes_windows_deprecated/
 dataset/
-models/
 __pycache__/
 venv/
 **/.hadolint.yml
@@ -14,3 +13,11 @@ venv/
 **/.github
 **/.vscode
 **/*.ps1
+.idea/
+.vscode/
+docs/
+examples/
+logs/
+outputs/
+sd-scripts/venv
+models/sd_xl_base_1.0.safetensors

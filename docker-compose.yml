@@ -1,0 +1,49 @@
+services:
+  sdxl_train_captioner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: aicompanion/sdxl_train_captioner:latest
+    container_name: sdxl_train_captioner
+    runtime: nvidia
+
+    # GPU 설정
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+    # 볼륨 마운트 (호스트 ↔ 컨테이너)
+    volumes:
+      - ./models:/app/sdxl_train_captioner/models
+      - ./dataset:/app/sdxl_train_captioner/dataset
+      - ./output_models:/app/sdxl_train_captioner/output_models
+      - ./logs:/app/sdxl_train_captioner/logs
+      
+    ports:
+      - "6006:6006"
+
+    environment:
+      # GPU 선택 (필요 시 GPU ID 지정)
+      - NVIDIA_VISIBLE_DEVICES=all
+      - CUDA_VISIBLE_DEVICES=0
+      - HF_HOME=/app/sdxl_train_captioner/models
+      - HF_HUB_CACHE=/app/sdxl_train_captioner/models
+      - PYTHONUNBUFFERED=1
+      - TZ=Asia/Seoul
+      - OMP_NUM_THREADS=8
+      - MKL_NUM_THREADS=8
+      - TMPDIR=/dev/shm
+
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    shm_size: "16gb"
+
+    working_dir: /app/sdxl_train_captioner/sd-scripts
+
+    # GPU 자동 탐색, 기본 0번 GPU
+#    command: ["python", "cap-watcher.py"] # "--device", "3", "--overwrite"

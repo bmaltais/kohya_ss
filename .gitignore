@@ -1,3 +1,4 @@
+.idea
 # Python
 .venv
 venv
@@ -52,7 +53,9 @@ dataset/**
 models
 data
 config.toml
-sd-scripts
 venv
 venv*
 .python-version
+output_models
+output_models/
+output_models/**

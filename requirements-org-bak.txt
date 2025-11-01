@@ -1,0 +1,37 @@
+accelerate>=1.7.0
+aiofiles==23.2.1
+altair==4.2.2
+dadaptation==3.2
+diffusers[torch]==0.32.2
+easygui==0.98.3
+einops==0.7.0
+fairscale==0.4.13
+ftfy==6.1.1
+gradio>=5.34.1
+huggingface-hub==0.29.3
+imagesize==1.4.1
+invisible-watermark==0.2.0
+lion-pytorch==0.0.6
+lycoris_lora==3.2.0.post2
+omegaconf==2.3.0
+prodigyopt==1.1.2
+protobuf==3.20.3
+open-clip-torch==2.20.0
+opencv-python==4.10.0.84
+prodigy-plus-schedule-free==1.8.0
+pytorch-lightning==1.9.0
+pytorch-optimizer==3.5.0
+rich>=13.7.1
+safetensors==0.4.4
+schedulefree==1.4
+scipy==1.11.4
+# for T5XXL tokenizer (SD3/FLUX)
+sentencepiece==0.2.0
+timm==1.0.15
+tk==0.1.0
+toml==0.10.2
+transformers==4.44.2
+voluptuous==0.13.1
+wandb==0.18.0
+# for kohya_ss sd-scripts library
+-e ./sd-scripts
