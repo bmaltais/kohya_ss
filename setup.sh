@@ -230,24 +230,24 @@ install_python_dependencies() {
   case "$OSTYPE" in
     "lin"*)
       if [ "$RUNPOD" = true ]; then
-        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_runpod.txt $QUIET
+        "$PYTHON_CMD" "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_runpod.txt $QUIET
       elif [ "$USE_IPEX" = true ]; then
-        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux_ipex.txt $QUIET
+        "$PYTHON_CMD" "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux_ipex.txt $QUIET
       elif [ -x "$(command -v nvidia-smi)" ]; then
-        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux.txt $QUIET
+        "$PYTHON_CMD" "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux.txt $QUIET
       elif [ "$USE_ROCM" = true ] || [ -x "$(command -v rocminfo)" ] || [ -f "/opt/rocm/bin/rocminfo" ]; then
         echo "Upgrading pip for ROCm."
         pip install --upgrade pip # PyTorch ROCm is too large to install with older pip
-        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux_rocm.txt $QUIET
+        "$PYTHON_CMD" "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux_rocm.txt $QUIET
       else
-        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux.txt $QUIET
+        "$PYTHON_CMD" "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux.txt $QUIET
       fi
       ;;
     "darwin"*)
       if [[ "$(uname -m)" == "arm64" ]]; then
-        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_macos_arm64.txt $QUIET
+        "$PYTHON_CMD" "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_macos_arm64.txt $QUIET
       else
-        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_macos_amd64.txt $QUIET
+        "$PYTHON_CMD" "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_macos_amd64.txt $QUIET
       fi
       ;;
   esac
