@@ -5,194 +5,275 @@
 [![License](https://img.shields.io/github/license/bmaltais/kohya_ss)](LICENSE.md)
 [![GitHub issues](https://img.shields.io/github/issues/bmaltais/kohya_ss)](https://github.com/bmaltais/kohya_ss/issues)
 
-This is a GUI and CLI for training diffusion models.
+A comprehensive GUI and CLI toolkit for training Stable Diffusion models, LoRAs, and other diffusion model variants.
 
-This project provides a user-friendly Gradio-based Graphical User Interface (GUI) for [Kohya's Stable Diffusion training scripts](https://github.com/kohya-ss/sd-scripts). 
-Stable Diffusion training empowers users to customize image generation models by fine-tuning existing models, creating unique artistic styles, 
-and training specialized models like LoRA (Low-Rank Adaptation).
+## Overview
 
-Key features of this GUI include:
-*   Easy-to-use interface for setting a wide range of training parameters.
-*   Automatic generation of the command-line interface (CLI) commands required to run the training scripts.
-*   Support for various training methods, including LoRA, Dreambooth, fine-tuning, and SDXL training.
+This project provides a user-friendly **Gradio-based interface** for [Kohya's Stable Diffusion training scripts](https://github.com/kohya-ss/sd-scripts), making it accessible for both beginners and advanced users to fine-tune diffusion models.
 
-Support for Linux and macOS is also available. While Linux support is actively maintained through community contributions, macOS compatibility may vary.
+**Key Features:**
+- **Easy-to-use GUI** for configuring training parameters
+- **Automatic CLI command generation** for advanced users
+- **Multiple training methods**: LoRA, Dreambooth, Fine-tuning, SDXL, Flux.1, SD3
+- **Cross-platform support**: Windows, Linux, macOS
+- **Flexible deployment**: Local installation, Docker, or cloud-based
 
 ## Table of Contents
 
+- [Quick Start](#quick-start)
 - [Installation Options](#installation-options)
-  - [Local Installation Overview](#local-installation-overview)
-    - [`uv` vs `pip` – What's the Difference?](#uv-vs-pip--whats-the-difference)
-  - [Cloud Installation Overview](#cloud-installation-overview)
-    - [Colab](#-colab)
-    - [Runpod, Novita, Docker](#runpod-novita-docker)
-- [Custom Path Defaults](#custom-path-defaults)
-    - [LoRA](#lora)
-  - [Sample image generation during training](#sample-image-generation-during-training)
-  - [Troubleshooting](#troubleshooting)
-  - [Page File Limit](#page-file-limit)
-  - [No module called tkinter](#no-module-called-tkinter)
-  - [LORA Training on TESLA V100 - GPU Utilization Issue](#lora-training-on-tesla-v100---gpu-utilization-issue)
-- [SDXL training](#sdxl-training)
-- [Masked loss](#masked-loss)
-- [Guides](#guides)
-  - [Using Accelerate Lora Tab to Select GPU ID](#using-accelerate-lora-tab-to-select-gpu-id)
-    - [Starting Accelerate in GUI](#starting-accelerate-in-gui)
-    - [Running Multiple Instances (linux)](#running-multiple-instances-linux)
-    - [Monitoring Processes](#monitoring-processes)
-- [Interesting Forks](#interesting-forks)
+  - [Local Installation](#local-installation)
+  - [Docker Installation](#docker-installation)
+  - [Cloud-Based Solutions](#cloud-based-solutions)
+- [Configuration](#configuration)
+- [Training Features](#training-features)
+  - [LoRA Training](#lora-training)
+  - [SDXL Training](#sdxl-training)
+  - [Sample Image Generation](#sample-image-generation)
+  - [Masked Loss](#masked-loss)
+- [Troubleshooting](#troubleshooting)
+- [Advanced Usage](#advanced-usage)
 - [Contributing](#contributing)
 - [License](#license)
 - [Change History](#change-history)
-  - [v25.0.3](#v2503)
-  - [v25.0.2](#v2502)
-  - [v25.0.1](#v2501)
-  - [v25.0.0](#v2500)
 
+## Quick Start
+
+Choose your preferred installation method:
+
+| Method | Best For | Time to Setup |
+|--------|----------|---------------|
+| **Docker** | Quick start, consistency across systems | 5-10 minutes |
+| **uv (Recommended)** | Latest features, faster dependency management | 10-15 minutes |
+| **pip** | Traditional Python users, easier debugging | 15-20 minutes |
+| **Cloud (Colab)** | No local GPU, testing, or limited resources | 2-5 minutes |
+
+**Fastest way to get started:**
+
+```bash
+# Docker (if you have Docker + NVIDIA GPU)
+git clone --recursive https://github.com/bmaltais/kohya_ss.git
+cd kohya_ss
+docker compose up -d
+# Access GUI at http://localhost:7860
+
+# OR Local installation with uv (Linux/Windows)
+git clone https://github.com/bmaltais/kohya_ss.git
+cd kohya_ss
+# See installation guides below for platform-specific steps
+```
 
 ## Installation Options
 
-You can run `kohya_ss` either **locally on your machine** or via **cloud-based solutions** like Colab or Runpod.
+### Local Installation
 
-- If you have a GPU-equipped PC and want full control: install it locally using `uv` or `pip`.
-- If your system doesn’t meet requirements or you prefer a browser-based setup: use Colab or a paid GPU provider like Runpod or Novita.
-- If you are a developer or DevOps user, Docker is also supported.
+Install `kohya_ss` directly on your machine for maximum flexibility and performance.
 
----
+#### System Requirements
 
-### Local Installation Overview
+- **GPU**: NVIDIA GPU with CUDA support (8GB+ VRAM recommended)
+- **RAM**: 16GB minimum (32GB recommended for SDXL)
+- **Storage**: 20GB+ free space
+- **Python**: 3.10 or 3.11 (3.12 not yet supported)
 
-You can install `kohya_ss` locally using either the `uv` or `pip` method. Choose one depending on your platform and preferences:
+#### Installation Methods
 
-| Platform     | Recommended Method | Instructions                                |
-|--------------|----------------|---------------------------------------------|
-| Linux        | `uv`           | [uv_linux.md](./docs/Installation/uv_linux.md) |
-| Linux or Mac | `pip`              | [pip_linux.md](./docs/Installation/pip_linux.md)               |
-| Windows      | `uv`           | [uv_windows.md](./docs/Installation/uv_windows.md)             |
-| Windows      | `pip`          | [pip_windows.md](./docs/Installation/pip_windows.md)           |
+| Platform     | Recommended | Alternative | Installation Guide |
+|--------------|-------------|-------------|-------------------|
+| **Windows**  | uv | pip | [uv_windows.md](./docs/Installation/uv_windows.md) / [pip_windows.md](./docs/Installation/pip_windows.md) |
+| **Linux**    | uv | pip | [uv_linux.md](./docs/Installation/uv_linux.md) / [pip_linux.md](./docs/Installation/pip_linux.md) |
+| **macOS**    | pip | uv | [pip_linux.md](./docs/Installation/pip_linux.md) |
 
-#### `uv` vs `pip` – What's the Difference?
+#### `uv` vs `pip` - Which Should I Choose?
 
-- `uv` is faster and isolates dependencies more cleanly, ideal if you want minimal setup hassle.
-- `pip` is more traditional, easier to debug if issues arise, and works better with some IDEs or Python tooling.
-- If unsure: try `uv`. If it doesn't work for you, fall back to `pip`.
+**Use `uv` if:**
+- You want the fastest installation and updates
+- You prefer automatic dependency isolation
+- You're setting up a new environment
+- You want minimal configuration hassle
 
-### Cloud Installation Overview
+**Use `pip` if:**
+- You're experienced with Python package management
+- You need fine-grained control over dependencies
+- You're integrating with existing Python tooling
+- You encounter issues with `uv`
 
-#### 🦒 Colab
+**Still unsure?** Start with `uv`. If you encounter problems, fall back to `pip`.
 
-For browser-based training without local setup, use this Colab notebook:  
-<https://github.com/camenduru/kohya_ss-colab>
+### Docker Installation
 
-- No installation required
-- Free to use (GPU availability may vary)
-- Maintained by **camenduru**, not the original author
+**Best for:** Consistent environment, easy updates, isolation from system Python.
 
-| Colab                                                                                                                                                                          | Info               |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------ |
-| [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/camenduru/kohya_ss-colab/blob/main/kohya_ss_colab.ipynb) | kohya_ss_gui_colab |
+Docker provides the fastest and most reliable way to run Kohya_ss with all dependencies pre-configured.
 
-> 💡 If you encounter issues, please report them on camenduru’s repo.
+#### Prerequisites
 
-**Special thanks**  
-I would like to express my gratitude to camenduru for their valuable contribution.
+- Docker Desktop (Windows/Mac) or Docker Engine (Linux)
+- NVIDIA GPU with CUDA support
+- NVIDIA Container Toolkit (Linux) or WSL2 with GPU support (Windows)
 
-#### Runpod, Novita, Docker
+#### Quick Start with Docker
 
-These options are for users running training on hosted GPU infrastructure or containers.
+```bash
+# Clone repository with submodules
+git clone --recursive https://github.com/bmaltais/kohya_ss.git
+cd kohya_ss
 
-- **[Runpod setup](docs/runpod_setup.md)** – Ready-made GPU background training via templates.
-- **[Novita setup](docs/novita_setup.md)** – Similar to Runpod, but integrated into the Novita UI.
-- **[Docker setup](docs/docker.md)** – For developers/sysadmins using containerized environments.
+# Start services
+docker compose up -d
 
+# Access the GUI
+# Kohya GUI: http://localhost:7860
+# TensorBoard: http://localhost:6006
+```
 
-## Custom Path Defaults with `config.toml`
+#### Updating Docker Installation
 
-The GUI supports a configuration file named `config.toml` that allows you to set default paths for many of the input fields. This is useful for avoiding repetitive manual selection of directories every time you start the GUI.
+```bash
+# Stop containers
+docker compose down
 
-**Purpose of `config.toml`:**
+# Pull latest images and restart
+docker compose up -d --pull always
+```
 
-*   Pre-fill default directory paths for pretrained models, datasets, output folders, LoRA models, etc.
-*   Streamline your workflow by having the GUI remember your preferred locations.
+**Complete Docker documentation:** [docs/docker.md](./docs/docker.md)
 
-**How to Use and Customize:**
+**Platform-specific setup:**
+- **Windows**: [Docker Desktop + WSL2 GPU Setup](./docs/docker.md#windows)
+- **Linux**: [NVIDIA Container Toolkit Setup](./docs/docker.md#linux)
+- **macOS**: Docker does not support NVIDIA GPUs (use cloud or native installation)
 
-1.  **Create your configuration file:**
-    *   In the root directory of the `kohya_ss` repository, you'll find a file named `config example.toml`.
-    *   Copy this file and rename the copy to `config.toml`. This `config.toml` file will be automatically loaded when the GUI starts.
-2.  **Edit `config.toml`:**
-    *   Open `config.toml` with a text editor.
-    *   The file uses TOML (Tom's Obvious, Minimal Language) format, which consists of `key = "value"` pairs.
-    *   Modify the paths for the keys according to your local directory structure.
-    *   **Important:**
-        *   Use absolute paths (e.g., `C:/Users/YourName/StableDiffusion/Models` or `/home/yourname/sd-models`).
-        *   Alternatively, you can use paths relative to the `kohya_ss` root directory.
-        *   Ensure you use forward slashes (`/`) for paths, even on Windows, as this is generally more compatible with TOML and Python.
-        *   Make sure the specified directories exist on your system.
+### Cloud-Based Solutions
 
-**Structure of `config.toml`:**
+No local GPU? Use these cloud alternatives:
 
-The `config.toml` file can have several sections, typically corresponding to different training modes or general settings. Common keys you might want to set include:
+#### Google Colab (Free)
 
-*   `model_dir`: Default directory for loading base Stable Diffusion models.
-*   `lora_model_dir`: Default directory for saving and loading LoRA models.
-*   `output_dir`: Default base directory for training outputs (images, logs, model checkpoints).
-*   `dataset_dir`: A general default if you store all your datasets in one place.
-*   Specific input paths for different training tabs like Dreambooth, Finetune, LoRA, etc. (e.g., `db_model_dir`, `ft_source_model_name_or_path`).
+**Pros:** Free GPU access, no installation required, browser-based
+**Cons:** Session limits, may disconnect, shared resources
 
-**Example Configurations:**
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/camenduru/kohya_ss-colab/blob/main/kohya_ss_colab.ipynb)
 
-Here's an example snippet of what your `config.toml` might look like:
+- **Repository:** <https://github.com/camenduru/kohya_ss-colab>
+- **Maintained by:** camenduru (community contributor)
+- **Note:** Report Colab-specific issues to camenduru's repository
+
+**Special thanks to camenduru for maintaining the Colab version!**
+
+#### RunPod (Paid)
+
+**Pros:** Dedicated GPUs, persistent storage, no session limits
+**Cons:** Costs money, requires account setup
+
+- **Setup Guide:** [docs/installation_runpod.md](docs/installation_runpod.md)
+- **Templates available** with pre-configured environments
+
+#### Novita (Paid)
+
+**Pros:** Integrated UI, easy setup, good for beginners
+**Cons:** Costs money, platform-specific
+
+- **Setup Guide:** [docs/installation_novita.md](docs/installation_novita.md)
+
+## Configuration
+
+### Custom Path Defaults with `config.toml`
+
+Streamline your workflow by setting default paths for models, datasets, and outputs.
+
+#### Quick Setup
+
+1. **Copy the example configuration:**
+   ```bash
+   cp "config example.toml" config.toml
+   ```
+
+2. **Edit `config.toml`** with your preferred paths:
+   ```toml
+   # Example configuration
+   model_dir = "C:/ai/models/Stable-diffusion"
+   lora_model_dir = "C:/ai/models/Lora"
+   output_dir = "C:/ai/outputs"
+   dataset_dir = "C:/ai/datasets"
+   ```
+
+3. **Use absolute paths** or paths relative to the kohya_ss root directory
+
+4. **Use forward slashes** (/) even on Windows for compatibility
+
+#### Configuration Structure
+
+The `config.toml` file supports multiple sections for different training modes:
 
 ```toml
 # General settings
-model_dir = "C:/ai_stuff/stable-diffusion-webui/models/Stable-diffusion"
-lora_model_dir = "C:/ai_stuff/stable-diffusion-webui/models/Lora"
-vae_dir = "C:/ai_stuff/stable-diffusion-webui/models/VAE"
-output_dir = "C:/ai_stuff/kohya_ss_outputs"
-logging_dir = "C:/ai_stuff/kohya_ss_outputs/logs"
+model_dir = "/path/to/models"
+lora_model_dir = "/path/to/lora"
+vae_dir = "/path/to/vae"
+output_dir = "/path/to/outputs"
+logging_dir = "/path/to/logs"
 
-# Dreambooth specific paths
-db_model_dir = "C:/ai_stuff/stable-diffusion-webui/models/Stable-diffusion"
-db_reg_image_dir = "C:/ai_stuff/datasets/dreambooth_regularization_images"
-# Add other db_... paths as needed
+# Dreambooth specific
+db_model_dir = "/path/to/models"
+db_reg_image_dir = "/path/to/regularization"
 
-# Finetune specific paths
-ft_model_dir = "C:/ai_stuff/stable-diffusion-webui/models/Stable-diffusion"
-# Add other ft_... paths as needed
+# LoRA specific
+lc_model_dir = "/path/to/models"
+lc_output_dir = "/path/to/outputs/lora"
+lc_dataset_dir = "/path/to/datasets"
 
-# LoRA / LoCon specific paths
-lc_model_dir = "C:/ai_stuff/stable-diffusion-webui/models/Stable-diffusion" # Base model for LoRA training
-lc_output_dir = "C:/ai_stuff/kohya_ss_outputs/lora"
-lc_dataset_dir = "C:/ai_stuff/datasets/my_lora_project"
-# Add other lc_... paths as needed
-
-# You can find a comprehensive list of all available keys in the `config example.toml` file.
-# Refer to it to customize paths for all supported options in the GUI.
+# See 'config example.toml' for complete list of options
 ```
 
-**Using a Custom Config File Path:**
+#### Using Custom Config Path
 
-If you prefer to name your configuration file differently or store it in another location, you can specify its path using the `--config` command-line argument when launching the GUI:
+Specify a different config file location:
 
-*   On Windows: `gui.bat --config D:/my_configs/kohya_settings.toml`
-*   On Linux/macOS: `./gui.sh --config /home/user/my_configs/kohya_settings.toml`
+```bash
+# Windows
+gui.bat --config D:/my_configs/kohya_settings.toml
 
-By effectively using `config.toml`, you can significantly speed up your training setup process. Always refer to the `config example.toml` for the most up-to-date list of configurable paths.
+# Linux/macOS
+./gui.sh --config /home/user/my_configs/kohya_settings.toml
+```
 
-## LoRA
+**Full configuration reference:** See `config example.toml` in the root directory
 
-To train a LoRA, you can currently use the `train_network.py` code. You can create a LoRA network by using the all-in-one GUI.
+## Training Features
 
-Once you have created the LoRA network, you can generate images using auto1111 by installing [this extension](https://github.com/kohya-ss/sd-webui-additional-networks).
+### LoRA Training
 
-For more detailed information on LoRA training options and advanced configurations, please refer to our LoRA documentation:
-- [LoRA Training Guide](docs/LoRA/top_level.md)
-- [LoRA Training Options](docs/LoRA/options.md)
+LoRA (Low-Rank Adaptation) allows efficient fine-tuning of Stable Diffusion models with minimal computational requirements.
 
-## Sample image generation during training
+**Training a LoRA:**
+1. Use the GUI's LoRA training tab
+2. Configure dataset and parameters
+3. Start training via `train_network.py`
 
-A prompt file might look like this, for example:
+**Using trained LoRAs:**
+- Install [Additional Networks extension](https://github.com/kohya-ss/sd-webui-additional-networks) for Auto1111
+- Load LoRA in your preferred Stable Diffusion UI
+
+**Documentation:**
+- [LoRA Training Guide](docs/LoRA/top_level.md) - Comprehensive overview
+- [LoRA Training Options](docs/LoRA/options.md) - Advanced configuration
+
+### SDXL Training
+
+Support for Stable Diffusion XL model training with optimized settings.
+
+**Resources:**
+- [Official SDXL Training Guide](https://github.com/kohya-ss/sd-scripts/blob/main/README.md#sdxl-training)
+- [LoRA Training Guide](docs/LoRA/top_level.md) (includes SDXL sections)
+
+### Sample Image Generation
+
+Generate sample images during training to monitor progress and quality.
+
+#### Creating a Prompt File
+
+Create a text file with prompts and generation parameters:
 
 ```txt
 # prompt 1
@@ -202,106 +283,271 @@ masterpiece, best quality, (1girl), in white shirts, upper body, looking at view
 masterpiece, best quality, 1boy, in business suit, standing at street, looking back --n (low quality, worst quality), bad anatomy, bad composition, poor, low effort --w 576 --h 832 --d 2 --l 5.5 --s 40
 ```
 
-Lines beginning with `#` are comments. You can specify options for the generated image with options like `--n` after the prompt. The following options can be used:
+#### Available Options
 
-- `--n`: Negative prompt up to the next option.
-- `--w`: Specifies the width of the generated image.
-- `--h`: Specifies the height of the generated image.
-- `--d`: Specifies the seed of the generated image.
-- `--l`: Specifies the CFG scale of the generated image.
-- `--s`: Specifies the number of steps in the generation.
+- `--n`: Negative prompt (text to avoid)
+- `--w`: Image width in pixels
+- `--h`: Image height in pixels
+- `--d`: Seed for reproducibility
+- `--l`: CFG scale (guidance strength)
+- `--s`: Number of sampling steps
 
-The prompt weighting such as `( )` and `[ ]` is working.
+**Note:** Prompt weighting with `()` and `[]` is supported.
+
+### Masked Loss
+
+Enable masked loss to train only specific regions of images.
+
+**Activation:** Add `--masked_loss` option in training configuration
+
+**How it works:**
+- Uses ControlNet dataset format
+- RGB mask images where Red channel value determines weight
+  - 255 (full weight) = train this area
+  - 0 (no weight) = ignore this area
+  - 128 (half weight) = partial training
+- Pixel values 0-255 map to loss weights 0.0-1.0
+
+**Documentation:** [LLLite Training Guide](./docs/train_lllite_README.md#preparing-the-dataset)
+
+**Warning:** This feature is experimental. Please report issues on GitHub.
 
 ## Troubleshooting
 
-If you encounter any issues, refer to the troubleshooting steps below.
+### Common Issues
 
-### Page File Limit
+#### Page File Limit (Windows)
 
-If you encounter an X error related to the page file, you may need to increase the page file size limit in Windows.
+**Symptom:** Error about page file size
 
-### No module called tkinter
+**Solution:** Increase Windows virtual memory (page file) size:
+1. System Properties > Advanced > Performance Settings
+2. Virtual Memory > Change
+3. Set custom size (16GB+ recommended)
 
-If you encounter an error indicating that the module `tkinter` is not found, try reinstalling Python 3.10 on your system.
+#### No module called 'tkinter'
 
-### LORA Training on TESLA V100 - GPU Utilization Issue
+**Symptom:** Import error for tkinter module
 
-See [Troubleshooting LORA Training on TESLA V100](docs/troubleshooting_tesla_v100.md) for details.
+**Solutions:**
+- **Windows:** Reinstall Python 3.10 or 3.11 with "tcl/tk" option enabled
+- **Linux:** `sudo apt-get install python3-tk`
+- **macOS:** Reinstall Python from python.org (not Homebrew)
 
-## SDXL training
+#### GPU Not Being Used / Low GPU Utilization
 
-For detailed guidance on SDXL training, please refer to the [official sd-scripts documentation](https://github.com/kohya-ss/sd-scripts/blob/main/README.md#sdxl-training) and relevant sections in our [LoRA Training Guide](docs/LoRA/top_level.md).
+**Symptoms:** Training is slow, GPU usage at 0-10%
 
-## Masked loss
+**Solutions:**
+1. Verify CUDA installation: `nvidia-smi`
+2. Check PyTorch GPU access:
+   ```python
+   import torch
+   print(torch.cuda.is_available())
+   print(torch.cuda.get_device_name(0))
+   ```
+3. Increase batch size
+4. Disable CPU offloading options
+5. See: [Tesla V100 Troubleshooting](docs/troubleshooting_tesla_v100.md)
 
-The masked loss is supported in each training script. To enable the masked loss, specify the `--masked_loss` option.
+#### Out of Memory Errors
 
-> [!WARNING]
-> The feature is not fully tested, so there may be bugs. If you find any issues, please open an Issue.
+**Solutions:**
+- Reduce batch size
+- Enable gradient checkpointing
+- Use mixed precision training (fp16)
+- Lower resolution
+- Enable CPU offloading
+- Close other GPU applications
 
-ControlNet dataset is used to specify the mask. The mask images should be the RGB images. The pixel value 255 in R channel is treated as the mask (the loss is calculated only for the pixels with the mask), and 0 is treated as the non-mask. The pixel values 0-255 are converted to 0-1 (i.e., the pixel value 128 is treated as the half weight of the loss). See details for the dataset specification in the [LLLite documentation](./docs/train_lllite_README.md#preparing-the-dataset).
+#### Docker-Specific Issues
 
-## Guides
+See the comprehensive [Docker Troubleshooting Guide](./docs/docker.md#troubleshooting) for:
+- GPU not detected in container
+- Permission denied errors
+- Volume mount issues
+- Port conflicts
 
-The following are guides extracted from issues discussions
+### Getting Help
 
-### Using Accelerate Lora Tab to Select GPU ID
+If you're stuck:
 
-#### Starting Accelerate in GUI
+1. **Search existing issues:** <https://github.com/bmaltais/kohya_ss/issues>
+2. **Check documentation:** See `/docs` directory
+3. **Open a new issue** with:
+   - Operating system and version
+   - Installation method (Docker/uv/pip)
+   - Python version
+   - Full error message and logs
+   - Steps to reproduce
 
-- Open the kohya GUI on your desired port.
-- Open the `Accelerate launch` tab
-- Ensure the Multi-GPU checkbox is unchecked.
-- Set GPU IDs to the desired GPU (like 1).
+## Advanced Usage
 
-#### Running Multiple Instances (linux)
+### Accelerate Configuration for Multi-GPU
 
-- For tracking multiple processes, use separate kohya GUI instances on different ports (e.g., 7860, 7861).
-- Start instances using `nohup ./gui.sh --listen 0.0.0.0 --server_port <port> --headless > log.log 2>&1 &`.
+Use the Accelerate tab in the GUI to configure multi-GPU training:
 
-#### Monitoring Processes
+1. Open the "Accelerate launch" tab
+2. For single GPU: Uncheck "Multi-GPU", set GPU ID (e.g., "0" or "1")
+3. For multi-GPU: Check "Multi-GPU", configure device IDs
 
-- Open each GUI in a separate browser tab.
-- For terminal access, use SSH and tools like `tmux` or `screen`.
+#### Running Multiple Instances (Linux)
 
-For more details, visit the [GitHub issue](https://github.com/bmaltais/kohya_ss/issues/2577).
+Run separate GUI instances for different training jobs:
+
+```bash
+# Start first instance on port 7860
+nohup ./gui.sh --listen 0.0.0.0 --server_port 7860 --headless > log_7860.log 2>&1 &
+
+# Start second instance on port 7861
+nohup ./gui.sh --listen 0.0.0.0 --server_port 7861 --headless > log_7861.log 2>&1 &
+```
+
+**Monitoring:** Use `tmux` or `screen` for terminal management
+
+**More details:** [GitHub Issue #2577](https://github.com/bmaltais/kohya_ss/issues/2577)
+
+### Command-Line Usage
+
+The GUI generates CLI commands that can be run directly:
+
+```bash
+# Activate virtual environment first
+source venv/bin/activate  # Linux/macOS
+# or
+venv\Scripts\activate.bat  # Windows
+
+# Run training script directly
+python sd-scripts/train_network.py \
+  --pretrained_model_name_or_path=/path/to/model.safetensors \
+  --train_data_dir=/path/to/dataset \
+  --output_dir=/path/to/output \
+  # ... additional parameters
+```
+
+### Using Different Python Versions
+
+Kohya_ss supports Python 3.10 and 3.11:
+
+```bash
+# Create environment with specific version
+uv venv --python 3.11
+# or
+python3.11 -m venv venv
+```
 
 ## Interesting Forks
 
-To finetune HunyuanDiT models or create LoRAs, visit this [fork](https://github.com/Tencent/HunyuanDiT/tree/main/kohya_ss-hydit)
+Community-maintained variants with additional features:
+
+- **HunyuanDiT Support:** Fine-tune HunyuanDiT models
+  - Repository: <https://github.com/Tencent/HunyuanDiT/tree/main/kohya_ss-hydit>
 
 ## Contributing
 
-Contributions are welcome! If you'd like to contribute to this project, please consider the following:
-- For bug reports or feature requests, please open an issue on the [GitHub Issues page](https://github.com/bmaltais/kohya_ss/issues).
-- If you'd like to submit code changes, please open a pull request. Ensure your changes are well-tested and follow the existing code style.
-- For security-related concerns, please refer to our `SECURITY.md` file.
+Contributions are welcome! Help improve Kohya_ss by:
+
+**Reporting Issues:**
+- Use [GitHub Issues](https://github.com/bmaltais/kohya_ss/issues)
+- Include detailed reproduction steps
+- Provide system information and logs
+
+**Submitting Code:**
+- Fork the repository
+- Create a feature branch
+- Follow existing code style
+- Test thoroughly before submitting PR
+- Document new features
+
+**Security Issues:**
+- See [SECURITY.md](SECURITY.md) for responsible disclosure
 
 ## License
 
-This project is licensed under the Apache License 2.0. See the [LICENSE.md](LICENSE.md) file for details.
+This project is licensed under the **Apache License 2.0**.
+
+See [LICENSE.md](LICENSE.md) for complete terms.
 
 ## Change History
 
+### v25.2.1 (Current)
+
+- Latest stable release
+- Python 3.11 support
+- Updated dependencies
+
 ### v25.0.3
 
-- Upgrade Gradio, diffusers and huggingface-hub to latest release to fix issue with ASGI.
-- Add a new method to setup and run the GUI. You will find two new script for both Windows (gui-uv.bat) and Linux (gui-uv.sh). With those scripts there is no need to run setup.bat or setup.sh anymore.
+- Upgraded Gradio, diffusers, and huggingface-hub to fix ASGI issues
+- New simplified setup scripts:
+  - `gui-uv.bat` (Windows) and `gui-uv.sh` (Linux)
+  - No need to run separate setup scripts anymore
 
 ### v25.0.2
 
-- Force gradio to 5.14.0 or greater so it is updated.
+- Forced Gradio upgrade to 5.14.0+ for critical updates
 
 ### v25.0.1
 
-- Fix issue with requirements version causing huggingface download issues
+- Fixed requirements versioning issues affecting Hugging Face downloads
 
 ### v25.0.0
 
-- Major update: Introduced support for flux.1 and sd3, moving the GUI to align with more recent script functionalities.
-- Users preferring the pre-flux.1/sd3 version can check out tag `v24.1.7`.
-  ```shell
-  git checkout v24.1.7
-  ```
-- For details on new flux.1 and sd3 parameters, refer to the [sd-scripts README](https://github.com/kohya-ss/sd-scripts/blob/sd3/README.md).
+- **Major update:** Added support for Flux.1 and SD3
+- Aligned GUI with latest sd-scripts features
+- Breaking changes: Previous workflows may need adjustment
+
+**Note:** For pre-Flux.1/SD3 version, checkout tag `v24.1.7`:
+```bash
+git checkout v24.1.7
+```
+
+**Flux.1 and SD3 Parameters:**
+- See [sd-scripts README](https://github.com/kohya-ss/sd-scripts/blob/sd3/README.md)
+
+### Older Versions
+
+For complete version history, see [GitHub Releases](https://github.com/bmaltais/kohya_ss/releases).
+
+---
+
+## Quick Reference
+
+### Important Links
+
+- **Main Repository:** <https://github.com/bmaltais/kohya_ss>
+- **SD-Scripts (Core Training):** <https://github.com/kohya-ss/sd-scripts>
+- **Issues & Support:** <https://github.com/bmaltais/kohya_ss/issues>
+- **Colab Version:** <https://github.com/camenduru/kohya_ss-colab>
+
+### Default Ports
+
+- **Kohya GUI:** 7860
+- **TensorBoard:** 6006
+
+### File Locations
+
+- **Config:** `config.toml` (root directory)
+- **Training Scripts:** `sd-scripts/` (submodule)
+- **Documentation:** `docs/`
+- **Examples:** `examples/`
+
+### Supported Models
+
+- Stable Diffusion 1.x, 2.x
+- Stable Diffusion XL (SDXL)
+- Stable Diffusion 3 (SD3)
+- Flux.1
+- Custom fine-tuned models
+
+### Training Methods
+
+- LoRA (Low-Rank Adaptation)
+- Dreambooth
+- Fine-tuning
+- Textual Inversion
+- LLLite
+
+---
+
+**Need help?** Check the [documentation](./docs/) or open an [issue](https://github.com/bmaltais/kohya_ss/issues)!
