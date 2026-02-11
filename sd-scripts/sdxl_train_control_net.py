@@ -25,6 +25,7 @@ from library import (
     strategy_base,
     strategy_sd,
     strategy_sdxl,
+    sai_model_spec
 )
 
 import library.train_util as train_util
@@ -664,6 +665,7 @@ def setup_parser() -> argparse.ArgumentParser:
 
     add_logging_arguments(parser)
     train_util.add_sd_models_arguments(parser)
+    sai_model_spec.add_model_spec_arguments(parser)
     train_util.add_dataset_arguments(parser, False, True, True)
     train_util.add_training_arguments(parser, False)
     # train_util.add_masked_loss_arguments(parser)

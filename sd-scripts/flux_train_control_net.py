@@ -32,6 +32,7 @@ init_ipex()
 from accelerate.utils import set_seed
 
 import library.train_util as train_util
+import library.sai_model_spec as sai_model_spec
 from library import (
     deepspeed_utils,
     flux_train_utils,
@@ -67,6 +68,11 @@ def train(args):
     # temporary: backward compatibility for deprecated options. remove in the future
     if not args.skip_cache_check:
         args.skip_cache_check = args.skip_latents_validity_check
+
+    if args.model_type != "flux":
+        raise ValueError(
+            f"FLUX.1 ControlNet training requires model_type='flux'. / FLUX.1 ControlNetの学習にはmodel_type='flux'を指定してください。"
+        )
 
     # assert (
     #     not args.weighted_captions
@@ -259,7 +265,7 @@ def train(args):
 
     # load FLUX
     is_schnell, flux = flux_utils.load_flow_model(
-        args.pretrained_model_name_or_path, weight_dtype, "cpu", args.disable_mmap_load_safetensors
+        args.pretrained_model_name_or_path, weight_dtype, "cpu", args.disable_mmap_load_safetensors, model_type="flux"
     )
     flux.requires_grad_(False)
 
@@ -815,6 +821,7 @@ def setup_parser() -> argparse.ArgumentParser:
 
     add_logging_arguments(parser)
     train_util.add_sd_models_arguments(parser)  # TODO split this
+    sai_model_spec.add_model_spec_arguments(parser)
     train_util.add_dataset_arguments(parser, False, True, True)
     train_util.add_training_arguments(parser, False)
     train_util.add_masked_loss_arguments(parser)

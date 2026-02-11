@@ -5,8 +5,10 @@
 onnx を用いた推論を推奨します。以下のコマンドで onnx をインストールしてください。
 
 ```powershell
-pip install onnx==1.15.0 onnxruntime-gpu==1.17.1
+pip install onnx onnxruntime-gpu
 ```
+
+詳細は[公式ドキュメント](https://onnxruntime.ai/docs/install/#python-installs)をご覧ください。
 
 モデルの重みはHugging Faceから自動的にダウンロードしてきます。
 
@@ -47,6 +49,8 @@ python tag_images_by_wd14_tagger.py --onnx --repo_id SmilingWolf/wd-swinv2-tagge
 [SmilingWolf 氏の V2、V3 のモデル](https://huggingface.co/SmilingWolf)が使用可能です。`SmilingWolf/wd-vit-tagger-v3` のように指定してください。省略時のデフォルトは `SmilingWolf/wd-v1-4-convnext-tagger-v2` です。
 
 # オプション
+
+全てオプションは `python tag_images_by_wd14_tagger.py --help` で確認できます。
 
 ## 一般オプション
 

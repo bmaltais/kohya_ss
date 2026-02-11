@@ -1,14 +1,19 @@
 # based on https://github.com/Stability-AI/ModelSpec
 import datetime
 import hashlib
+import argparse
+import base64
+import logging
+import mimetypes
+import subprocess
+from dataclasses import dataclass, field
 from io import BytesIO
 import os
-from typing import List, Optional, Tuple, Union
+from typing import Union
 import safetensors
 from library.utils import setup_logging
 
 setup_logging()
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -31,23 +36,32 @@ metadata = {
 """
 
 BASE_METADATA = {
-    # === Must ===
-    "modelspec.sai_model_spec": "1.0.0",  # Required version ID for the spec
+    # === MUST ===
+    "modelspec.sai_model_spec": "1.0.1",
     "modelspec.architecture": None,
     "modelspec.implementation": None,
     "modelspec.title": None,
     "modelspec.resolution": None,
-    # === Should ===
+    # === SHOULD ===
     "modelspec.description": None,
     "modelspec.author": None,
     "modelspec.date": None,
-    # === Can ===
+    "modelspec.hash_sha256": None,
+    # === CAN===
+    "modelspec.implementation_version": None,
     "modelspec.license": None,
+    "modelspec.usage_hint": None,
+    "modelspec.thumbnail": None,
     "modelspec.tags": None,
     "modelspec.merged_from": None,
+    "modelspec.trigger_phrase": None,
     "modelspec.prediction_type": None,
     "modelspec.timestep_range": None,
     "modelspec.encoder_layer": None,
+    "modelspec.preprocessor": None,
+    "modelspec.is_negative_embedding": None,
+    "modelspec.unet_dtype": None,
+    "modelspec.vae_dtype": None,
 }
 
 # 別に使うやつだけ定義
@@ -60,7 +74,15 @@ ARCH_SD_XL_V1_BASE = "stable-diffusion-xl-v1-base"
 ARCH_SD3_M = "stable-diffusion-3"  # may be followed by "-m" or "-5-large" etc.
 # ARCH_SD3_UNKNOWN = "stable-diffusion-3"
 ARCH_FLUX_1_DEV = "flux-1-dev"
+ARCH_FLUX_1_SCHNELL = "flux-1-schnell"
+ARCH_FLUX_1_CHROMA = "chroma"  # for Flux Chroma
 ARCH_FLUX_1_UNKNOWN = "flux-1"
+ARCH_LUMINA_2 = "lumina-2"
+ARCH_LUMINA_UNKNOWN = "lumina"
+ARCH_HUNYUAN_IMAGE_2_1 = "hunyuan-image-2.1"
+ARCH_HUNYUAN_IMAGE_UNKNOWN = "hunyuan-image"
+ARCH_ANIMA_PREVIEW = "anima-preview"
+ARCH_ANIMA_UNKNOWN = "anima-unknown"
 
 ADAPTER_LORA = "lora"
 ADAPTER_TEXTUAL_INVERSION = "textual-inversion"
@@ -69,9 +91,259 @@ IMPL_STABILITY_AI = "https://github.com/Stability-AI/generative-models"
 IMPL_COMFY_UI = "https://github.com/comfyanonymous/ComfyUI"
 IMPL_DIFFUSERS = "diffusers"
 IMPL_FLUX = "https://github.com/black-forest-labs/flux"
+IMPL_CHROMA = "https://huggingface.co/lodestones/Chroma"
+IMPL_LUMINA = "https://github.com/Alpha-VLLM/Lumina-Image-2.0"
+IMPL_HUNYUAN_IMAGE = "https://github.com/Tencent-Hunyuan/HunyuanImage-2.1"
+IMPL_ANIMA = "https://huggingface.co/circlestone-labs/Anima"
 
 PRED_TYPE_EPSILON = "epsilon"
 PRED_TYPE_V = "v"
+
+
+@dataclass
+class ModelSpecMetadata:
+    """
+    ModelSpec 1.0.1 compliant metadata for safetensors models.
+    All fields correspond to modelspec.* keys in the final metadata.
+    """
+
+    # === MUST ===
+    architecture: str
+    implementation: str
+    title: str
+    resolution: str
+    sai_model_spec: str = "1.0.1"
+
+    # === SHOULD ===
+    description: str | None = None
+    author: str | None = None
+    date: str | None = None
+    hash_sha256: str | None = None
+
+    # === CAN ===
+    implementation_version: str | None = None
+    license: str | None = None
+    usage_hint: str | None = None
+    thumbnail: str | None = None
+    tags: str | None = None
+    merged_from: str | None = None
+    trigger_phrase: str | None = None
+    prediction_type: str | None = None
+    timestep_range: str | None = None
+    encoder_layer: str | None = None
+    preprocessor: str | None = None
+    is_negative_embedding: str | None = None
+    unet_dtype: str | None = None
+    vae_dtype: str | None = None
+
+    # === Additional metadata ===
+    additional_fields: dict[str, str] = field(default_factory=dict)
+
+    def to_metadata_dict(self) -> dict[str, str]:
+        """Convert dataclass to metadata dictionary with modelspec. prefixes."""
+        metadata = {}
+
+        # Add all non-None fields with modelspec prefix
+        for field_name, value in self.__dict__.items():
+            if field_name == "additional_fields":
+                # Handle additional fields separately
+                for key, val in value.items():
+                    if key.startswith("modelspec."):
+                        metadata[key] = val
+                    else:
+                        metadata[f"modelspec.{key}"] = val
+            elif value is not None:
+                metadata[f"modelspec.{field_name}"] = value
+
+        return metadata
+
+    @classmethod
+    def from_args(cls, args, **kwargs) -> "ModelSpecMetadata":
+        """Create ModelSpecMetadata from argparse Namespace, extracting metadata_* fields."""
+        metadata_fields = {}
+
+        # Extract all metadata_* attributes from args
+        for attr_name in dir(args):
+            if attr_name.startswith("metadata_") and not attr_name.startswith("metadata___"):
+                value = getattr(args, attr_name, None)
+                if value is not None:
+                    # Remove metadata_ prefix
+                    field_name = attr_name[9:]  # len("metadata_") = 9
+                    metadata_fields[field_name] = value
+
+        # Handle known standard fields
+        standard_fields = {
+            "author": metadata_fields.pop("author", None),
+            "description": metadata_fields.pop("description", None),
+            "license": metadata_fields.pop("license", None),
+            "tags": metadata_fields.pop("tags", None),
+        }
+
+        # Remove None values
+        standard_fields = {k: v for k, v in standard_fields.items() if v is not None}
+
+        # Merge with kwargs and remaining metadata fields
+        all_fields = {**standard_fields, **kwargs}
+        if metadata_fields:
+            all_fields["additional_fields"] = metadata_fields
+
+        return cls(**all_fields)
+
+
+def determine_architecture(
+    v2: bool, v_parameterization: bool, sdxl: bool, lora: bool, textual_inversion: bool, model_config: dict[str, str] | None = None
+) -> str:
+    """Determine model architecture string from parameters."""
+
+    model_config = model_config or {}
+
+    if sdxl:
+        arch = ARCH_SD_XL_V1_BASE
+    elif "sd3" in model_config:
+        arch = ARCH_SD3_M + "-" + model_config["sd3"]
+    elif "flux" in model_config:
+        flux_type = model_config["flux"]
+        if flux_type == "dev":
+            arch = ARCH_FLUX_1_DEV
+        elif flux_type == "schnell":
+            arch = ARCH_FLUX_1_SCHNELL
+        elif flux_type == "chroma":
+            arch = ARCH_FLUX_1_CHROMA
+        else:
+            arch = ARCH_FLUX_1_UNKNOWN
+    elif "lumina" in model_config:
+        lumina_type = model_config["lumina"]
+        if lumina_type == "lumina2":
+            arch = ARCH_LUMINA_2
+        else:
+            arch = ARCH_LUMINA_UNKNOWN
+    elif "hunyuan_image" in model_config:
+        hunyuan_image_type = model_config["hunyuan_image"]
+        if hunyuan_image_type == "2.1":
+            arch = ARCH_HUNYUAN_IMAGE_2_1
+        else:
+            arch = ARCH_HUNYUAN_IMAGE_UNKNOWN
+    elif "anima" in model_config:
+        anima_type = model_config["anima"]
+        if anima_type == "preview":
+            arch = ARCH_ANIMA_PREVIEW
+        else:
+            arch = ARCH_ANIMA_UNKNOWN
+    elif v2:
+        arch = ARCH_SD_V2_768_V if v_parameterization else ARCH_SD_V2_512
+    else:
+        arch = ARCH_SD_V1
+
+    # Add adapter suffix
+    if lora:
+        arch += f"/{ADAPTER_LORA}"
+    elif textual_inversion:
+        arch += f"/{ADAPTER_TEXTUAL_INVERSION}"
+
+    return arch
+
+
+def determine_implementation(
+    lora: bool,
+    textual_inversion: bool,
+    sdxl: bool,
+    model_config: dict[str, str] | None = None,
+    is_stable_diffusion_ckpt: bool | None = None,
+) -> str:
+    """Determine implementation string from parameters."""
+
+    model_config = model_config or {}
+
+    if "flux" in model_config:
+        if model_config["flux"] == "chroma":
+            return IMPL_CHROMA
+        else:
+            return IMPL_FLUX
+    elif "lumina" in model_config:
+        return IMPL_LUMINA
+    elif "anima" in model_config:
+        return IMPL_ANIMA
+    elif (lora and sdxl) or textual_inversion or is_stable_diffusion_ckpt:
+        return IMPL_STABILITY_AI
+    else:
+        return IMPL_DIFFUSERS
+
+
+def get_implementation_version() -> str:
+    """Get the current implementation version as sd-scripts/{commit_hash}."""
+    try:
+        # Get the git commit hash
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            cwd=os.path.dirname(os.path.dirname(__file__)),  # Go up to sd-scripts root
+            timeout=5,
+        )
+
+        if result.returncode == 0:
+            commit_hash = result.stdout.strip()
+            return f"sd-scripts/{commit_hash}"
+        else:
+            logger.warning("Failed to get git commit hash, using fallback")
+            return "sd-scripts/unknown"
+
+    except (subprocess.TimeoutExpired, subprocess.SubprocessError, FileNotFoundError) as e:
+        logger.warning(f"Could not determine git commit: {e}")
+        return "sd-scripts/unknown"
+
+
+def file_to_data_url(file_path: str) -> str:
+    """Convert a file path to a data URL for embedding in metadata."""
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"File not found: {file_path}")
+
+    # Get MIME type
+    mime_type, _ = mimetypes.guess_type(file_path)
+    if mime_type is None:
+        # Default to binary if we can't detect
+        mime_type = "application/octet-stream"
+
+    # Read file and encode as base64
+    with open(file_path, "rb") as f:
+        file_data = f.read()
+
+    encoded_data = base64.b64encode(file_data).decode("ascii")
+
+    return f"data:{mime_type};base64,{encoded_data}"
+
+
+def determine_resolution(
+    reso: Union[int, tuple[int, int]] | None = None,
+    sdxl: bool = False,
+    model_config: dict[str, str] | None = None,
+    v2: bool = False,
+    v_parameterization: bool = False,
+) -> str:
+    """Determine resolution string from parameters."""
+
+    model_config = model_config or {}
+
+    if reso is not None:
+        # Handle comma separated string
+        if isinstance(reso, str):
+            reso = tuple(map(int, reso.split(",")))
+        # Handle single int
+        if isinstance(reso, int):
+            reso = (reso, reso)
+        # Handle single-element tuple
+        if len(reso) == 1:
+            reso = (reso[0], reso[0])
+    else:
+        # Determine default resolution based on model type
+        if sdxl or "sd3" in model_config or "flux" in model_config or "lumina" in model_config or "anima" in model_config:
+            reso = (1024, 1024)
+        elif v2 and v_parameterization:
+            reso = (768, 768)
+        else:
+            reso = (512, 512)
+
+    return f"{reso[0]}x{reso[1]}"
 
 
 def load_bytes_in_safetensors(tensors):
@@ -103,77 +375,42 @@ def update_hash_sha256(metadata: dict, state_dict: dict):
     raise NotImplementedError
 
 
-def build_metadata(
-    state_dict: Optional[dict],
+def build_metadata_dataclass(
+    state_dict: dict | None,
     v2: bool,
     v_parameterization: bool,
     sdxl: bool,
     lora: bool,
     textual_inversion: bool,
     timestamp: float,
-    title: Optional[str] = None,
-    reso: Optional[Union[int, Tuple[int, int]]] = None,
-    is_stable_diffusion_ckpt: Optional[bool] = None,
-    author: Optional[str] = None,
-    description: Optional[str] = None,
-    license: Optional[str] = None,
-    tags: Optional[str] = None,
-    merged_from: Optional[str] = None,
-    timesteps: Optional[Tuple[int, int]] = None,
-    clip_skip: Optional[int] = None,
-    sd3: Optional[str] = None,
-    flux: Optional[str] = None,
-):
+    title: str | None = None,
+    reso: int | tuple[int, int] | None = None,
+    is_stable_diffusion_ckpt: bool | None = None,
+    author: str | None = None,
+    description: str | None = None,
+    license: str | None = None,
+    tags: str | None = None,
+    merged_from: str | None = None,
+    timesteps: tuple[int, int] | None = None,
+    clip_skip: int | None = None,
+    model_config: dict | None = None,
+    optional_metadata: dict | None = None,
+) -> ModelSpecMetadata:
     """
-    sd3: only supports "m", flux: only supports "dev"
+    Build ModelSpec 1.0.1 compliant metadata dataclass.
+
+    Args:
+        model_config: Dict containing model type info, e.g. {"flux": "dev"}, {"sd3": "large"}
+        optional_metadata: Dict of additional metadata fields to include
     """
-    # if state_dict is None, hash is not calculated
 
-    metadata = {}
-    metadata.update(BASE_METADATA)
-
-    # TODO メモリを消費せずかつ正しいハッシュ計算の方法がわかったら実装する
-    # if state_dict is not None:
-    # hash = precalculate_safetensors_hashes(state_dict)
-    # metadata["modelspec.hash_sha256"] = hash
-
-    if sdxl:
-        arch = ARCH_SD_XL_V1_BASE
-    elif sd3 is not None:
-        arch = ARCH_SD3_M + "-" + sd3
-    elif flux is not None:
-        if flux == "dev":
-            arch = ARCH_FLUX_1_DEV
-        else:
-            arch = ARCH_FLUX_1_UNKNOWN
-    elif v2:
-        if v_parameterization:
-            arch = ARCH_SD_V2_768_V
-        else:
-            arch = ARCH_SD_V2_512
-    else:
-        arch = ARCH_SD_V1
-
-    if lora:
-        arch += f"/{ADAPTER_LORA}"
-    elif textual_inversion:
-        arch += f"/{ADAPTER_TEXTUAL_INVERSION}"
-
-    metadata["modelspec.architecture"] = arch
+    # Use helper functions for complex logic
+    architecture = determine_architecture(v2, v_parameterization, sdxl, lora, textual_inversion, model_config)
 
     if not lora and not textual_inversion and is_stable_diffusion_ckpt is None:
         is_stable_diffusion_ckpt = True  # default is stable diffusion ckpt if not lora and not textual_inversion
 
-    if flux is not None:
-        # Flux
-        impl = IMPL_FLUX
-    elif (lora and sdxl) or textual_inversion or is_stable_diffusion_ckpt:
-        # Stable Diffusion ckpt, TI, SDXL LoRA
-        impl = IMPL_STABILITY_AI
-    else:
-        # v1/v2 LoRA or Diffusers
-        impl = IMPL_DIFFUSERS
-    metadata["modelspec.implementation"] = impl
+    implementation = determine_implementation(lora, textual_inversion, sdxl, model_config, is_stable_diffusion_ckpt)
 
     if title is None:
         if lora:
@@ -183,92 +420,143 @@ def build_metadata(
         else:
             title = "Checkpoint"
         title += f"@{timestamp}"
-    metadata[MODELSPEC_TITLE] = title
-
-    if author is not None:
-        metadata["modelspec.author"] = author
-    else:
-        del metadata["modelspec.author"]
-
-    if description is not None:
-        metadata["modelspec.description"] = description
-    else:
-        del metadata["modelspec.description"]
-
-    if merged_from is not None:
-        metadata["modelspec.merged_from"] = merged_from
-    else:
-        del metadata["modelspec.merged_from"]
-
-    if license is not None:
-        metadata["modelspec.license"] = license
-    else:
-        del metadata["modelspec.license"]
-
-    if tags is not None:
-        metadata["modelspec.tags"] = tags
-    else:
-        del metadata["modelspec.tags"]
 
     # remove microsecond from time
     int_ts = int(timestamp)
-
     # time to iso-8601 compliant date
     date = datetime.datetime.fromtimestamp(int_ts).isoformat()
-    metadata["modelspec.date"] = date
 
-    if reso is not None:
-        # comma separated to tuple
-        if isinstance(reso, str):
-            reso = tuple(map(int, reso.split(",")))
-        if len(reso) == 1:
-            reso = (reso[0], reso[0])
-    else:
-        # resolution is defined in dataset, so use default
-        if sdxl or sd3 is not None or flux is not None:
-            reso = 1024
-        elif v2 and v_parameterization:
-            reso = 768
+    # Use helper function for resolution
+    resolution = determine_resolution(reso, sdxl, model_config, v2, v_parameterization)
+
+    # Handle prediction type - Flux models don't use prediction_type
+    model_config = model_config or {}
+    prediction_type = None
+    if "flux" not in model_config:
+        if v_parameterization:
+            prediction_type = PRED_TYPE_V
         else:
-            reso = 512
-    if isinstance(reso, int):
-        reso = (reso, reso)
+            prediction_type = PRED_TYPE_EPSILON
 
-    metadata["modelspec.resolution"] = f"{reso[0]}x{reso[1]}"
-
-    if flux is not None:
-        del metadata["modelspec.prediction_type"]
-    elif v_parameterization:
-        metadata["modelspec.prediction_type"] = PRED_TYPE_V
-    else:
-        metadata["modelspec.prediction_type"] = PRED_TYPE_EPSILON
-
+    # Handle timesteps
+    timestep_range = None
     if timesteps is not None:
         if isinstance(timesteps, str) or isinstance(timesteps, int):
             timesteps = (timesteps, timesteps)
         if len(timesteps) == 1:
             timesteps = (timesteps[0], timesteps[0])
-        metadata["modelspec.timestep_range"] = f"{timesteps[0]},{timesteps[1]}"
-    else:
-        del metadata["modelspec.timestep_range"]
+        timestep_range = f"{timesteps[0]},{timesteps[1]}"
 
+    # Handle encoder layer (clip skip)
+    encoder_layer = None
     if clip_skip is not None:
-        metadata["modelspec.encoder_layer"] = f"{clip_skip}"
-    else:
-        del metadata["modelspec.encoder_layer"]
+        encoder_layer = f"{clip_skip}"
 
-    # # assert all values are filled
-    # assert all([v is not None for v in metadata.values()]), metadata
-    if not all([v is not None for v in metadata.values()]):
-        logger.error(f"Internal error: some metadata values are None: {metadata}")
+    # TODO: Implement hash calculation when memory-efficient method is available
+    # hash_sha256 = None
+    # if state_dict is not None:
+    #     hash_sha256 = precalculate_safetensors_hashes(state_dict)
+
+    # Process thumbnail - convert file path to data URL if needed
+    processed_optional_metadata = optional_metadata.copy() if optional_metadata else {}
+    if "thumbnail" in processed_optional_metadata:
+        thumbnail_value = processed_optional_metadata["thumbnail"]
+        # Check if it's already a data URL or if it's a file path
+        if thumbnail_value and not thumbnail_value.startswith("data:"):
+            try:
+                processed_optional_metadata["thumbnail"] = file_to_data_url(thumbnail_value)
+                logger.info(f"Converted thumbnail file {thumbnail_value} to data URL")
+            except FileNotFoundError as e:
+                logger.warning(f"Thumbnail file not found, skipping: {e}")
+                del processed_optional_metadata["thumbnail"]
+            except Exception as e:
+                logger.warning(f"Failed to convert thumbnail to data URL: {e}")
+                del processed_optional_metadata["thumbnail"]
+
+    # Automatically set implementation version if not provided
+    if "implementation_version" not in processed_optional_metadata:
+        processed_optional_metadata["implementation_version"] = get_implementation_version()
+
+    # Create the dataclass
+    metadata = ModelSpecMetadata(
+        architecture=architecture,
+        implementation=implementation,
+        title=title,
+        description=description,
+        author=author,
+        date=date,
+        license=license,
+        tags=tags,
+        merged_from=merged_from,
+        resolution=resolution,
+        prediction_type=prediction_type,
+        timestep_range=timestep_range,
+        encoder_layer=encoder_layer,
+        additional_fields=processed_optional_metadata,
+    )
 
     return metadata
+
+
+def build_metadata(
+    state_dict: dict | None,
+    v2: bool,
+    v_parameterization: bool,
+    sdxl: bool,
+    lora: bool,
+    textual_inversion: bool,
+    timestamp: float,
+    title: str | None = None,
+    reso: int | tuple[int, int] | None = None,
+    is_stable_diffusion_ckpt: bool | None = None,
+    author: str | None = None,
+    description: str | None = None,
+    license: str | None = None,
+    tags: str | None = None,
+    merged_from: str | None = None,
+    timesteps: tuple[int, int] | None = None,
+    clip_skip: int | None = None,
+    model_config: dict | None = None,
+    optional_metadata: dict | None = None,
+) -> dict[str, str]:
+    """
+    Build ModelSpec 1.0.1 compliant metadata for safetensors models.
+    Legacy function that returns dict - prefer build_metadata_dataclass for new code.
+
+    Args:
+        model_config: Dict containing model type info, e.g. {"flux": "dev"}, {"sd3": "large"}
+        optional_metadata: Dict of additional metadata fields to include
+    """
+    # Use the dataclass function and convert to dict
+    metadata_obj = build_metadata_dataclass(
+        state_dict=state_dict,
+        v2=v2,
+        v_parameterization=v_parameterization,
+        sdxl=sdxl,
+        lora=lora,
+        textual_inversion=textual_inversion,
+        timestamp=timestamp,
+        title=title,
+        reso=reso,
+        is_stable_diffusion_ckpt=is_stable_diffusion_ckpt,
+        author=author,
+        description=description,
+        license=license,
+        tags=tags,
+        merged_from=merged_from,
+        timesteps=timesteps,
+        clip_skip=clip_skip,
+        model_config=model_config,
+        optional_metadata=optional_metadata,
+    )
+
+    return metadata_obj.to_metadata_dict()
 
 
 # region utils
 
 
-def get_title(metadata: dict) -> Optional[str]:
+def get_title(metadata: dict) -> str | None:
     return metadata.get(MODELSPEC_TITLE, None)
 
 
@@ -283,7 +571,7 @@ def load_metadata_from_safetensors(model: str) -> dict:
     return metadata
 
 
-def build_merged_from(models: List[str]) -> str:
+def build_merged_from(models: list[str]) -> str:
     def get_title(model: str):
         metadata = load_metadata_from_safetensors(model)
         title = metadata.get(MODELSPEC_TITLE, None)
@@ -293,6 +581,77 @@ def build_merged_from(models: List[str]) -> str:
 
     titles = [get_title(model) for model in models]
     return ", ".join(titles)
+
+
+def add_model_spec_arguments(parser: argparse.ArgumentParser):
+    """Add all ModelSpec metadata arguments to the parser."""
+
+    parser.add_argument(
+        "--metadata_title",
+        type=str,
+        default=None,
+        help="title for model metadata (default is output_name) / メタデータに書き込まれるモデルタイトル、省略時はoutput_name",
+    )
+    parser.add_argument(
+        "--metadata_author",
+        type=str,
+        default=None,
+        help="author name for model metadata / メタデータに書き込まれるモデル作者名",
+    )
+    parser.add_argument(
+        "--metadata_description",
+        type=str,
+        default=None,
+        help="description for model metadata / メタデータに書き込まれるモデル説明",
+    )
+    parser.add_argument(
+        "--metadata_license",
+        type=str,
+        default=None,
+        help="license for model metadata / メタデータに書き込まれるモデルライセンス",
+    )
+    parser.add_argument(
+        "--metadata_tags",
+        type=str,
+        default=None,
+        help="tags for model metadata, separated by comma / メタデータに書き込まれるモデルタグ、カンマ区切り",
+    )
+    parser.add_argument(
+        "--metadata_usage_hint",
+        type=str,
+        default=None,
+        help="usage hint for model metadata / メタデータに書き込まれる使用方法のヒント",
+    )
+    parser.add_argument(
+        "--metadata_thumbnail",
+        type=str,
+        default=None,
+        help="thumbnail image as data URL or file path (will be converted to data URL) for model metadata / メタデータに書き込まれるサムネイル画像（データURLまたはファイルパス、ファイルパスの場合はデータURLに変換されます）",
+    )
+    parser.add_argument(
+        "--metadata_merged_from",
+        type=str,
+        default=None,
+        help="source models for merged model metadata / メタデータに書き込まれるマージ元モデル名",
+    )
+    parser.add_argument(
+        "--metadata_trigger_phrase",
+        type=str,
+        default=None,
+        help="trigger phrase for model metadata / メタデータに書き込まれるトリガーフレーズ",
+    )
+    parser.add_argument(
+        "--metadata_preprocessor",
+        type=str,
+        default=None,
+        help="preprocessor used for model metadata / メタデータに書き込まれる前処理手法",
+    )
+    parser.add_argument(
+        "--metadata_is_negative_embedding",
+        type=str,
+        default=None,
+        help="whether this is a negative embedding for model metadata / メタデータに書き込まれるネガティブ埋め込みかどうか",
+    )
 
 
 # endregion

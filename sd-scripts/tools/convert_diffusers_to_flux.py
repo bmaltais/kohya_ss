@@ -30,7 +30,8 @@ import torch
 from tqdm import tqdm
 
 from library import flux_utils
-from library.utils import setup_logging, str_to_dtype, MemoryEfficientSafeOpen, mem_eff_save_file
+from library.utils import setup_logging, str_to_dtype
+from library.safetensors_utils import MemoryEfficientSafeOpen, mem_eff_save_file
 
 setup_logging()
 import logging
@@ -56,7 +57,7 @@ def convert(args):
     save_dtype = str_to_dtype(args.save_precision) if args.save_precision is not None else None
 
     # make reverse map from diffusers map
-    diffusers_to_bfl_map = flux_utils.make_diffusers_to_bfl_map()
+    diffusers_to_bfl_map = flux_utils.make_diffusers_to_bfl_map(19, 38)
 
     # iterate over three safetensors files to reduce memory usage
     flux_sd = {}

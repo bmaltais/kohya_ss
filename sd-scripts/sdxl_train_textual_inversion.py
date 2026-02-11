@@ -20,8 +20,8 @@ class SdxlTextualInversionTrainer(train_textual_inversion.TextualInversionTraine
         self.is_sdxl = True
 
     def assert_extra_args(self, args, train_dataset_group: Union[train_util.DatasetGroup, train_util.MinimalDataset], val_dataset_group: Optional[train_util.DatasetGroup]):
-        super().assert_extra_args(args, train_dataset_group, val_dataset_group)
-        sdxl_train_util.verify_sdxl_training_args(args, supportTextEncoderCaching=False)
+        # super().assert_extra_args(args, train_dataset_group) # do not call parent because it checks reso steps with 64
+        sdxl_train_util.verify_sdxl_training_args(args, support_text_encoder_caching=False)
 
         train_dataset_group.verify_bucket_reso_steps(32)
         if val_dataset_group is not None:

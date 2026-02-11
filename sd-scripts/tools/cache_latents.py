@@ -12,6 +12,7 @@ from tqdm import tqdm
 from library import config_util, flux_train_utils, flux_utils, strategy_base, strategy_flux, strategy_sd, strategy_sdxl
 from library import train_util
 from library import sdxl_train_util
+import library.sai_model_spec as sai_model_spec
 from library.config_util import (
     ConfigSanitizer,
     BlueprintGenerator,
@@ -161,6 +162,7 @@ def setup_parser() -> argparse.ArgumentParser:
 
     add_logging_arguments(parser)
     train_util.add_sd_models_arguments(parser)
+    sai_model_spec.add_model_spec_arguments(parser)
     train_util.add_training_arguments(parser, True)
     train_util.add_dataset_arguments(parser, True, True, True)
     train_util.add_masked_loss_arguments(parser)

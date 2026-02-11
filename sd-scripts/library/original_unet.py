@@ -114,8 +114,10 @@ from torch import nn
 from torch.nn import functional as F
 from einops import rearrange
 from library.utils import setup_logging
+
 setup_logging()
 import logging
+
 logger = logging.getLogger(__name__)
 
 BLOCK_OUT_CHANNELS: Tuple[int] = (320, 640, 1280, 1280)
@@ -530,7 +532,9 @@ class DownBlock2D(nn.Module):
 
                     return custom_forward
 
-                hidden_states = torch.utils.checkpoint.checkpoint(create_custom_forward(resnet), hidden_states, temb)
+                hidden_states = torch.utils.checkpoint.checkpoint(
+                    create_custom_forward(resnet), hidden_states, temb, use_reentrant=False
+                )
             else:
                 hidden_states = resnet(hidden_states, temb)
 
@@ -626,15 +630,9 @@ class CrossAttention(nn.Module):
                 hidden_states,
                 encoder_hidden_states,
                 attention_mask,
-            ) = translate_attention_names_from_diffusers(
-                hidden_states=hidden_states, context=context, mask=mask, **kwargs
-            )
+            ) = translate_attention_names_from_diffusers(hidden_states=hidden_states, context=context, mask=mask, **kwargs)
             return self.processor(
-                attn=self,
-                hidden_states=hidden_states,
-                encoder_hidden_states=context,
-                attention_mask=mask,
-                **kwargs
+                attn=self, hidden_states=hidden_states, encoder_hidden_states=context, attention_mask=mask, **kwargs
             )
         if self.use_memory_efficient_attention_xformers:
             return self.forward_memory_efficient_xformers(hidden_states, context, mask)
@@ -748,13 +746,14 @@ class CrossAttention(nn.Module):
         out = self.to_out[0](out)
         return out
 
+
 def translate_attention_names_from_diffusers(
     hidden_states: torch.FloatTensor,
     context: Optional[torch.FloatTensor] = None,
     mask: Optional[torch.FloatTensor] = None,
     # HF naming
     encoder_hidden_states: Optional[torch.FloatTensor] = None,
-    attention_mask: Optional[torch.FloatTensor] = None
+    attention_mask: Optional[torch.FloatTensor] = None,
 ):
     # translate from hugging face diffusers
     context = context if context is not None else encoder_hidden_states
@@ -763,6 +762,7 @@ def translate_attention_names_from_diffusers(
     mask = mask if mask is not None else attention_mask
 
     return hidden_states, context, mask
+
 
 # feedforward
 class GEGLU(nn.Module):
@@ -1015,9 +1015,11 @@ class CrossAttnDownBlock2D(nn.Module):
 
                     return custom_forward
 
-                hidden_states = torch.utils.checkpoint.checkpoint(create_custom_forward(resnet), hidden_states, temb)
                 hidden_states = torch.utils.checkpoint.checkpoint(
-                    create_custom_forward(attn, return_dict=False), hidden_states, encoder_hidden_states
+                    create_custom_forward(resnet), hidden_states, temb, use_reentrant=False
+                )
+                hidden_states = torch.utils.checkpoint.checkpoint(
+                    create_custom_forward(attn, return_dict=False), hidden_states, encoder_hidden_states, use_reentrant=False
                 )[0]
             else:
                 hidden_states = resnet(hidden_states, temb)
@@ -1098,10 +1100,12 @@ class UNetMidBlock2DCrossAttn(nn.Module):
 
                 if attn is not None:
                     hidden_states = torch.utils.checkpoint.checkpoint(
-                        create_custom_forward(attn, return_dict=False), hidden_states, encoder_hidden_states
+                        create_custom_forward(attn, return_dict=False), hidden_states, encoder_hidden_states, use_reentrant=False
                     )[0]
 
-                hidden_states = torch.utils.checkpoint.checkpoint(create_custom_forward(resnet), hidden_states, temb)
+                hidden_states = torch.utils.checkpoint.checkpoint(
+                    create_custom_forward(resnet), hidden_states, temb, use_reentrant=False
+                )
             else:
                 if attn is not None:
                     hidden_states = attn(hidden_states, encoder_hidden_states).sample
@@ -1201,7 +1205,9 @@ class UpBlock2D(nn.Module):
 
                     return custom_forward
 
-                hidden_states = torch.utils.checkpoint.checkpoint(create_custom_forward(resnet), hidden_states, temb)
+                hidden_states = torch.utils.checkpoint.checkpoint(
+                    create_custom_forward(resnet), hidden_states, temb, use_reentrant=False
+                )
             else:
                 hidden_states = resnet(hidden_states, temb)
 
@@ -1296,9 +1302,11 @@ class CrossAttnUpBlock2D(nn.Module):
 
                     return custom_forward
 
-                hidden_states = torch.utils.checkpoint.checkpoint(create_custom_forward(resnet), hidden_states, temb)
                 hidden_states = torch.utils.checkpoint.checkpoint(
-                    create_custom_forward(attn, return_dict=False), hidden_states, encoder_hidden_states
+                    create_custom_forward(resnet), hidden_states, temb, use_reentrant=False
+                )
+                hidden_states = torch.utils.checkpoint.checkpoint(
+                    create_custom_forward(attn, return_dict=False), hidden_states, encoder_hidden_states, use_reentrant=False
                 )[0]
             else:
                 hidden_states = resnet(hidden_states, temb)

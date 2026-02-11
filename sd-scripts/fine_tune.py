@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 import library.train_util as train_util
 import library.config_util as config_util
+import library.sai_model_spec as sai_model_spec
 from library.config_util import (
     ConfigSanitizer,
     BlueprintGenerator,
@@ -519,6 +520,7 @@ def setup_parser() -> argparse.ArgumentParser:
 
     add_logging_arguments(parser)
     train_util.add_sd_models_arguments(parser)
+    sai_model_spec.add_model_spec_arguments(parser)
     train_util.add_dataset_arguments(parser, False, True, True)
     train_util.add_training_arguments(parser, False)
     deepspeed_utils.add_deepspeed_arguments(parser)

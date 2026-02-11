@@ -6,7 +6,8 @@ import torch
 from safetensors.torch import safe_open
 
 from library.utils import setup_logging
-from library.utils import load_safetensors, mem_eff_save_file, str_to_dtype
+from library.utils import str_to_dtype
+from library.safetensors_utils import load_safetensors, mem_eff_save_file
 
 setup_logging()
 import logging

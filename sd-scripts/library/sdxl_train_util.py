@@ -327,14 +327,17 @@ def save_sd_model_on_epoch_end_or_stepwise(
 
 
 def add_sdxl_training_arguments(parser: argparse.ArgumentParser, support_text_encoder_caching: bool = True):
-    parser.add_argument(
-        "--cache_text_encoder_outputs", action="store_true", help="cache text encoder outputs / text encoderの出力をキャッシュする"
-    )
-    parser.add_argument(
-        "--cache_text_encoder_outputs_to_disk",
-        action="store_true",
-        help="cache text encoder outputs to disk / text encoderの出力をディスクにキャッシュする",
-    )
+    if support_text_encoder_caching:
+        parser.add_argument(
+            "--cache_text_encoder_outputs",
+            action="store_true",
+            help="cache text encoder outputs / text encoderの出力をキャッシュする",
+        )
+        parser.add_argument(
+            "--cache_text_encoder_outputs_to_disk",
+            action="store_true",
+            help="cache text encoder outputs to disk / text encoderの出力をディスクにキャッシュする",
+        )
     parser.add_argument(
         "--disable_mmap_load_safetensors",
         action="store_true",
@@ -342,7 +345,7 @@ def add_sdxl_training_arguments(parser: argparse.ArgumentParser, support_text_en
     )
 
 
-def verify_sdxl_training_args(args: argparse.Namespace, supportTextEncoderCaching: bool = True):
+def verify_sdxl_training_args(args: argparse.Namespace, support_text_encoder_caching: bool = True):
     assert not args.v2, "v2 cannot be enabled in SDXL training / SDXL学習ではv2を有効にすることはできません"
 
     if args.clip_skip is not None:
@@ -365,7 +368,7 @@ def verify_sdxl_training_args(args: argparse.Namespace, supportTextEncoderCachin
     #     not hasattr(args, "weighted_captions") or not args.weighted_captions
     # ), "weighted_captions cannot be enabled in SDXL training currently / SDXL学習では今のところweighted_captionsを有効にすることはできません"
 
-    if supportTextEncoderCaching:
+    if support_text_encoder_caching:
         if args.cache_text_encoder_outputs_to_disk and not args.cache_text_encoder_outputs:
             args.cache_text_encoder_outputs = True
             logger.warning(

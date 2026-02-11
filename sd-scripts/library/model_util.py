@@ -6,6 +6,7 @@ import os
 
 import torch
 from library.device_utils import init_ipex
+
 init_ipex()
 
 import diffusers
@@ -14,8 +15,10 @@ from diffusers import AutoencoderKL, DDIMScheduler, StableDiffusionPipeline  # ,
 from safetensors.torch import load_file, save_file
 from library.original_unet import UNet2DConditionModel
 from library.utils import setup_logging
+
 setup_logging()
 import logging
+
 logger = logging.getLogger(__name__)
 
 # DiffUsers版StableDiffusionのモデルパラメータ
@@ -974,7 +977,7 @@ def load_checkpoint_with_text_encoder_conversion(ckpt_path, device="cpu"):
         checkpoint = None
         state_dict = load_file(ckpt_path)  # , device) # may causes error
     else:
-        checkpoint = torch.load(ckpt_path, map_location=device)
+        checkpoint = torch.load(ckpt_path, map_location=device, weights_only=False)
         if "state_dict" in checkpoint:
             state_dict = checkpoint["state_dict"]
         else:

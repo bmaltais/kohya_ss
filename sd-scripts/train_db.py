@@ -22,6 +22,7 @@ from diffusers import DDPMScheduler
 
 import library.train_util as train_util
 import library.config_util as config_util
+import library.sai_model_spec as sai_model_spec
 from library.config_util import (
     ConfigSanitizer,
     BlueprintGenerator,
@@ -512,6 +513,7 @@ def setup_parser() -> argparse.ArgumentParser:
 
     add_logging_arguments(parser)
     train_util.add_sd_models_arguments(parser)
+    sai_model_spec.add_model_spec_arguments(parser)
     train_util.add_dataset_arguments(parser, True, False, True)
     train_util.add_training_arguments(parser, True)
     train_util.add_masked_loss_arguments(parser)

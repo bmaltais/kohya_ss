@@ -9,7 +9,8 @@ from safetensors import safe_open
 from safetensors.torch import load_file, save_file
 from tqdm import tqdm
 
-from library.utils import setup_logging, str_to_dtype, MemoryEfficientSafeOpen, mem_eff_save_file
+from library.utils import setup_logging, str_to_dtype
+from library.safetensors_utils import MemoryEfficientSafeOpen, mem_eff_save_file
 
 setup_logging()
 import logging
@@ -618,7 +619,16 @@ def merge(args):
             merged_from = sai_model_spec.build_merged_from([args.flux_model] + args.models)
             title = os.path.splitext(os.path.basename(args.save_to))[0]
             sai_metadata = sai_model_spec.build_metadata(
-                None, False, False, False, False, False, time.time(), title=title, merged_from=merged_from, flux="dev"
+                None,
+                False,
+                False,
+                False,
+                False,
+                False,
+                time.time(),
+                title=title,
+                merged_from=merged_from,
+                model_config={"flux": "dev"},
             )
 
         if flux_state_dict is not None and len(flux_state_dict) > 0:
@@ -646,7 +656,16 @@ def merge(args):
             merged_from = sai_model_spec.build_merged_from(args.models)
             title = os.path.splitext(os.path.basename(args.save_to))[0]
             sai_metadata = sai_model_spec.build_metadata(
-                flux_state_dict, False, False, False, True, False, time.time(), title=title, merged_from=merged_from, flux="dev"
+                flux_state_dict,
+                False,
+                False,
+                False,
+                True,
+                False,
+                time.time(),
+                title=title,
+                merged_from=merged_from,
+                model_config={"flux": "dev"},
             )
             metadata.update(sai_metadata)
 

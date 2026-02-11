@@ -1,9 +1,6 @@
-Original Source by kohya-ss
+First version: A.I Translation by Model: NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO, editing by Darkstorm2150
 
-First version:
-A.I Translation by Model: NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO, editing by Darkstorm2150
-
-Some parts are manually added.
+Document is updated and maintained manually.
 
 # Config Readme
 
@@ -267,10 +264,10 @@ The following command line argument options are ignored if a configuration file 
 * `--reg_data_dir`
 * `--in_json`
 
-The following command line argument options are given priority over the configuration file options if both are specified simultaneously. In most cases, they have the same names as the corresponding options in the configuration file.
+For the command line options listed below, if an option is specified in both the command line arguments and the configuration file, the value from the configuration file will be given priority. Unless otherwise noted, the option names are the same.
 
-| Command Line Argument Option   | Prioritized Configuration File Option |
-| ------------------------------- | ------------------------------------- |
+| Command Line Argument Option   | Corresponding Configuration File Option |
+| ------------------------------- | --------------------------------------- |
 | `--bucket_no_upscale`           |                                       |
 | `--bucket_reso_steps`           |                                       |
 | `--caption_dropout_every_n_epochs` |                                       |

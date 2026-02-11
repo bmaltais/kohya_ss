@@ -14,12 +14,15 @@ from tqdm import tqdm
 import torch
 from library import utils
 from library.device_utils import init_ipex, clean_memory_on_device
+from library.safetensors_utils import load_safetensors
 
 init_ipex()
 
 from accelerate.utils import set_seed
 from diffusers import DDPMScheduler
 from library import deepspeed_utils, sd3_models, sd3_train_utils, sd3_utils, strategy_base, strategy_sd3
+
+import library.sai_model_spec as sai_model_spec
 from library.sdxl_train_util import match_mixed_precision
 
 # , sdxl_model_util
@@ -204,7 +207,7 @@ def train(args):
     # t5xxl_dtype = weight_dtype
     model_dtype = match_mixed_precision(args, weight_dtype)  # None (default) or fp16/bf16 (full_xxxx)
     if args.clip_l is None:
-        sd3_state_dict = utils.load_safetensors(
+        sd3_state_dict = load_safetensors(
             args.pretrained_model_name_or_path, "cpu", args.disable_mmap_load_safetensors, model_dtype
         )
     else:
@@ -320,7 +323,7 @@ def train(args):
     # load VAE for caching latents
     if sd3_state_dict is None:
         logger.info(f"load state dict for MMDiT and VAE from {args.pretrained_model_name_or_path}")
-        sd3_state_dict = utils.load_safetensors(
+        sd3_state_dict = load_safetensors(
             args.pretrained_model_name_or_path, "cpu", args.disable_mmap_load_safetensors, model_dtype
         )
 
@@ -986,6 +989,7 @@ def setup_parser() -> argparse.ArgumentParser:
 
     add_logging_arguments(parser)
     train_util.add_sd_models_arguments(parser)
+    sai_model_spec.add_model_spec_arguments(parser)
     train_util.add_dataset_arguments(parser, True, True, True)
     train_util.add_training_arguments(parser, False)
     train_util.add_masked_loss_arguments(parser)

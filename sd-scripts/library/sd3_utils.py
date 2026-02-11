@@ -23,7 +23,7 @@ from library import sdxl_model_util
 # region models
 
 # TODO remove dependency on flux_utils
-from library.utils import load_safetensors
+from library.safetensors_utils import load_safetensors
 from library.flux_utils import load_t5xxl as flux_utils_load_t5xxl
 
 
@@ -50,14 +50,14 @@ def analyze_state_dict_state(state_dict: Dict, prefix: str = ""):
     context_embedder_in_features = context_shape[1]
     context_embedder_out_features = context_shape[0]
 
-    # only supports 3-5-large, medium or 3-medium
+    # only supports 3-5-large, medium or 3-medium. This is added after `stable-diffusion-3-`.
     if qk_norm is not None:
         if len(x_block_self_attn_layers) == 0:
-            model_type = "3-5-large"
+            model_type = "5-large"
         else:
-            model_type = "3-5-medium"
+            model_type = "5-medium"
     else:
-        model_type = "3-medium"
+        model_type = "medium"
 
     params = sd3_models.SD3Params(
         patch_size=patch_size,
@@ -246,7 +246,7 @@ def load_vae(
     vae_sd = {}
     if vae_path:
         logger.info(f"Loading VAE from {vae_path}...")
-        vae_sd = load_safetensors(vae_path, device, disable_mmap)
+        vae_sd = load_safetensors(vae_path, device, disable_mmap, dtype=vae_dtype)
     else:
         # remove prefix "first_stage_model."
         vae_sd = {}

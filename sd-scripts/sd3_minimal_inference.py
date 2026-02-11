@@ -28,7 +28,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from library import sd3_models, sd3_utils, strategy_sd3
-from library.utils import load_safetensors
+from library.safetensors_utils import load_safetensors
 
 
 def get_noise(seed, latent, device="cpu"):

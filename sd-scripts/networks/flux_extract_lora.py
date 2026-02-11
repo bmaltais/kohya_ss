@@ -10,9 +10,8 @@ import torch
 from safetensors.torch import load_file, save_file
 from safetensors import safe_open
 from tqdm import tqdm
-from library import flux_utils, sai_model_spec, model_util, sdxl_model_util
-import lora
-from library.utils import MemoryEfficientSafeOpen
+from library import flux_utils, sai_model_spec
+from library.safetensors_utils import MemoryEfficientSafeOpen
 from library.utils import setup_logging
 from networks import lora_flux
 
@@ -140,7 +139,9 @@ def svd(
 
     if not no_metadata:
         title = os.path.splitext(os.path.basename(save_to))[0]
-        sai_metadata = sai_model_spec.build_metadata(lora_sd, False, False, False, True, False, time.time(), title, flux="dev")
+        sai_metadata = sai_model_spec.build_metadata(
+            lora_sd, False, False, False, True, False, time.time(), title, model_config={"flux": "dev"}
+        )
         metadata.update(sai_metadata)
 
     save_to_file(save_to, lora_sd, metadata, save_dtype)

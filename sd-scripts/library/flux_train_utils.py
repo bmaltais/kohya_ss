@@ -16,10 +16,11 @@ from safetensors.torch import save_file
 
 from library import flux_models, flux_utils, strategy_base, train_util
 from library.device_utils import init_ipex, clean_memory_on_device
+from library.safetensors_utils import mem_eff_save_file
 
 init_ipex()
 
-from .utils import setup_logging, mem_eff_save_file
+from .utils import setup_logging
 
 setup_logging()
 import logging
@@ -154,9 +155,8 @@ def sample_image_inference(
     sample_steps = prompt_dict.get("sample_steps", 20)
     width = prompt_dict.get("width", 512)
     height = prompt_dict.get("height", 512)
-    # TODO refactor variable names
-    cfg_scale = prompt_dict.get("guidance_scale", 1.0)
-    emb_guidance_scale = prompt_dict.get("scale", 3.5)
+    emb_guidance_scale = prompt_dict.get("guidance_scale", 3.5)
+    cfg_scale = prompt_dict.get("scale", 1.0)
     seed = prompt_dict.get("seed")
     controlnet_image = prompt_dict.get("controlnet_image")
     prompt: str = prompt_dict.get("prompt", "")
@@ -242,7 +242,7 @@ def sample_image_inference(
         dtype=weight_dtype,
         generator=torch.Generator(device=accelerator.device).manual_seed(seed) if seed is not None else None,
     )
-    timesteps = get_schedule(sample_steps, noise.shape[1], shift=True)  # FLUX.1 dev -> shift=True
+    timesteps = get_schedule(sample_steps, noise.shape[1], shift=True)  # Chroma can use shift=True
     img_ids = flux_utils.prepare_img_ids(1, packed_latent_height, packed_latent_width).to(accelerator.device, weight_dtype)
     t5_attn_mask = t5_attn_mask.to(accelerator.device) if args.apply_t5_attn_mask else None
 
@@ -403,8 +403,8 @@ def denoise(
                 y=torch.cat([neg_l_pooled, vec], dim=0),
                 block_controlnet_hidden_states=block_samples,
                 block_controlnet_single_hidden_states=block_single_samples,
-                timesteps=t_vec,
-                guidance=guidance_vec,
+                timesteps=t_vec.repeat(2),
+                guidance=guidance_vec.repeat(2),
                 txt_attention_mask=nc_c_t5_attn_mask,
             )
             neg_pred, pred = torch.chunk(nc_c_pred, 2, dim=0)
@@ -471,7 +471,7 @@ def compute_loss_weighting_for_sd3(weighting_scheme: str, sigmas=None):
 def get_noisy_model_input_and_timesteps(
     args, noise_scheduler, latents: torch.Tensor, noise: torch.Tensor, device, dtype
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    bsz, _, h, w = latents.shape
+    bsz, h, w = latents.shape[0], latents.shape[-2], latents.shape[-1]
     assert bsz > 0, "Batch size not large enough"
     num_timesteps = noise_scheduler.config.num_train_timesteps
     if args.timestep_sampling == "uniform" or args.timestep_sampling == "sigmoid":
@@ -512,7 +512,7 @@ def get_noisy_model_input_and_timesteps(
         sigmas = get_sigmas(noise_scheduler, timesteps, device, n_dim=latents.ndim, dtype=dtype)
 
     # Broadcast sigmas to latent shape
-    sigmas = sigmas.view(-1, 1, 1, 1)
+    sigmas = sigmas.view(-1, 1, 1, 1) if latents.ndim == 4 else sigmas.view(-1, 1, 1, 1, 1)
 
     # Add noise to the latents according to the noise magnitude at each timestep
     # (this is the forward diffusion process)
@@ -679,4 +679,12 @@ def add_flux_train_arguments(parser: argparse.ArgumentParser):
         type=float,
         default=3.0,
         help="Discrete flow shift for the Euler Discrete Scheduler, default is 3.0. / Euler Discrete Schedulerの離散フローシフト、デフォルトは3.0。",
+    )
+
+    parser.add_argument(
+        "--model_type",
+        type=str,
+        choices=["flux", "chroma"],
+        default="flux",
+        help="Model type to use for training / トレーニングに使用するモデルタイプ：flux or chroma (default: flux)",
     )

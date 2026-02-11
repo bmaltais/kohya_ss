@@ -179,12 +179,15 @@ def split_train_val(
 
 
 class ImageInfo:
-    def __init__(self, image_key: str, num_repeats: int, caption: str, is_reg: bool, absolute_path: str) -> None:
+    def __init__(
+        self, image_key: str, num_repeats: int, caption: str, is_reg: bool, absolute_path: str, caption_dropout_rate: float = 0.0
+    ) -> None:
         self.image_key: str = image_key
         self.num_repeats: int = num_repeats
         self.caption: str = caption
         self.is_reg: bool = is_reg
         self.absolute_path: str = absolute_path
+        self.caption_dropout_rate: float = caption_dropout_rate
         self.image_size: Tuple[int, int] = None
         self.resized_size: Tuple[int, int] = None
         self.bucket_reso: Tuple[int, int] = None
@@ -197,7 +200,7 @@ class ImageInfo:
         )
         self.cond_img_path: Optional[str] = None
         self.image: Optional[Image.Image] = None  # optional, original PIL Image
-        self.text_encoder_outputs_npz: Optional[str] = None  # set in cache_text_encoder_outputs
+        self.text_encoder_outputs_npz: Optional[str] = None  # filename. set in cache_text_encoder_outputs
 
         # new
         self.text_encoder_outputs: Optional[List[torch.Tensor]] = None
@@ -683,7 +686,7 @@ class BaseDataset(torch.utils.data.Dataset):
         resolution: Optional[Tuple[int, int]],
         network_multiplier: float,
         debug_dataset: bool,
-        resize_interpolation: Optional[str] = None
+        resize_interpolation: Optional[str] = None,
     ) -> None:
         super().__init__()
 
@@ -719,7 +722,9 @@ class BaseDataset(torch.utils.data.Dataset):
         self.image_transforms = IMAGE_TRANSFORMS
 
         if resize_interpolation is not None:
-            assert validate_interpolation_fn(resize_interpolation), f"Resize interpolation \"{resize_interpolation}\" is not a valid interpolation"
+            assert validate_interpolation_fn(
+                resize_interpolation
+            ), f'Resize interpolation "{resize_interpolation}" is not a valid interpolation'
         self.resize_interpolation = resize_interpolation
 
         self.image_data: Dict[str, ImageInfo] = {}
@@ -1094,11 +1099,11 @@ class BaseDataset(torch.utils.data.Dataset):
     def is_latent_cacheable(self):
         return all([not subset.color_aug and not subset.random_crop for subset in self.subsets])
 
-    def is_text_encoder_output_cacheable(self):
+    def is_text_encoder_output_cacheable(self, cache_supports_dropout: bool = False):
         return all(
             [
                 not (
-                    subset.caption_dropout_rate > 0
+                    subset.caption_dropout_rate > 0 and not cache_supports_dropout
                     or subset.shuffle_caption
                     or subset.token_warmup_step > 0
                     or subset.caption_tag_dropout_rate > 0
@@ -1129,7 +1134,8 @@ class BaseDataset(torch.utils.data.Dataset):
 
             def __eq__(self, other):
                 return (
-                    self.reso == other.reso
+                    other is not None
+                    and self.reso == other.reso
                     and self.flip_aug == other.flip_aug
                     and self.alpha_mask == other.alpha_mask
                     and self.random_crop == other.random_crop
@@ -1191,6 +1197,8 @@ class BaseDataset(torch.utils.data.Dataset):
                 if len(batch) > 0 and current_condition != condition:
                     submit_batch(batch, current_condition)
                     batch = []
+                if condition != current_condition and HIGH_VRAM:  # even with high VRAM, if shape is changed
+                    clean_memory_on_device(accelerator.device)
 
                 if info.image is None:
                     # load image in parallel
@@ -1203,7 +1211,7 @@ class BaseDataset(torch.utils.data.Dataset):
                 if len(batch) >= caching_strategy.batch_size:
                     submit_batch(batch, current_condition)
                     batch = []
-                    current_condition = None
+                    # current_condition = None  # keep current_condition to avoid next `clean_memory_on_device` call
 
             if len(batch) > 0:
                 submit_batch(batch, current_condition)
@@ -1613,7 +1621,11 @@ class BaseDataset(torch.utils.data.Dataset):
 
                 if self.enable_bucket:
                     img, original_size, crop_ltrb = trim_and_resize_if_required(
-                        subset.random_crop, img, image_info.bucket_reso, image_info.resized_size, resize_interpolation=image_info.resize_interpolation
+                        subset.random_crop,
+                        img,
+                        image_info.bucket_reso,
+                        image_info.resized_size,
+                        resize_interpolation=image_info.resize_interpolation,
                     )
                 else:
                     if face_cx > 0:  # 顔位置情報あり
@@ -1738,7 +1750,35 @@ class BaseDataset(torch.utils.data.Dataset):
             # [[clip_l, clip_g, t5xxl], [clip_l, clip_g, t5xxl], ...] -> [torch.stack(clip_l), torch.stack(clip_g), torch.stack(t5xxl)]
             if len(tensors_list) == 0 or tensors_list[0] == None or len(tensors_list[0]) == 0 or tensors_list[0][0] is None:
                 return None
-            return [torch.stack([converter(x[i]) for x in tensors_list]) for i in range(len(tensors_list[0]))]
+
+            # old implementation without padding: all elements must have same length
+            # return [torch.stack([converter(x[i]) for x in tensors_list]) for i in range(len(tensors_list[0]))]
+
+            # new implementation with padding support
+            result = []
+            for i in range(len(tensors_list[0])):
+                tensors = [x[i] for x in tensors_list]
+                if tensors[0].ndim == 0:
+                    # scalar value: e.g. ocr mask
+                    result.append(torch.stack([converter(x[i]) for x in tensors_list]))
+                    continue
+
+                min_len = min([len(x) for x in tensors])
+                max_len = max([len(x) for x in tensors])
+
+                if min_len == max_len:
+                    # no padding
+                    result.append(torch.stack([converter(x) for x in tensors]))
+                else:
+                    # padding
+                    tensors = [converter(x) for x in tensors]
+                    if tensors[0].ndim == 1:
+                        # input_ids or mask
+                        result.append(torch.stack([(torch.nn.functional.pad(x, (0, max_len - x.shape[0]))) for x in tensors]))
+                    else:
+                        # text encoder outputs
+                        result.append(torch.stack([(torch.nn.functional.pad(x, (0, 0, 0, max_len - x.shape[0]))) for x in tensors]))
+            return result
 
         # set example
         example = {}
@@ -2100,8 +2140,10 @@ class DreamBoothDataset(BaseDataset):
                 num_train_images += num_repeats * len(img_paths)
 
             for img_path, caption, size in zip(img_paths, captions, sizes):
-                info = ImageInfo(img_path, num_repeats, caption, subset.is_reg, img_path)
-                info.resize_interpolation = subset.resize_interpolation if subset.resize_interpolation is not None else self.resize_interpolation
+                info = ImageInfo(img_path, num_repeats, caption, subset.is_reg, img_path, subset.caption_dropout_rate)
+                info.resize_interpolation = (
+                    subset.resize_interpolation if subset.resize_interpolation is not None else self.resize_interpolation
+                )
                 if size is not None:
                     info.image_size = size
                 if subset.is_reg:
@@ -2162,6 +2204,23 @@ class FineTuningDataset(BaseDataset):
         super().__init__(resolution, network_multiplier, debug_dataset, resize_interpolation)
 
         self.batch_size = batch_size
+        self.size = min(self.width, self.height)  # 短いほう
+        self.latents_cache = None
+
+        self.enable_bucket = enable_bucket
+        if self.enable_bucket:
+            min_bucket_reso, max_bucket_reso = self.adjust_min_max_bucket_reso_by_steps(
+                resolution, min_bucket_reso, max_bucket_reso, bucket_reso_steps
+            )
+            self.min_bucket_reso = min_bucket_reso
+            self.max_bucket_reso = max_bucket_reso
+            self.bucket_reso_steps = bucket_reso_steps
+            self.bucket_no_upscale = bucket_no_upscale
+        else:
+            self.min_bucket_reso = None
+            self.max_bucket_reso = None
+            self.bucket_reso_steps = None  # この情報は使われない
+            self.bucket_no_upscale = False
 
         self.num_train_images = 0
         self.num_reg_images = 0
@@ -2181,9 +2240,25 @@ class FineTuningDataset(BaseDataset):
 
             # メタデータを読み込む
             if os.path.exists(subset.metadata_file):
-                logger.info(f"loading existing metadata: {subset.metadata_file}")
-                with open(subset.metadata_file, "rt", encoding="utf-8") as f:
-                    metadata = json.load(f)
+                if subset.metadata_file.endswith(".jsonl"):
+                    logger.info(f"loading existing JSOL metadata: {subset.metadata_file}")
+                    # optional JSONL format
+                    # {"image_path": "/path/to/image1.jpg", "caption": "A caption for image1", "image_size": [width, height]}
+                    metadata = {}
+                    with open(subset.metadata_file, "rt", encoding="utf-8") as f:
+                        for line in f:
+                            line_md = json.loads(line)
+                            image_md = {"caption": line_md.get("caption", "")}
+                            if "image_size" in line_md:
+                                image_md["image_size"] = line_md["image_size"]
+                            if "tags" in line_md:
+                                image_md["tags"] = line_md["tags"]
+                            metadata[line_md["image_path"]] = image_md
+                else:
+                    # standard JSON format
+                    logger.info(f"loading existing metadata: {subset.metadata_file}")
+                    with open(subset.metadata_file, "rt", encoding="utf-8") as f:
+                        metadata = json.load(f)
             else:
                 raise ValueError(f"no metadata / メタデータファイルがありません: {subset.metadata_file}")
 
@@ -2193,182 +2268,107 @@ class FineTuningDataset(BaseDataset):
                 )
                 continue
 
-            tags_list = []
-            for image_key, img_md in metadata.items():
-                # path情報を作る
-                abs_path = None
-
-                # まず画像を優先して探す
-                if os.path.exists(image_key):
-                    abs_path = image_key
+            # Add full path for image
+            image_dirs = set()
+            if subset.image_dir is not None:
+                image_dirs.add(subset.image_dir)
+            for image_key in metadata.keys():
+                if not os.path.isabs(image_key):
+                    assert (
+                        subset.image_dir is not None
+                    ), f"image_dir is required when image paths are relative / 画像パスが相対パスの場合、image_dirの指定が必要です: {image_key}"
+                    abs_path = os.path.join(subset.image_dir, image_key)
                 else:
-                    # わりといい加減だがいい方法が思いつかん
-                    paths = glob_images(subset.image_dir, image_key)
-                    if len(paths) > 0:
-                        abs_path = paths[0]
+                    abs_path = image_key
+                    image_dirs.add(os.path.dirname(abs_path))
+                metadata[image_key]["abs_path"] = abs_path
 
-                # なければnpzを探す
-                if abs_path is None:
-                    if os.path.exists(os.path.splitext(image_key)[0] + ".npz"):
-                        abs_path = os.path.splitext(image_key)[0] + ".npz"
-                    else:
-                        npz_path = os.path.join(subset.image_dir, image_key + ".npz")
-                        if os.path.exists(npz_path):
-                            abs_path = npz_path
+            # Enumerate existing npz files
+            strategy = LatentsCachingStrategy.get_strategy()
+            npz_paths = []
+            for image_dir in image_dirs:
+                npz_paths.extend(glob.glob(os.path.join(image_dir, "*" + strategy.cache_suffix)))
+            npz_paths = sorted(npz_paths, key=lambda item: len(os.path.basename(item)), reverse=True)  # longer paths first
 
-                assert abs_path is not None, f"no image / 画像がありません: {image_key}"
+            # Match image filename longer to shorter because some images share same prefix
+            image_keys_sorted_by_length_desc = sorted(metadata.keys(), key=len, reverse=True)
 
+            # Collect tags and sizes
+            tags_list = []
+            size_set_from_metadata = 0
+            size_set_from_cache_filename = 0
+            for image_key in image_keys_sorted_by_length_desc:
+                img_md = metadata[image_key]
                 caption = img_md.get("caption")
                 tags = img_md.get("tags")
+                image_size = img_md.get("image_size")
+                abs_path = img_md.get("abs_path")
+
+                # search npz if image_size is not given
+                npz_path = None
+                if image_size is None:
+                    image_without_ext = os.path.splitext(image_key)[0]
+                    for candidate in npz_paths:
+                        if candidate.startswith(image_without_ext):
+                            npz_path = candidate
+                            break
+                    if npz_path is not None:
+                        npz_paths.remove(npz_path)  # remove to avoid matching same file (share prefix)
+                        abs_path = npz_path
+
                 if caption is None:
-                    caption = tags  # could be multiline
-                    tags = None
+                    caption = ""
 
                 if subset.enable_wildcard:
-                    # tags must be single line
+                    # tags must be single line (split by caption separator)
                     if tags is not None:
                         tags = tags.replace("\n", subset.caption_separator)
 
                     # add tags to each line of caption
-                    if caption is not None and tags is not None:
+                    if tags is not None:
                         caption = "\n".join(
                             [f"{line}{subset.caption_separator}{tags}" for line in caption.split("\n") if line.strip() != ""]
                         )
+                        tags_list.append(tags)
                 else:
                     # use as is
                     if tags is not None and len(tags) > 0:
-                        caption = caption + subset.caption_separator + tags
+                        if len(caption) > 0:
+                            caption = caption + subset.caption_separator
+                        caption = caption + tags
                         tags_list.append(tags)
 
                 if caption is None:
                     caption = ""
 
-                image_info = ImageInfo(image_key, subset.num_repeats, caption, False, abs_path)
-                image_info.image_size = img_md.get("train_resolution")
+                image_info = ImageInfo(image_key, subset.num_repeats, caption, False, abs_path, subset.caption_dropout_rate)
+                image_info.resize_interpolation = (
+                    subset.resize_interpolation if subset.resize_interpolation is not None else self.resize_interpolation
+                )
 
-                if not subset.color_aug and not subset.random_crop:
-                    # if npz exists, use them
-                    image_info.latents_npz, image_info.latents_npz_flipped = self.image_key_to_npz_file(subset, image_key)
+                if image_size is not None:
+                    image_info.image_size = tuple(image_size)  # width, height
+                    size_set_from_metadata += 1
+                elif npz_path is not None:
+                    # get image size from npz filename
+                    w, h = strategy.get_image_size_from_disk_cache_path(abs_path, npz_path)
+                    image_info.image_size = (w, h)
+                    size_set_from_cache_filename += 1
 
                 self.register_image(image_info, subset)
 
+            if size_set_from_cache_filename > 0:
+                logger.info(
+                    f"set image size from cache files: {size_set_from_cache_filename}/{len(image_keys_sorted_by_length_desc)}"
+                )
+            if size_set_from_metadata > 0:
+                logger.info(f"set image size from metadata: {size_set_from_metadata}/{len(image_keys_sorted_by_length_desc)}")
             self.num_train_images += len(metadata) * subset.num_repeats
 
             # TODO do not record tag freq when no tag
             self.set_tag_frequency(os.path.basename(subset.metadata_file), tags_list)
             subset.img_count = len(metadata)
             self.subsets.append(subset)
-
-        # check existence of all npz files
-        use_npz_latents = all([not (subset.color_aug or subset.random_crop) for subset in self.subsets])
-        if use_npz_latents:
-            flip_aug_in_subset = False
-            npz_any = False
-            npz_all = True
-
-            for image_info in self.image_data.values():
-                subset = self.image_to_subset[image_info.image_key]
-
-                has_npz = image_info.latents_npz is not None
-                npz_any = npz_any or has_npz
-
-                if subset.flip_aug:
-                    has_npz = has_npz and image_info.latents_npz_flipped is not None
-                    flip_aug_in_subset = True
-                npz_all = npz_all and has_npz
-
-                if npz_any and not npz_all:
-                    break
-
-            if not npz_any:
-                use_npz_latents = False
-                logger.warning(f"npz file does not exist. ignore npz files / npzファイルが見つからないためnpzファイルを無視します")
-            elif not npz_all:
-                use_npz_latents = False
-                logger.warning(
-                    f"some of npz file does not exist. ignore npz files / いくつかのnpzファイルが見つからないためnpzファイルを無視します"
-                )
-                if flip_aug_in_subset:
-                    logger.warning("maybe no flipped files / 反転されたnpzファイルがないのかもしれません")
-        # else:
-        #   logger.info("npz files are not used with color_aug and/or random_crop / color_augまたはrandom_cropが指定されているためnpzファイルは使用されません")
-
-        # check min/max bucket size
-        sizes = set()
-        resos = set()
-        for image_info in self.image_data.values():
-            if image_info.image_size is None:
-                sizes = None  # not calculated
-                break
-            sizes.add(image_info.image_size[0])
-            sizes.add(image_info.image_size[1])
-            resos.add(tuple(image_info.image_size))
-
-        if sizes is None:
-            if use_npz_latents:
-                use_npz_latents = False
-                logger.warning(
-                    f"npz files exist, but no bucket info in metadata. ignore npz files / メタデータにbucket情報がないためnpzファイルを無視します"
-                )
-
-            assert (
-                resolution is not None
-            ), "if metadata doesn't have bucket info, resolution is required / メタデータにbucket情報がない場合はresolutionを指定してください"
-
-            self.enable_bucket = enable_bucket
-            if self.enable_bucket:
-                min_bucket_reso, max_bucket_reso = self.adjust_min_max_bucket_reso_by_steps(
-                    resolution, min_bucket_reso, max_bucket_reso, bucket_reso_steps
-                )
-                self.min_bucket_reso = min_bucket_reso
-                self.max_bucket_reso = max_bucket_reso
-                self.bucket_reso_steps = bucket_reso_steps
-                self.bucket_no_upscale = bucket_no_upscale
-        else:
-            if not enable_bucket:
-                logger.info("metadata has bucket info, enable bucketing / メタデータにbucket情報があるためbucketを有効にします")
-            logger.info("using bucket info in metadata / メタデータ内のbucket情報を使います")
-            self.enable_bucket = True
-
-            assert (
-                not bucket_no_upscale
-            ), "if metadata has bucket info, bucket reso is precalculated, so bucket_no_upscale cannot be used / メタデータ内にbucket情報がある場合はbucketの解像度は計算済みのため、bucket_no_upscaleは使えません"
-
-            # bucket情報を初期化しておく、make_bucketsで再作成しない
-            self.bucket_manager = BucketManager(False, None, None, None, None)
-            self.bucket_manager.set_predefined_resos(resos)
-
-        # npz情報をきれいにしておく
-        if not use_npz_latents:
-            for image_info in self.image_data.values():
-                image_info.latents_npz = image_info.latents_npz_flipped = None
-
-    def image_key_to_npz_file(self, subset: FineTuningSubset, image_key):
-        base_name = os.path.splitext(image_key)[0]
-        npz_file_norm = base_name + ".npz"
-
-        if os.path.exists(npz_file_norm):
-            # image_key is full path
-            npz_file_flip = base_name + "_flip.npz"
-            if not os.path.exists(npz_file_flip):
-                npz_file_flip = None
-            return npz_file_norm, npz_file_flip
-
-        # if not full path, check image_dir. if image_dir is None, return None
-        if subset.image_dir is None:
-            return None, None
-
-        # image_key is relative path
-        npz_file_norm = os.path.join(subset.image_dir, image_key + ".npz")
-        npz_file_flip = os.path.join(subset.image_dir, image_key + "_flip.npz")
-
-        if not os.path.exists(npz_file_norm):
-            npz_file_norm = None
-            npz_file_flip = None
-        elif not os.path.exists(npz_file_flip):
-            npz_file_flip = None
-
-        return npz_file_norm, npz_file_flip
 
 
 class ControlNetDataset(BaseDataset):
@@ -2385,7 +2385,7 @@ class ControlNetDataset(BaseDataset):
         bucket_no_upscale: bool,
         debug_dataset: bool,
         validation_split: float,
-        validation_seed: Optional[int],        
+        validation_seed: Optional[int],
         resize_interpolation: Optional[str] = None,
     ) -> None:
         super().__init__(resolution, network_multiplier, debug_dataset, resize_interpolation)
@@ -2448,7 +2448,7 @@ class ControlNetDataset(BaseDataset):
         self.num_train_images = self.dreambooth_dataset_delegate.num_train_images
         self.num_reg_images = self.dreambooth_dataset_delegate.num_reg_images
         self.validation_split = validation_split
-        self.validation_seed = validation_seed 
+        self.validation_seed = validation_seed
         self.resize_interpolation = resize_interpolation
 
         # assert all conditioning data exists
@@ -2538,7 +2538,14 @@ class ControlNetDataset(BaseDataset):
                     cond_img.shape[0] == original_size_hw[0] and cond_img.shape[1] == original_size_hw[1]
                 ), f"size of conditioning image is not match / 画像サイズが合いません: {image_info.absolute_path}"
 
-                cond_img = resize_image(cond_img, original_size_hw[1], original_size_hw[0], target_size_hw[1], target_size_hw[0], self.resize_interpolation)
+                cond_img = resize_image(
+                    cond_img,
+                    original_size_hw[1],
+                    original_size_hw[0],
+                    target_size_hw[1],
+                    target_size_hw[0],
+                    self.resize_interpolation,
+                )
 
                 # TODO support random crop
                 # 現在サポートしているcropはrandomではなく中央のみ
@@ -2552,7 +2559,14 @@ class ControlNetDataset(BaseDataset):
                 # ), f"image size is small / 画像サイズが小さいようです: {image_info.absolute_path}"
                 # resize to target
                 if cond_img.shape[0] != target_size_hw[0] or cond_img.shape[1] != target_size_hw[1]:
-                    cond_img = resize_image(cond_img, cond_img.shape[0], cond_img.shape[1], target_size_hw[1], target_size_hw[0], self.resize_interpolation)
+                    cond_img = resize_image(
+                        cond_img,
+                        cond_img.shape[0],
+                        cond_img.shape[1],
+                        target_size_hw[1],
+                        target_size_hw[0],
+                        self.resize_interpolation,
+                    )
 
             if flipped:
                 cond_img = cond_img[:, ::-1, :].copy()  # copy to avoid negative stride
@@ -2650,8 +2664,8 @@ class DatasetGroup(torch.utils.data.ConcatDataset):
     def is_latent_cacheable(self) -> bool:
         return all([dataset.is_latent_cacheable() for dataset in self.datasets])
 
-    def is_text_encoder_output_cacheable(self) -> bool:
-        return all([dataset.is_text_encoder_output_cacheable() for dataset in self.datasets])
+    def is_text_encoder_output_cacheable(self, cache_supports_dropout: bool = False) -> bool:
+        return all([dataset.is_text_encoder_output_cacheable(cache_supports_dropout) for dataset in self.datasets])
 
     def set_current_strategies(self):
         for dataset in self.datasets:
@@ -3000,7 +3014,9 @@ def load_images_and_masks_for_caching(
     for info in image_infos:
         image = load_image(info.absolute_path, use_alpha_mask) if info.image is None else np.array(info.image, np.uint8)
         # TODO 画像のメタデータが壊れていて、メタデータから割り当てたbucketと実際の画像サイズが一致しない場合があるのでチェック追加要
-        image, original_size, crop_ltrb = trim_and_resize_if_required(random_crop, image, info.bucket_reso, info.resized_size, resize_interpolation=info.resize_interpolation)
+        image, original_size, crop_ltrb = trim_and_resize_if_required(
+            random_crop, image, info.bucket_reso, info.resized_size, resize_interpolation=info.resize_interpolation
+        )
 
         original_sizes.append(original_size)
         crop_ltrbs.append(crop_ltrb)
@@ -3041,7 +3057,9 @@ def cache_batch_latents(
     for info in image_infos:
         image = load_image(info.absolute_path, use_alpha_mask) if info.image is None else np.array(info.image, np.uint8)
         # TODO 画像のメタデータが壊れていて、メタデータから割り当てたbucketと実際の画像サイズが一致しない場合があるのでチェック追加要
-        image, original_size, crop_ltrb = trim_and_resize_if_required(random_crop, image, info.bucket_reso, info.resized_size, resize_interpolation=info.resize_interpolation)
+        image, original_size, crop_ltrb = trim_and_resize_if_required(
+            random_crop, image, info.bucket_reso, info.resized_size, resize_interpolation=info.resize_interpolation
+        )
 
         info.latents_original_size = original_size
         info.latents_crop_ltrb = crop_ltrb
@@ -3482,7 +3500,9 @@ def get_sai_model_spec(
     textual_inversion: bool,
     is_stable_diffusion_ckpt: Optional[bool] = None,  # None for TI and LoRA
     sd3: str = None,
-    flux: str = None,
+    flux: str = None,  # "dev", "schnell" or "chroma"
+    lumina: str = None,
+    optional_metadata: dict[str, str] | None = None,
 ):
     timestamp = time.time()
 
@@ -3498,6 +3518,34 @@ def get_sai_model_spec(
         timesteps = (min_time_step, max_time_step)
     else:
         timesteps = None
+
+    # Convert individual model parameters to model_config dict
+    # TODO: Update calls to this function to pass in the model config
+    model_config = {}
+    if sd3 is not None:
+        model_config["sd3"] = sd3
+    if flux is not None:
+        model_config["flux"] = flux
+    if lumina is not None:
+        model_config["lumina"] = lumina
+
+    # Extract metadata_* fields from args and merge with optional_metadata
+    extracted_metadata = {}
+
+    # Extract all metadata_* attributes from args
+    for attr_name in dir(args):
+        if attr_name.startswith("metadata_") and not attr_name.startswith("metadata___"):
+            value = getattr(args, attr_name, None)
+            if value is not None:
+                # Remove metadata_ prefix and exclude already handled fields
+                field_name = attr_name[9:]  # len("metadata_") = 9
+                if field_name not in ["title", "author", "description", "license", "tags"]:
+                    extracted_metadata[field_name] = value
+
+    # Merge extracted metadata with provided optional_metadata
+    all_optional_metadata = {**extracted_metadata}
+    if optional_metadata:
+        all_optional_metadata.update(optional_metadata)
 
     metadata = sai_model_spec.build_metadata(
         state_dict,
@@ -3516,10 +3564,78 @@ def get_sai_model_spec(
         tags=args.metadata_tags,
         timesteps=timesteps,
         clip_skip=args.clip_skip,  # None or int
-        sd3=sd3,
-        flux=flux,
+        model_config=model_config,
+        optional_metadata=all_optional_metadata if all_optional_metadata else None,
     )
     return metadata
+
+
+def get_sai_model_spec_dataclass(
+    state_dict: dict,
+    args: argparse.Namespace,
+    sdxl: bool,
+    lora: bool,
+    textual_inversion: bool,
+    is_stable_diffusion_ckpt: Optional[bool] = None,
+    sd3: str = None,
+    flux: str = None,
+    lumina: str = None,
+    hunyuan_image: str = None,
+    anima: str = None,
+    optional_metadata: dict[str, str] | None = None,
+) -> sai_model_spec.ModelSpecMetadata:
+    """
+    Get ModelSpec metadata as a dataclass - preferred for new code.
+    Automatically extracts metadata_* fields from args.
+    """
+    timestamp = time.time()
+
+    v2 = args.v2
+    v_parameterization = args.v_parameterization
+    reso = args.resolution
+
+    title = args.metadata_title if args.metadata_title is not None else args.output_name
+
+    if args.min_timestep is not None or args.max_timestep is not None:
+        min_time_step = args.min_timestep if args.min_timestep is not None else 0
+        max_time_step = args.max_timestep if args.max_timestep is not None else 1000
+        timesteps = (min_time_step, max_time_step)
+    else:
+        timesteps = None
+
+    # Convert individual model parameters to model_config dict
+    model_config = {}
+    if sd3 is not None:
+        model_config["sd3"] = sd3
+    if flux is not None:
+        model_config["flux"] = flux
+    if lumina is not None:
+        model_config["lumina"] = lumina
+    if hunyuan_image is not None:
+        model_config["hunyuan_image"] = hunyuan_image
+    if anima is not None:
+        model_config["anima"] = anima
+    # Use the dataclass function directly
+    return sai_model_spec.build_metadata_dataclass(
+        state_dict,
+        v2,
+        v_parameterization,
+        sdxl,
+        lora,
+        textual_inversion,
+        timestamp,
+        title=title,
+        reso=reso,
+        is_stable_diffusion_ckpt=is_stable_diffusion_ckpt,
+        author=args.metadata_author,
+        description=args.metadata_description,
+        license=args.metadata_license,
+        tags=args.metadata_tags,
+        timesteps=timesteps,
+        clip_skip=args.clip_skip,
+        model_config=model_config,
+        optional_metadata=optional_metadata,
+    )
 
 
 def add_sd_models_arguments(parser: argparse.ArgumentParser):
@@ -3868,11 +3984,21 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
         choices=["no", "fp16", "bf16"],
         help="use mixed precision / 混合精度を使う場合、その精度",
     )
-    parser.add_argument("--full_fp16", action="store_true", help="fp16 training including gradients / 勾配も含めてfp16で学習する")
     parser.add_argument(
-        "--full_bf16", action="store_true", help="bf16 training including gradients / 勾配も含めてbf16で学習する"
+        "--full_fp16",
+        action="store_true",
+        help="fp16 training including gradients, some models are not supported / 勾配も含めてfp16で学習する、一部のモデルではサポートされていません",
+    )
+    parser.add_argument(
+        "--full_bf16",
+        action="store_true",
+        help="bf16 training including gradients, some models are not supported / 勾配も含めてbf16で学習する、一部のモデルではサポートされていません",
     )  # TODO move to SDXL training, because it is not supported by SD1/2
-    parser.add_argument("--fp8_base", action="store_true", help="use fp8 for base model / base modelにfp8を使う")
+    parser.add_argument(
+        "--fp8_base",
+        action="store_true",
+        help="use fp8 for base model, some models are not supported / base modelにfp8を使う、一部のモデルではサポートされていません",
+    )
 
     parser.add_argument(
         "--ddp_timeout",
@@ -4101,39 +4227,6 @@ def add_training_arguments(parser: argparse.ArgumentParser, support_dreambooth: 
     parser.add_argument(
         "--output_config", action="store_true", help="output command line args to given .toml file / 引数を.tomlファイルに出力する"
     )
-
-    # SAI Model spec
-    parser.add_argument(
-        "--metadata_title",
-        type=str,
-        default=None,
-        help="title for model metadata (default is output_name) / メタデータに書き込まれるモデルタイトル、省略時はoutput_name",
-    )
-    parser.add_argument(
-        "--metadata_author",
-        type=str,
-        default=None,
-        help="author name for model metadata / メタデータに書き込まれるモデル作者名",
-    )
-    parser.add_argument(
-        "--metadata_description",
-        type=str,
-        default=None,
-        help="description for model metadata / メタデータに書き込まれるモデル説明",
-    )
-    parser.add_argument(
-        "--metadata_license",
-        type=str,
-        default=None,
-        help="license for model metadata / メタデータに書き込まれるモデルライセンス",
-    )
-    parser.add_argument(
-        "--metadata_tags",
-        type=str,
-        default=None,
-        help="tags for model metadata, separated by comma / メタデータに書き込まれるモデルタグ、カンマ区切り",
-    )
-
     if support_dreambooth:
         # DreamBooth training
         parser.add_argument(
@@ -5498,11 +5591,12 @@ def load_target_model(args, weight_dtype, accelerator, unet_use_linear_projectio
 
 
 def patch_accelerator_for_fp16_training(accelerator):
-    
+
     from accelerate import DistributedType
+
     if accelerator.distributed_type == DistributedType.DEEPSPEED:
         return
-    
+
     org_unscale_grads = accelerator.scaler._unscale_grads_
 
     def _unscale_grads_replacer(optimizer, inv_scale, found_inf, allow_fp16):
@@ -5994,7 +6088,6 @@ def get_noise_noisy_latents_and_timesteps(
     b_size = latents.shape[0]
     min_timestep = 0 if args.min_timestep is None else args.min_timestep
     max_timestep = noise_scheduler.config.num_train_timesteps if args.max_timestep is None else args.max_timestep
-
     timesteps = get_timesteps(min_timestep, max_timestep, b_size, latents.device)
 
     # Add noise to the latents according to the noise magnitude at each timestep
@@ -6007,6 +6100,9 @@ def get_noise_noisy_latents_and_timesteps(
         noisy_latents = noise_scheduler.add_noise(latents, noise + strength * torch.randn_like(latents), timesteps)
     else:
         noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
+
+    # This moves the alphas_cumprod back to the CPU after it is moved in noise_scheduler.add_noise
+    noise_scheduler.alphas_cumprod = noise_scheduler.alphas_cumprod.cpu()
 
     return noise, noisy_latents, timesteps
 
@@ -6047,7 +6143,8 @@ def conditional_loss(
     elif loss_type == "huber":
         if huber_c is None:
             raise NotImplementedError("huber_c not implemented correctly")
-        huber_c = huber_c.view(-1, 1, 1, 1)
+        # Reshape huber_c to broadcast with model_pred (supports 4D and 5D tensors)
+        huber_c = huber_c.view(-1, *([1] * (model_pred.ndim - 1)))
         loss = 2 * huber_c * (torch.sqrt((model_pred - target) ** 2 + huber_c**2) - huber_c)
         if reduction == "mean":
             loss = torch.mean(loss)
@@ -6056,7 +6153,8 @@ def conditional_loss(
     elif loss_type == "smooth_l1":
         if huber_c is None:
             raise NotImplementedError("huber_c not implemented correctly")
-        huber_c = huber_c.view(-1, 1, 1, 1)
+        # Reshape huber_c to broadcast with model_pred (supports 4D and 5D tensors)
+        huber_c = huber_c.view(-1, *([1] * (model_pred.ndim - 1)))
         loss = 2 * (torch.sqrt((model_pred - target) ** 2 + huber_c**2) - huber_c)
         if reduction == "mean":
             loss = torch.mean(loss)
@@ -6206,6 +6304,21 @@ def line_to_prompt_dict(line: str) -> dict:
                 prompt_dict["controlnet_image"] = m.group(1)
                 continue
 
+            m = re.match(r"ctr (.+)", parg, re.IGNORECASE)
+            if m:
+                prompt_dict["cfg_trunc_ratio"] = float(m.group(1))
+                continue
+
+            m = re.match(r"rcfg (.+)", parg, re.IGNORECASE)
+            if m:
+                prompt_dict["renorm_cfg"] = float(m.group(1))
+                continue
+
+            m = re.match(r"fs (.+)", parg, re.IGNORECASE)
+            if m:
+                prompt_dict["flow_shift"] = m.group(1)
+                continue
+
         except ValueError as ex:
             logger.error(f"Exception in parsing / 解析エラー: {parg}")
             logger.error(ex)
@@ -6254,7 +6367,7 @@ def sample_images_common(
     vae,
     tokenizer,
     text_encoder,
-    unet,
+    unet_wrapped,
     prompt_replacement=None,
     controlnet=None,
 ):
@@ -6289,7 +6402,7 @@ def sample_images_common(
     vae.to(distributed_state.device)  # distributed_state.device is same as accelerator.device
 
     # unwrap unet and text_encoder(s)
-    unet = accelerator.unwrap_model(unet)
+    unet = accelerator.unwrap_model(unet_wrapped)
     if isinstance(text_encoder, (list, tuple)):
         text_encoder = [accelerator.unwrap_model(te) for te in text_encoder]
     else:
@@ -6435,7 +6548,7 @@ def sample_image_inference(
     logger.info(f"sample_sampler: {sampler_name}")
     if seed is not None:
         logger.info(f"seed: {seed}")
-    with accelerator.autocast():
+    with accelerator.autocast(), torch.no_grad():
         latents = pipeline(
             prompt=prompt,
             height=height,
@@ -6573,4 +6686,3 @@ class LossRecorder:
         if losses == 0:
             return 0
         return self.loss_total / losses
-

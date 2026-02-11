@@ -930,6 +930,9 @@ class Flux(nn.Module):
         self.num_double_blocks = len(self.double_blocks)
         self.num_single_blocks = len(self.single_blocks)
 
+    def get_model_type(self) -> str:
+        return "flux"
+
     @property
     def device(self):
         return next(self.parameters()).device
@@ -977,10 +980,10 @@ class Flux(nn.Module):
         )
 
         self.offloader_double = custom_offloading_utils.ModelOffloader(
-            self.double_blocks, self.num_double_blocks, double_blocks_to_swap, device  # , debug=True
+            self.double_blocks, double_blocks_to_swap, device  # , debug=True
         )
         self.offloader_single = custom_offloading_utils.ModelOffloader(
-            self.single_blocks, self.num_single_blocks, single_blocks_to_swap, device  # , debug=True
+            self.single_blocks, single_blocks_to_swap, device  # , debug=True
         )
         print(
             f"FLUX: Block swap enabled. Swapping {num_blocks} blocks, double blocks: {double_blocks_to_swap}, single blocks: {single_blocks_to_swap}."
@@ -1006,6 +1009,9 @@ class Flux(nn.Module):
         self.offloader_double.prepare_block_devices_before_forward(self.double_blocks)
         self.offloader_single.prepare_block_devices_before_forward(self.single_blocks)
 
+    def get_mod_vectors(self, timesteps: Tensor, guidance: Tensor | None = None, batch_size: int | None = None) -> Tensor:
+        return None  # FLUX.1 does not use mod_vectors, but Chroma does.
+
     def forward(
         self,
         img: Tensor,
@@ -1018,6 +1024,7 @@ class Flux(nn.Module):
         block_controlnet_single_hidden_states=None,
         guidance: Tensor | None = None,
         txt_attention_mask: Tensor | None = None,
+        mod_vectors: Tensor | None = None,
     ) -> Tensor:
         if img.ndim != 3 or txt.ndim != 3:
             raise ValueError("Input img and txt tensors must have 3 dimensions.")
@@ -1169,7 +1176,7 @@ class ControlNetFlux(nn.Module):
             nn.SiLU(),
             nn.Conv2d(16, 16, 3, padding=1, stride=2),
             nn.SiLU(),
-            zero_module(nn.Conv2d(16, 16, 3, padding=1))
+            zero_module(nn.Conv2d(16, 16, 3, padding=1)),
         )
 
     @property
@@ -1219,10 +1226,10 @@ class ControlNetFlux(nn.Module):
         )
 
         self.offloader_double = custom_offloading_utils.ModelOffloader(
-            self.double_blocks, self.num_double_blocks, double_blocks_to_swap, device  # , debug=True
+            self.double_blocks, double_blocks_to_swap, device  # , debug=True
         )
         self.offloader_single = custom_offloading_utils.ModelOffloader(
-            self.single_blocks, self.num_single_blocks, single_blocks_to_swap, device  # , debug=True
+            self.single_blocks,  single_blocks_to_swap, device  # , debug=True
         )
         print(
             f"FLUX: Block swap enabled. Swapping {num_blocks} blocks, double blocks: {double_blocks_to_swap}, single blocks: {single_blocks_to_swap}."
@@ -1233,8 +1240,8 @@ class ControlNetFlux(nn.Module):
         if self.blocks_to_swap:
             save_double_blocks = self.double_blocks
             save_single_blocks = self.single_blocks
-            self.double_blocks = None
-            self.single_blocks = None
+            self.double_blocks = nn.ModuleList()
+            self.single_blocks = nn.ModuleList()
 
         self.to(device)
 
@@ -1320,174 +1327,3 @@ class ControlNetFlux(nn.Module):
             controlnet_single_block_samples = controlnet_single_block_samples + (block_sample,)
 
         return controlnet_block_samples, controlnet_single_block_samples
-
-
-"""
-class FluxUpper(nn.Module):
-    ""
-    Transformer model for flow matching on sequences.
-    ""
-
-    def __init__(self, params: FluxParams):
-        super().__init__()
-
-        self.params = params
-        self.in_channels = params.in_channels
-        self.out_channels = self.in_channels
-        if params.hidden_size % params.num_heads != 0:
-            raise ValueError(f"Hidden size {params.hidden_size} must be divisible by num_heads {params.num_heads}")
-        pe_dim = params.hidden_size // params.num_heads
-        if sum(params.axes_dim) != pe_dim:
-            raise ValueError(f"Got {params.axes_dim} but expected positional dim {pe_dim}")
-        self.hidden_size = params.hidden_size
-        self.num_heads = params.num_heads
-        self.pe_embedder = EmbedND(dim=pe_dim, theta=params.theta, axes_dim=params.axes_dim)
-        self.img_in = nn.Linear(self.in_channels, self.hidden_size, bias=True)
-        self.time_in = MLPEmbedder(in_dim=256, hidden_dim=self.hidden_size)
-        self.vector_in = MLPEmbedder(params.vec_in_dim, self.hidden_size)
-        self.guidance_in = MLPEmbedder(in_dim=256, hidden_dim=self.hidden_size) if params.guidance_embed else nn.Identity()
-        self.txt_in = nn.Linear(params.context_in_dim, self.hidden_size)
-
-        self.double_blocks = nn.ModuleList(
-            [
-                DoubleStreamBlock(
-                    self.hidden_size,
-                    self.num_heads,
-                    mlp_ratio=params.mlp_ratio,
-                    qkv_bias=params.qkv_bias,
-                )
-                for _ in range(params.depth)
-            ]
-        )
-
-        self.gradient_checkpointing = False
-
-    @property
-    def device(self):
-        return next(self.parameters()).device
-
-    @property
-    def dtype(self):
-        return next(self.parameters()).dtype
-
-    def enable_gradient_checkpointing(self):
-        self.gradient_checkpointing = True
-
-        self.time_in.enable_gradient_checkpointing()
-        self.vector_in.enable_gradient_checkpointing()
-        if self.guidance_in.__class__ != nn.Identity:
-            self.guidance_in.enable_gradient_checkpointing()
-
-        for block in self.double_blocks:
-            block.enable_gradient_checkpointing()
-
-        print("FLUX: Gradient checkpointing enabled.")
-
-    def disable_gradient_checkpointing(self):
-        self.gradient_checkpointing = False
-
-        self.time_in.disable_gradient_checkpointing()
-        self.vector_in.disable_gradient_checkpointing()
-        if self.guidance_in.__class__ != nn.Identity:
-            self.guidance_in.disable_gradient_checkpointing()
-
-        for block in self.double_blocks:
-            block.disable_gradient_checkpointing()
-
-        print("FLUX: Gradient checkpointing disabled.")
-
-    def forward(
-        self,
-        img: Tensor,
-        img_ids: Tensor,
-        txt: Tensor,
-        txt_ids: Tensor,
-        timesteps: Tensor,
-        y: Tensor,
-        guidance: Tensor | None = None,
-        txt_attention_mask: Tensor | None = None,
-    ) -> Tensor:
-        if img.ndim != 3 or txt.ndim != 3:
-            raise ValueError("Input img and txt tensors must have 3 dimensions.")
-
-        # running on sequences img
-        img = self.img_in(img)
-        vec = self.time_in(timestep_embedding(timesteps, 256))
-        if self.params.guidance_embed:
-            if guidance is None:
-                raise ValueError("Didn't get guidance strength for guidance distilled model.")
-            vec = vec + self.guidance_in(timestep_embedding(guidance, 256))
-        vec = vec + self.vector_in(y)
-        txt = self.txt_in(txt)
-
-        ids = torch.cat((txt_ids, img_ids), dim=1)
-        pe = self.pe_embedder(ids)
-
-        for block in self.double_blocks:
-            img, txt = block(img=img, txt=txt, vec=vec, pe=pe, txt_attention_mask=txt_attention_mask)
-
-        return img, txt, vec, pe
-
-
-class FluxLower(nn.Module):
-    ""
-    Transformer model for flow matching on sequences.
-    ""
-
-    def __init__(self, params: FluxParams):
-        super().__init__()
-        self.hidden_size = params.hidden_size
-        self.num_heads = params.num_heads
-        self.out_channels = params.in_channels
-
-        self.single_blocks = nn.ModuleList(
-            [
-                SingleStreamBlock(self.hidden_size, self.num_heads, mlp_ratio=params.mlp_ratio)
-                for _ in range(params.depth_single_blocks)
-            ]
-        )
-
-        self.final_layer = LastLayer(self.hidden_size, 1, self.out_channels)
-
-        self.gradient_checkpointing = False
-
-    @property
-    def device(self):
-        return next(self.parameters()).device
-
-    @property
-    def dtype(self):
-        return next(self.parameters()).dtype
-
-    def enable_gradient_checkpointing(self):
-        self.gradient_checkpointing = True
-
-        for block in self.single_blocks:
-            block.enable_gradient_checkpointing()
-
-        print("FLUX: Gradient checkpointing enabled.")
-
-    def disable_gradient_checkpointing(self):
-        self.gradient_checkpointing = False
-
-        for block in self.single_blocks:
-            block.disable_gradient_checkpointing()
-
-        print("FLUX: Gradient checkpointing disabled.")
-
-    def forward(
-        self,
-        img: Tensor,
-        txt: Tensor,
-        vec: Tensor | None = None,
-        pe: Tensor | None = None,
-        txt_attention_mask: Tensor | None = None,
-    ) -> Tensor:
-        img = torch.cat((txt, img), 1)
-        for block in self.single_blocks:
-            img = block(img, vec=vec, pe=pe, txt_attention_mask=txt_attention_mask)
-        img = img[:, txt.shape[1] :, ...]
-
-        img = self.final_layer(img, vec)  # (N, T, patch_size ** 2 * out_channels)
-        return img
-"""

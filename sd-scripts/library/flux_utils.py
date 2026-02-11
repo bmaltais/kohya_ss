@@ -18,11 +18,12 @@ import logging
 logger = logging.getLogger(__name__)
 
 from library import flux_models
-from library.utils import load_safetensors
+from library.safetensors_utils import load_safetensors
 
 MODEL_VERSION_FLUX_V1 = "flux1"
 MODEL_NAME_DEV = "dev"
 MODEL_NAME_SCHNELL = "schnell"
+MODEL_VERSION_CHROMA = "chroma"
 
 
 def analyze_checkpoint_state(ckpt_path: str) -> Tuple[bool, bool, Tuple[int, int], List[str]]:
@@ -92,50 +93,84 @@ def analyze_checkpoint_state(ckpt_path: str) -> Tuple[bool, bool, Tuple[int, int
 
 
 def load_flow_model(
-    ckpt_path: str, dtype: Optional[torch.dtype], device: Union[str, torch.device], disable_mmap: bool = False
+    ckpt_path: str,
+    dtype: Optional[torch.dtype],
+    device: Union[str, torch.device],
+    disable_mmap: bool = False,
+    model_type: str = "flux",
 ) -> Tuple[bool, flux_models.Flux]:
-    is_diffusers, is_schnell, (num_double_blocks, num_single_blocks), ckpt_paths = analyze_checkpoint_state(ckpt_path)
-    name = MODEL_NAME_DEV if not is_schnell else MODEL_NAME_SCHNELL
+    if model_type == "flux":
+        is_diffusers, is_schnell, (num_double_blocks, num_single_blocks), ckpt_paths = analyze_checkpoint_state(ckpt_path)
+        name = MODEL_NAME_DEV if not is_schnell else MODEL_NAME_SCHNELL
 
-    # build model
-    logger.info(f"Building Flux model {name} from {'Diffusers' if is_diffusers else 'BFL'} checkpoint")
-    with torch.device("meta"):
-        params = flux_models.configs[name].params
+        # build model
+        logger.info(f"Building Flux model {name} from {'Diffusers' if is_diffusers else 'BFL'} checkpoint")
+        with torch.device("meta"):
+            params = flux_models.configs[name].params
 
-        # set the number of blocks
-        if params.depth != num_double_blocks:
-            logger.info(f"Setting the number of double blocks from {params.depth} to {num_double_blocks}")
-            params = replace(params, depth=num_double_blocks)
-        if params.depth_single_blocks != num_single_blocks:
-            logger.info(f"Setting the number of single blocks from {params.depth_single_blocks} to {num_single_blocks}")
-            params = replace(params, depth_single_blocks=num_single_blocks)
+            # set the number of blocks
+            if params.depth != num_double_blocks:
+                logger.info(f"Setting the number of double blocks from {params.depth} to {num_double_blocks}")
+                params = replace(params, depth=num_double_blocks)
+            if params.depth_single_blocks != num_single_blocks:
+                logger.info(f"Setting the number of single blocks from {params.depth_single_blocks} to {num_single_blocks}")
+                params = replace(params, depth_single_blocks=num_single_blocks)
 
-        model = flux_models.Flux(params)
-        if dtype is not None:
-            model = model.to(dtype)
+            model = flux_models.Flux(params)
+            if dtype is not None:
+                model = model.to(dtype)
 
-    # load_sft doesn't support torch.device
-    logger.info(f"Loading state dict from {ckpt_path}")
-    sd = {}
-    for ckpt_path in ckpt_paths:
-        sd.update(load_safetensors(ckpt_path, device=str(device), disable_mmap=disable_mmap, dtype=dtype))
+        # load_sft doesn't support torch.device
+        logger.info(f"Loading state dict from {ckpt_path}")
+        sd = {}
+        for ckpt_path in ckpt_paths:
+            sd.update(load_safetensors(ckpt_path, device=device, disable_mmap=disable_mmap, dtype=dtype))
 
-    # convert Diffusers to BFL
-    if is_diffusers:
-        logger.info("Converting Diffusers to BFL")
-        sd = convert_diffusers_sd_to_bfl(sd, num_double_blocks, num_single_blocks)
-        logger.info("Converted Diffusers to BFL")
+        # convert Diffusers to BFL
+        if is_diffusers:
+            logger.info("Converting Diffusers to BFL")
+            sd = convert_diffusers_sd_to_bfl(sd, num_double_blocks, num_single_blocks)
+            logger.info("Converted Diffusers to BFL")
 
-    # if the key has annoying prefix, remove it
-    for key in list(sd.keys()):
-        new_key = key.replace("model.diffusion_model.", "")
-        if new_key == key:
-            break  # the model doesn't have annoying prefix
-        sd[new_key] = sd.pop(key)
+        # if the key has annoying prefix, remove it
+        for key in list(sd.keys()):
+            new_key = key.replace("model.diffusion_model.", "")
+            if new_key == key:
+                break  # the model doesn't have annoying prefix
+            sd[new_key] = sd.pop(key)
 
-    info = model.load_state_dict(sd, strict=False, assign=True)
-    logger.info(f"Loaded Flux: {info}")
-    return is_schnell, model
+        info = model.load_state_dict(sd, strict=False, assign=True)
+        logger.info(f"Loaded Flux: {info}")
+        return is_schnell, model
+
+    elif model_type == "chroma":
+        from . import chroma_models
+
+        # build model
+        logger.info("Building Chroma model")
+        with torch.device("meta"):
+            model = chroma_models.Chroma(chroma_models.chroma_params)
+            if dtype is not None:
+                model = model.to(dtype)
+
+        # load_sft doesn't support torch.device
+        logger.info(f"Loading state dict from {ckpt_path}")
+        sd = load_safetensors(ckpt_path, device=str(device), disable_mmap=disable_mmap, dtype=dtype)
+
+        # if the key has annoying prefix, remove it
+        for key in list(sd.keys()):
+            new_key = key.replace("model.diffusion_model.", "")
+            if new_key == key:
+                break  # the model doesn't have annoying prefix
+            sd[new_key] = sd.pop(key)
+
+        info = model.load_state_dict(sd, strict=False, assign=True)
+        logger.info(f"Loaded Chroma: {info}")
+        is_schnell = False  # Chroma is not schnell
+        return is_schnell, model
+
+    else:
+        raise ValueError(f"Unsupported model_type: {model_type}. Supported types are 'flux' and 'chroma'.")
 
 
 def load_ae(
@@ -166,7 +201,47 @@ def load_controlnet(
         sd = load_safetensors(ckpt_path, device=str(device), disable_mmap=disable_mmap, dtype=dtype)
         info = controlnet.load_state_dict(sd, strict=False, assign=True)
         logger.info(f"Loaded ControlNet: {info}")
-    return controlnet    
+    return controlnet
+
+
+def dummy_clip_l() -> torch.nn.Module:
+    """
+    Returns a dummy CLIP-L model with the output shape of (N, 77, 768).
+    """
+    return DummyCLIPL()
+
+
+class DummyTextModel(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.embeddings = torch.nn.Parameter(torch.zeros(1))
+
+
+class DummyCLIPL(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.output_shape = (77, 1)  # Note: The original code had (77, 768), but we use (77, 1) for the dummy output
+
+        # dtype and device from these parameters. train_network.py accesses them
+        self.dummy_param = torch.nn.Parameter(torch.zeros(1))
+        self.dummy_param_2 = torch.nn.Parameter(torch.zeros(1))
+        self.dummy_param_3 = torch.nn.Parameter(torch.zeros(1))
+        self.text_model = DummyTextModel()
+
+    @property
+    def device(self):
+        return self.dummy_param.device
+
+    @property
+    def dtype(self):
+        return self.dummy_param.dtype
+
+    def forward(self, *args, **kwargs):
+        """
+        Returns a dummy output with the shape of (N, 77, 768).
+        """
+        batch_size = args[0].shape[0] if args else 1
+        return {"pooler_output": torch.zeros(batch_size, *self.output_shape, device=self.device, dtype=self.dtype)}
 
 
 def load_clip_l(

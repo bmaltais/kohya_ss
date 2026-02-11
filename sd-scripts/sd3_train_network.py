@@ -8,6 +8,7 @@ import torch
 from accelerate import Accelerator
 from library import sd3_models, strategy_sd3, utils
 from library.device_utils import init_ipex, clean_memory_on_device
+from library.safetensors_utils import load_safetensors
 
 init_ipex()
 
@@ -77,7 +78,7 @@ class Sd3NetworkTrainer(train_network.NetworkTrainer):
         loading_dtype = None if args.fp8_base else weight_dtype
 
         # if we load to cpu, flux.to(fp8) takes a long time, so we should load to gpu in future
-        state_dict = utils.load_safetensors(
+        state_dict = load_safetensors(
             args.pretrained_model_name_or_path, "cpu", disable_mmap=args.disable_mmap_load_safetensors, dtype=loading_dtype
         )
         mmdit = sd3_utils.load_mmdit(state_dict, loading_dtype, "cpu")
