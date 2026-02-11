@@ -1,0 +1,29 @@
+---
+name: Typos
+
+on: 
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+# CKV2_GHA_1: "Ensure top-level permissions are not set to write-all"
+permissions: read-all
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # https://woodruffw.github.io/zizmor/audits/#artipacked
+          persist-credentials: false
+
+      - name: typos-action
+        uses: crate-ci/typos@v1.28.1

@@ -1,0 +1,51 @@
+name: Test with pytest
+
+on: 
+  push:
+    branches:
+      - main
+      - dev
+      - sd3
+  pull_request:
+    branches:
+      - main
+      - dev
+      - sd3
+
+# CKV2_GHA_1: "Ensure top-level permissions are not set to write-all"
+permissions: read-all
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.10"] # Python versions to test
+        pytorch-version: ["2.4.0"] # PyTorch versions to test
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # https://woodruffw.github.io/zizmor/audits/#artipacked
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip' 
+
+      - name: Install and update pip, setuptools, wheel
+        run: |
+          # Setuptools, wheel for compiling some packages
+          python -m pip install --upgrade pip setuptools wheel
+
+      - name: Install dependencies
+        run: |
+          # Pre-install torch to pin version (requirements.txt has dependencies like transformers which requires pytorch)
+          pip install dadaptation==3.2 torch==${{ matrix.pytorch-version }} torchvision pytest==8.3.4
+          pip install -r requirements.txt
+
+      - name: Test with pytest
+        run: pytest # See pytest.ini for configuration
+
