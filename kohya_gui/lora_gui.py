@@ -42,6 +42,7 @@ from .class_huggingface import HuggingFace
 from .class_metadata import MetaData
 from .class_gui_config import KohyaSSGUIConfig
 from .class_flux1 import flux1Training
+from .class_anima import animaTraining
 
 from .dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -319,6 +320,26 @@ def save_configuration(
     sd3_text_encoder_batch_size,
     weighting_scheme,
     sd3_checkbox,
+    # Anima parameters
+    anima_checkbox,
+    anima_qwen3,
+    anima_vae,
+    anima_llm_adapter_path,
+    anima_t5_tokenizer_path,
+    anima_timestep_sampling,
+    anima_discrete_flow_shift,
+    anima_sigmoid_scale,
+    anima_qwen3_max_token_length,
+    anima_t5_max_token_length,
+    anima_attn_mode,
+    anima_split_attn,
+    anima_cache_text_encoder_outputs,
+    anima_cache_text_encoder_outputs_to_disk,
+    anima_blocks_to_swap,
+    anima_unsloth_offload_checkpointing,
+    anima_vae_chunk_size,
+    anima_vae_disable_cache,
+    anima_train_llm_adapter,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -605,6 +626,26 @@ def open_configuration(
     sd3_text_encoder_batch_size,
     weighting_scheme,
     sd3_checkbox,
+    # Anima parameters
+    anima_checkbox,
+    anima_qwen3,
+    anima_vae,
+    anima_llm_adapter_path,
+    anima_t5_tokenizer_path,
+    anima_timestep_sampling,
+    anima_discrete_flow_shift,
+    anima_sigmoid_scale,
+    anima_qwen3_max_token_length,
+    anima_t5_max_token_length,
+    anima_attn_mode,
+    anima_split_attn,
+    anima_cache_text_encoder_outputs,
+    anima_cache_text_encoder_outputs_to_disk,
+    anima_blocks_to_swap,
+    anima_unsloth_offload_checkpointing,
+    anima_vae_chunk_size,
+    anima_vae_disable_cache,
+    anima_train_llm_adapter,
     ##
     training_preset,
 ):
@@ -982,6 +1023,26 @@ def train_model(
     sd3_text_encoder_batch_size,
     weighting_scheme,
     sd3_checkbox,
+    # Anima parameters
+    anima_checkbox,
+    anima_qwen3,
+    anima_vae,
+    anima_llm_adapter_path,
+    anima_t5_tokenizer_path,
+    anima_timestep_sampling,
+    anima_discrete_flow_shift,
+    anima_sigmoid_scale,
+    anima_qwen3_max_token_length,
+    anima_t5_max_token_length,
+    anima_attn_mode,
+    anima_split_attn,
+    anima_cache_text_encoder_outputs,
+    anima_cache_text_encoder_outputs_to_disk,
+    anima_blocks_to_swap,
+    anima_unsloth_offload_checkpointing,
+    anima_vae_chunk_size,
+    anima_vae_disable_cache,
+    anima_train_llm_adapter,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -1016,6 +1077,24 @@ def train_model(
         ):
             log.error(
                 "LoRA type must be set to 'Flux1', 'Flux1 OFT' or 'LyCORIS' if Flux1 checkbox is checked."
+            )
+            return TRAIN_BUTTON_VISIBLE
+
+    if anima_checkbox:
+        log.info(f"Validating lora type is Anima if Anima checkbox is checked...")
+        if LoRA_type != "Anima" and "LyCORIS" not in LoRA_type:
+            log.error(
+                "LoRA type must be set to 'Anima' or 'LyCORIS' if Anima checkbox is checked."
+            )
+            return TRAIN_BUTTON_VISIBLE
+        if not anima_qwen3:
+            log.error(
+                "Qwen3 Text Encoder path is required for Anima training. Please set it in the Anima section."
+            )
+            return TRAIN_BUTTON_VISIBLE
+        if not anima_vae:
+            log.error(
+                "Anima VAE path is required for Anima training. Please set it in the Anima section."
             )
             return TRAIN_BUTTON_VISIBLE
 
@@ -1265,6 +1344,8 @@ def train_model(
         run_cmd.append(rf"{scriptdir}/sd-scripts/flux_train_network.py")
     elif sd3_checkbox:
         run_cmd.append(rf"{scriptdir}/sd-scripts/sd3_train_network.py")
+    elif anima_checkbox:
+        run_cmd.append(rf"{scriptdir}/sd-scripts/anima_train_network.py")
     else:
         run_cmd.append(rf"{scriptdir}/sd-scripts/train_network.py")
 
@@ -1374,6 +1455,11 @@ def train_model(
         for key, value in kohya_lora_vars.items():
             if value:
                 network_args += f" {key}={value}"
+
+    if LoRA_type == "Anima":
+        network_module = "networks.lora_anima"
+        if anima_train_llm_adapter:
+            network_args += " train_llm_adapter=True"
 
     if LoRA_type in ["Kohya LoCon", "Standard"]:
         kohya_lora_var_list = [
@@ -1540,14 +1626,14 @@ def train_model(
             if (sdxl and sdxl_cache_text_encoder_outputs)
             or (flux1_checkbox and flux1_cache_text_encoder_outputs)
             or (sd3_checkbox and sd3_cache_text_encoder_outputs)
+            or (anima_checkbox and anima_cache_text_encoder_outputs)
             else None
         ),
         "cache_text_encoder_outputs_to_disk": (
             True
-            if flux1_checkbox
-            and flux1_cache_text_encoder_outputs_to_disk
-            or sd3_checkbox
-            and sd3_cache_text_encoder_outputs_to_disk
+            if (flux1_checkbox and flux1_cache_text_encoder_outputs_to_disk)
+            or (sd3_checkbox and sd3_cache_text_encoder_outputs_to_disk)
+            or (anima_checkbox and anima_cache_text_encoder_outputs_to_disk)
             else None
         ),
         "caption_dropout_every_n_epochs": int(caption_dropout_every_n_epochs),
@@ -1609,7 +1695,7 @@ def train_model(
         "max_bucket_reso": max_bucket_reso,
         "max_grad_norm": max_grad_norm,
         "max_timestep": max_timestep if max_timestep != 0 else None,
-        "max_token_length": int(max_token_length) if not flux1_checkbox else None,
+        "max_token_length": int(max_token_length) if not flux1_checkbox and not anima_checkbox else None,
         "max_train_epochs": (
             int(max_train_epochs) if int(max_train_epochs) != 0 else None
         ),
@@ -1693,7 +1779,7 @@ def train_model(
         "save_state_to_huggingface": save_state_to_huggingface,
         "scale_v_pred_loss_like_noise_pred": scale_v_pred_loss_like_noise_pred,
         "scale_weight_norms": scale_weight_norms,
-        "sdpa": True if xformers == "sdpa" else None,
+        "sdpa": True if xformers == "sdpa" and not anima_checkbox else None,
         "seed": int(seed) if int(seed) != 0 else None,
         "shuffle_caption": shuffle_caption,
         "skip_cache_check": skip_cache_check,
@@ -1709,12 +1795,12 @@ def train_model(
         "v2": v2,
         "v_parameterization": v_parameterization,
         "v_pred_like_loss": v_pred_like_loss if v_pred_like_loss != 0 else None,
-        "vae": vae,
+        "vae": anima_vae if anima_checkbox else vae,
         "vae_batch_size": vae_batch_size if vae_batch_size != 0 else None,
         "wandb_api_key": wandb_api_key,
         "wandb_run_name": wandb_run_name if wandb_run_name != "" else output_name,
         "weighted_captions": weighted_captions,
-        "xformers": True if xformers == "xformers" else None,
+        "xformers": True if xformers == "xformers" and not anima_checkbox else None,
         # SD3 only Parameters
         # "cache_text_encoder_outputs": see previous assignment above for code
         # "cache_text_encoder_outputs_to_disk": see previous assignment above for code
@@ -1745,9 +1831,7 @@ def train_model(
         "ae": ae if flux1_checkbox else None,
         # "clip_l": see previous assignment above for code
         "t5xxl": t5xxl_value,
-        "discrete_flow_shift": float(discrete_flow_shift) if flux1_checkbox else None,
         "model_prediction_type": model_prediction_type if flux1_checkbox else None,
-        "timestep_sampling": timestep_sampling if flux1_checkbox else None,
         "split_mode": split_mode if flux1_checkbox else None,
         "t5xxl_max_token_length": (
             int(t5xxl_max_token_length) if flux1_checkbox else None
@@ -1758,9 +1842,33 @@ def train_model(
         "cpu_offload_checkpointing": (
             cpu_offload_checkpointing if flux1_checkbox else None
         ),
-        "blocks_to_swap": blocks_to_swap if flux1_checkbox or sd3_checkbox else None,
+        "blocks_to_swap": blocks_to_swap if flux1_checkbox or sd3_checkbox else (
+            int(anima_blocks_to_swap) if anima_checkbox and anima_blocks_to_swap else None
+        ),
         "single_blocks_to_swap": single_blocks_to_swap if flux1_checkbox else None,
         "double_blocks_to_swap": double_blocks_to_swap if flux1_checkbox else None,
+        # Anima specific parameters
+        "qwen3": anima_qwen3 if anima_checkbox else None,
+        "llm_adapter_path": anima_llm_adapter_path if anima_checkbox and anima_llm_adapter_path else None,
+        "t5_tokenizer_path": anima_t5_tokenizer_path if anima_checkbox and anima_t5_tokenizer_path else None,
+        "timestep_sampling": (
+            timestep_sampling if flux1_checkbox
+            else anima_timestep_sampling if anima_checkbox
+            else None
+        ),
+        "discrete_flow_shift": (
+            float(discrete_flow_shift) if flux1_checkbox
+            else float(anima_discrete_flow_shift) if anima_checkbox
+            else None
+        ),
+        "sigmoid_scale": float(anima_sigmoid_scale) if anima_checkbox else None,
+        "qwen3_max_token_length": int(anima_qwen3_max_token_length) if anima_checkbox else None,
+        "t5_max_token_length": int(anima_t5_max_token_length) if anima_checkbox else None,
+        "attn_mode": anima_attn_mode if anima_checkbox else None,
+        "split_attn": anima_split_attn if anima_checkbox else None,
+        "unsloth_offload_checkpointing": anima_unsloth_offload_checkpointing if anima_checkbox else None,
+        "vae_chunk_size": int(anima_vae_chunk_size) if anima_checkbox and anima_vae_chunk_size else None,
+        "vae_disable_cache": anima_vae_disable_cache if anima_checkbox else None,
     }
 
     # Given dictionary `config_toml_data`
@@ -1923,6 +2031,7 @@ def lora_tab(
                     LoRA_type = gr.Dropdown(
                         label="LoRA type",
                         choices=[
+                            "Anima",
                             "Flux1",
                             "Flux1 OFT",
                             "Kohya DyLoRA",
@@ -2238,6 +2347,7 @@ def lora_tab(
                             "update_params": {
                                 "visible": LoRA_type
                                 in {
+                                    "Anima",
                                     "Flux1",
                                     "Flux1 OFT",
                                     "Kohya DyLoRA",
@@ -2292,6 +2402,7 @@ def lora_tab(
                             "update_params": {
                                 "visible": LoRA_type
                                 in {
+                                    "Anima",
                                     "Flux1",
                                     "Flux1 OFT",
                                     "Standard",
@@ -2314,6 +2425,7 @@ def lora_tab(
                             "update_params": {
                                 "visible": LoRA_type
                                 in {
+                                    "Anima",
                                     "Flux1",
                                     "Flux1 OFT",
                                     "Standard",
@@ -2336,6 +2448,7 @@ def lora_tab(
                             "update_params": {
                                 "visible": LoRA_type
                                 in {
+                                    "Anima",
                                     "Flux1",
                                     "Flux1 OFT",
                                     "Standard",
@@ -2677,6 +2790,11 @@ def lora_tab(
             # Add SD3 Parameters
             sd3_training = sd3Training(
                 headless=headless, config=config, sd3_checkbox=source_model.sd3_checkbox
+            )
+
+            # Add Anima Parameters
+            anima_training = animaTraining(
+                headless=headless, config=config, anima_checkbox=source_model.anima_checkbox
             )
 
             with gr.Accordion(
@@ -3029,6 +3147,26 @@ def lora_tab(
             sd3_training.sd3_text_encoder_batch_size,
             sd3_training.weighting_scheme,
             source_model.sd3_checkbox,
+            # Anima Parameters
+            source_model.anima_checkbox,
+            anima_training.qwen3,
+            anima_training.anima_vae,
+            anima_training.llm_adapter_path,
+            anima_training.t5_tokenizer_path,
+            anima_training.anima_timestep_sampling,
+            anima_training.anima_discrete_flow_shift,
+            anima_training.anima_sigmoid_scale,
+            anima_training.qwen3_max_token_length,
+            anima_training.t5_max_token_length,
+            anima_training.anima_attn_mode,
+            anima_training.anima_split_attn,
+            anima_training.anima_cache_text_encoder_outputs,
+            anima_training.anima_cache_text_encoder_outputs_to_disk,
+            anima_training.anima_blocks_to_swap,
+            anima_training.anima_unsloth_offload_checkpointing,
+            anima_training.vae_chunk_size,
+            anima_training.vae_disable_cache,
+            anima_training.anima_train_llm_adapter,
         ]
 
         configuration.button_open_config.click(
