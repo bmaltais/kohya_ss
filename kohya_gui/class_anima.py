@@ -148,7 +148,7 @@ class animaTraining:
                         label="Attention Mode",
                         choices=["torch", "xformers", "flash", "sageattn"],
                         value=self.config.get("anima.anima_attn_mode", "torch"),
-                        info="Attention implementation. xformers requires split_attn. sageattn is inference-only.",
+                        info="Attention implementation. sageattn (fastest on consumer GPUs) requires sageattention>=2.0.0. flash requires flash_attn package. xformers requires split_attn.",
                         interactive=True,
                     )
                     self.anima_split_attn = gr.Checkbox(

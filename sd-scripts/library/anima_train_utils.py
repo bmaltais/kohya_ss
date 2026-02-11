@@ -114,8 +114,8 @@ def add_anima_training_arguments(parser: argparse.ArgumentParser):
         "--attn_mode",
         choices=["torch", "xformers", "flash", "sageattn", "sdpa"],  # "sdpa" is for backward compatibility
         default=None,
-        help="Attention implementation to use. Default is None (torch). xformers requires --split_attn. sageattn does not support training (inference only). This option overrides --xformers or --sdpa."
-        " / 使用するAttentionの実装。デフォルトはNone（torch）です。xformersは--split_attnの指定が必要です。sageattnはトレーニングをサポートしていません（推論のみ）。このオプションは--xformersまたは--sdpaを上書きします。",
+        help="Attention implementation to use. Default is None (torch). sageattn is fastest on consumer GPUs, requires sageattention>=2.0.0. flash requires flash_attn and bf16/fp16. xformers requires --split_attn. This option overrides --xformers or --sdpa."
+        " / 使用するAttentionの実装。デフォルトはNone（torch）です。sageattnは一般向けGPUで最速で、sageattention>=2.0.0が必要です。flashはflash_attnとbf16/fp16が必要です。xformersは--split_attnの指定が必要です。このオプションは--xformersまたは--sdpaを上書きします。",
     )
     parser.add_argument(
         "--split_attn",
