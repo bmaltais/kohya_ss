@@ -216,13 +216,19 @@ class AnimaNetworkTrainer(train_network.NetworkTrainer):
 
             clean_memory_on_device(accelerator.device)
         else:
-            # move text encoder to device for encoding during training/validation
-            text_encoders[0].to(accelerator.device)
+            # Keep TE on CPU — it will be moved to GPU per-step in process_batch (step-level offloading).
+            # Qwen3-0.6B (~1.2GB bf16) staying in VRAM throughout training is wasteful when frozen.
+            logger.info("Text encoder kept on CPU; will be moved to GPU per step for encoding.")
 
     def sample_images(self, accelerator, args, epoch, global_step, device, vae, tokenizer, text_encoder, unet):
         text_encoders = text_encoder if isinstance(text_encoder, list) else [text_encoder]  # compatibility
         te = self.get_models_for_text_encoding(args, accelerator, text_encoders)
         qwen3_te = te[0] if te is not None else None
+
+        # Step-level TE offloading: move to GPU for sampling, back to CPU after
+        te_was_on_cpu = qwen3_te is not None and qwen3_te.device.type == "cpu"
+        if te_was_on_cpu:
+            qwen3_te.to(accelerator.device)
 
         text_encoding_strategy = strategy_base.TextEncodingStrategy.get_strategy()
         tokenize_strategy = strategy_base.TokenizeStrategy.get_strategy()
@@ -238,6 +244,10 @@ class AnimaNetworkTrainer(train_network.NetworkTrainer):
             text_encoding_strategy,
             self.sample_prompts_te_outputs,
         )
+
+        if te_was_on_cpu:
+            qwen3_te.to("cpu")
+            clean_memory_on_device(accelerator.device)
 
     def get_noise_scheduler(self, args: argparse.Namespace, device: torch.device) -> Any:
         noise_scheduler = sd3_train_utils.FlowMatchEulerDiscreteScheduler(num_train_timesteps=1000, shift=args.discrete_flow_shift)
@@ -340,7 +350,19 @@ class AnimaNetworkTrainer(train_network.NetworkTrainer):
         train_text_encoder=True,
         train_unet=True,
     ) -> torch.Tensor:
-        """Override base process_batch for caption dropout with cached text encoder outputs."""
+        """Override base process_batch for caption dropout and step-level TE CPU offloading."""
+
+        # Step-level TE offloading: move Qwen3 to GPU only for this step, then back to CPU.
+        # Keeps ~1.2GB (Qwen3-0.6B bf16) free from VRAM when TE is frozen and not caching.
+        te_was_on_cpu = (
+            not args.cache_text_encoder_outputs
+            and text_encoders is not None
+            and len(text_encoders) > 0
+            and text_encoders[0] is not None
+            and text_encoders[0].device.type == "cpu"
+        )
+        if te_was_on_cpu:
+            text_encoders[0].to(accelerator.device)
 
         # Text encoder conditions
         text_encoder_outputs_list = batch.get("text_encoder_outputs_list", None)
@@ -355,7 +377,7 @@ class AnimaNetworkTrainer(train_network.NetworkTrainer):
             )
             batch["text_encoder_outputs_list"] = text_encoder_outputs_list
 
-        return super().process_batch(
+        result = super().process_batch(
             batch,
             text_encoders,
             unet,
@@ -372,6 +394,12 @@ class AnimaNetworkTrainer(train_network.NetworkTrainer):
             train_text_encoder,
             train_unet,
         )
+
+        if te_was_on_cpu:
+            text_encoders[0].to("cpu")
+            clean_memory_on_device(accelerator.device)
+
+        return result
 
     def post_process_loss(self, loss, args, timesteps, noise_scheduler):
         return loss

@@ -1590,7 +1590,9 @@ def train_model(
     # Flag to train text encoder only if its learning rate is non-zero and unet's is zero.
     network_train_text_encoder_only = text_encoder_lr_float != 0 and unet_lr_float == 0
     # Flag to train unet only if its learning rate is non-zero and text encoder's is zero.
-    network_train_unet_only = text_encoder_lr_float == 0 and unet_lr_float != 0
+    # For Anima: always unet-only — TE LoRA is not applied at inference, so training it wastes
+    # memory and produces unreloadable lora_te_* keys that confuse ComfyUI.
+    network_train_unet_only = (text_encoder_lr_float == 0 and unet_lr_float != 0) or anima_checkbox
 
     clip_l_value = None
     if sd3_checkbox:

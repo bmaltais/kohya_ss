@@ -162,8 +162,8 @@ class animaTraining:
                 with gr.Row():
                     self.anima_cache_text_encoder_outputs = gr.Checkbox(
                         label="Cache Text Encoder Outputs",
-                        value=self.config.get("anima.anima_cache_text_encoder_outputs", False),
-                        info="Cache Qwen3 outputs to reduce VRAM. Recommended when not training text encoder LoRA.",
+                        value=self.config.get("anima.anima_cache_text_encoder_outputs", True),
+                        info="Cache Qwen3 outputs to reduce VRAM. Enabled by default: TE LoRA is not supported at inference for Anima.",
                         interactive=True,
                     )
                     self.anima_cache_text_encoder_outputs_to_disk = gr.Checkbox(
