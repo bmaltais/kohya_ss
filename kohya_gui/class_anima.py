@@ -147,7 +147,7 @@ class animaTraining:
                     self.anima_split_attn = gr.Checkbox(
                         label="Split Attention",
                         value=self.config.get("anima.anima_split_attn", False),
-                        info="Split attention computation to reduce memory. Required when using xformers attn_mode.",
+                        info="Split attention per-sequence to save memory. Optional with xformers (uses BlockDiagonalMask otherwise). Useful when xformers lacks mask support or for max VRAM savings.",
                         interactive=True,
                     )
 
