@@ -180,12 +180,6 @@ class animaTraining:
                         info="Offload activations to CPU RAM using async non-blocking transfers. Faster than cpu_offload_checkpointing. Cannot combine with blocks_to_swap.",
                         interactive=True,
                     )
-                    self.anima_torch_compile = gr.Checkbox(
-                        label="torch.compile",
-                        value=self.config.get("anima.anima_torch_compile", False),
-                        info="JIT-compile DiT with torch.compile (inductor backend). Can speed up training ~10-30%. Incompatible with Unsloth Offload Checkpointing.",
-                        interactive=True,
-                    )
                     self.anima_disable_mmap_load_safetensors = gr.Checkbox(
                         label="Disable mmap Load",
                         value=self.config.get("anima.anima_disable_mmap_load_safetensors", False),
