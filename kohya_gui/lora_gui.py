@@ -336,6 +336,8 @@ def save_configuration(
     anima_cache_text_encoder_outputs_to_disk,
     anima_blocks_to_swap,
     anima_unsloth_offload_checkpointing,
+    anima_torch_compile,
+    anima_disable_mmap_load_safetensors,
     anima_vae_chunk_size,
     anima_vae_disable_cache,
     anima_train_llm_adapter,
@@ -641,6 +643,8 @@ def open_configuration(
     anima_cache_text_encoder_outputs_to_disk,
     anima_blocks_to_swap,
     anima_unsloth_offload_checkpointing,
+    anima_torch_compile,
+    anima_disable_mmap_load_safetensors,
     anima_vae_chunk_size,
     anima_vae_disable_cache,
     anima_train_llm_adapter,
@@ -1037,6 +1041,8 @@ def train_model(
     anima_cache_text_encoder_outputs_to_disk,
     anima_blocks_to_swap,
     anima_unsloth_offload_checkpointing,
+    anima_torch_compile,
+    anima_disable_mmap_load_safetensors,
     anima_vae_chunk_size,
     anima_vae_disable_cache,
     anima_train_llm_adapter,
@@ -1608,6 +1614,8 @@ def train_model(
     disable_mmap_load_safetensors_value = None
     if sd3_checkbox:
         disable_mmap_load_safetensors_value = sd3_disable_mmap_load_safetensors
+    elif anima_checkbox:
+        disable_mmap_load_safetensors_value = anima_disable_mmap_load_safetensors
 
     config_toml_data = {
         "adaptive_noise_scale": (
@@ -1643,7 +1651,7 @@ def train_model(
         "color_aug": color_aug,
         "dataset_config": dataset_config,
         "debiased_estimation_loss": debiased_estimation_loss,
-        "dynamo_backend": dynamo_backend,
+        "dynamo_backend": "inductor" if (anima_checkbox and anima_torch_compile and dynamo_backend == "no") else dynamo_backend,
         "dim_from_weights": dim_from_weights,
         "disable_mmap_load_safetensors": disable_mmap_load_safetensors_value,
         "enable_bucket": enable_bucket,
@@ -1865,6 +1873,7 @@ def train_model(
         "t5_max_token_length": int(anima_t5_max_token_length) if anima_checkbox else None,
         "split_attn": anima_split_attn if anima_checkbox else None,
         "unsloth_offload_checkpointing": anima_unsloth_offload_checkpointing if anima_checkbox else None,
+        "torch_compile": True if (anima_checkbox and anima_torch_compile) else None,
         "vae_chunk_size": int(anima_vae_chunk_size) if anima_checkbox and anima_vae_chunk_size else None,
         "vae_disable_cache": anima_vae_disable_cache if anima_checkbox else None,
     }
@@ -3161,6 +3170,8 @@ def lora_tab(
             anima_training.anima_cache_text_encoder_outputs_to_disk,
             anima_training.anima_blocks_to_swap,
             anima_training.anima_unsloth_offload_checkpointing,
+            anima_training.anima_torch_compile,
+            anima_training.anima_disable_mmap_load_safetensors,
             anima_training.vae_chunk_size,
             anima_training.vae_disable_cache,
             anima_training.anima_train_llm_adapter,
