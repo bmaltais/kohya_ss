@@ -10,6 +10,8 @@ from library.device_utils import init_ipex, clean_memory_on_device
 
 init_ipex()
 
+torch.set_float32_matmul_precision('high')
+
 from library import (
     anima_models,
     anima_train_utils,
