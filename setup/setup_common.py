@@ -5,7 +5,7 @@ import shutil
 import datetime
 import subprocess
 import re
-import pkg_resources
+import importlib.metadata
 
 log = logging.getLogger("sd")
 
@@ -602,19 +602,28 @@ def installed(package, friendly: str = None):
                 pkg_name, pkg_version = pkg.strip(), None
 
             # Attempt to find the installed package by its name
-            spec = pkg_resources.working_set.by_key.get(pkg_name, None)
+            try:
+                spec = importlib.metadata.distribution(pkg_name)
+            except importlib.metadata.PackageNotFoundError:
+                spec = None
+
             if spec is None:
                 # Try again with lowercase name
-                spec = pkg_resources.working_set.by_key.get(pkg_name.lower(), None)
+                try:
+                    spec = importlib.metadata.distribution(pkg_name.lower())
+                except importlib.metadata.PackageNotFoundError:
+                    spec = None
+
             if spec is None:
                 # Try replacing underscores with dashes
-                spec = pkg_resources.working_set.by_key.get(
-                    pkg_name.replace("_", "-"), None
-                )
+                try:
+                    spec = importlib.metadata.distribution(pkg_name.replace("_", "-"))
+                except importlib.metadata.PackageNotFoundError:
+                    spec = None
 
             if spec is not None:
                 # Package is found, check version
-                version = pkg_resources.get_distribution(pkg_name).version
+                version = spec.version
                 log.debug(f"Package version found: {pkg_name} {version}")
 
                 if pkg_version is not None:
