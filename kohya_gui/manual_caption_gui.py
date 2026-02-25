@@ -47,7 +47,7 @@ def _get_tag_checkbox_updates(caption, quick_tags, quick_tags_set):
 def paginate_go(page, max_page):
     try:
         page = float(page)
-    except:
+    except Exception:
         msgbox(f"Invalid page num: {page}")
         return
     return paginate(page, max_page, 0)

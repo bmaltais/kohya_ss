@@ -1439,7 +1439,7 @@ def validate_toml_file(file_path: str) -> bool:
 
     try:
         toml.load(file_path)
-    except:
+    except Exception:
         log.error(f"{msg} FAILED: is not a valid toml file.")
         return False
     log.info(f"{msg} SUCCESS")
