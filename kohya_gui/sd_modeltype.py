@@ -44,7 +44,7 @@ class SDModelType:
                 self.model_type = ModelType.SD2
             elif hasKeyPrefix("model."):
                 self.model_type = ModelType.SD1
-        except:
+        except Exception:
             pass
         
         # print(f"Model type: {self.model_type}")

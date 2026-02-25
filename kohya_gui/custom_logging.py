@@ -22,7 +22,7 @@ def setup_logging(clean=False, debug=False):
         if clean and os.path.isfile("setup.log"):
             os.remove("setup.log")
         time.sleep(0.1)  # prevent race condition
-    except:
+    except Exception:
         pass
 
     if sys.version_info >= (3, 9):
