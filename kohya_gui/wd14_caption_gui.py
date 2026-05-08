@@ -40,6 +40,7 @@ def caption_images(
     use_rating_tags_as_last_tag: bool,
     remove_underscore: bool,
     thresh: float,
+    sort_tags_by_confidence: bool,
 ) -> None:
     # Check for images_dir_input
     if train_data_dir == "":
@@ -113,6 +114,8 @@ def caption_images(
         run_cmd.append("--use_rating_tags")
     if use_rating_tags_as_last_tag:
         run_cmd.append("--use_rating_tags_as_last_tag")
+    if sort_tags_by_confidence:
+        run_cmd.append("--sort_tags_by_confidence")
 
     # Add the directory containing the training data
     run_cmd.append(rf"{train_data_dir}")
@@ -317,6 +320,11 @@ def gradio_wd14_caption_gui_tab(
                 value=config.get("wd14_caption.frequency_tags", True),
                 info="Show frequency of tags for images.",
             )
+            sort_tags_by_confidence = gr.Checkbox(
+                label="Sort tags by confidence",
+                value=config.get("wd14_caption.sort_tags_by_confidence", False),
+                info="Sort output tags by confidence score (highest first), matching the WaifuDiffusion online tagger order.",
+            )
 
         with gr.Row():
             thresh = gr.Slider(
@@ -396,6 +404,7 @@ def gradio_wd14_caption_gui_tab(
                 use_rating_tags_as_last_tag,
                 remove_underscore,
                 thresh,
+                sort_tags_by_confidence,
             ],
             show_progress=False,
         )
