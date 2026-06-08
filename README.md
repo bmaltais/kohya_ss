@@ -25,7 +25,7 @@ Support for Linux and macOS is also available. While Linux support is actively m
     - [`uv` vs `pip` – What's the Difference?](#uv-vs-pip--whats-the-difference)
   - [Cloud Installation Overview](#cloud-installation-overview)
     - [Colab](#-colab)
-    - [Runpod, Novita, Docker](#runpod-novita-docker)
+    - [Runpod, AI Badgr, Novita, Docker](#runpod-ai-badgr-novita-docker)
 - [Custom Path Defaults](#custom-path-defaults)
     - [LoRA](#lora)
   - [Sample image generation during training](#sample-image-generation-during-training)
@@ -52,10 +52,10 @@ Support for Linux and macOS is also available. While Linux support is actively m
 
 ## Installation Options
 
-You can run `kohya_ss` either **locally on your machine** or via **cloud-based solutions** like Colab or Runpod.
+You can run `kohya_ss` either **locally on your machine** or via **cloud-based solutions** like Colab, Runpod, or AI Badgr.
 
 - If you have a GPU-equipped PC and want full control: install it locally using `uv` or `pip`.
-- If your system doesn’t meet requirements or you prefer a browser-based setup: use Colab or a paid GPU provider like Runpod or Novita.
+- If your system doesn’t meet requirements or you prefer a browser-based setup: use Colab or a paid GPU provider like Runpod, AI Badgr, or Novita.
 - If you are a developer or DevOps user, Docker is also supported.
 
 ---
@@ -97,13 +97,14 @@ For browser-based training without local setup, use this Colab notebook:
 **Special thanks**  
 I would like to express my gratitude to camenduru for their valuable contribution.
 
-#### Runpod, Novita, Docker
+#### Runpod, AI Badgr, Novita, Docker
 
 These options are for users running training on hosted GPU infrastructure or containers.
 
-- **[Runpod setup](docs/runpod_setup.md)** – Ready-made GPU background training via templates.
-- **[Novita setup](docs/novita_setup.md)** – Similar to Runpod, but integrated into the Novita UI.
-- **[Docker setup](docs/docker.md)** – For developers/sysadmins using containerized environments.
+- **[Runpod setup](docs/installation_runpod.md)** – Ready-made GPU background training via templates.
+- **[AI Badgr setup](docs/installation_aibadgr.md)** – Launch the `kohya_ss` GPU template from AI Badgr or serve it with `badgr serve template kohya-ss --max-cost 5`.
+- **[Novita setup](docs/installation_novita.md)** – Similar to Runpod, but integrated into the Novita UI.
+- **[Docker setup](docs/installation_docker.md)** – For developers/sysadmins using containerized environments.
 
 
 ## Custom Path Defaults with `config.toml`

@@ -45,3 +45,18 @@ To run from a pre-built Runpod template, you can:
 2. Deploy the template on the desired host.
 
 3. Once deployed, connect to the Runpod on HTTP 3010 to access the kohya_ss GUI. You can also connect to auto1111 on HTTP 3000.
+
+### AI Badgr
+
+AI Badgr also provides a hosted GPU template for `kohya_ss`.
+
+1. Open the AI Badgr template by clicking on <https://aibadgr.com/gpu/launch?template=kohya-ss>.
+
+2. Launch the template with your desired GPU and cost settings.
+
+3. If you use the AI Badgr CLI, you can serve the template with a maximum cost cap:
+
+   ```shell
+   badgr serve template kohya-ss --max-cost 5
+   ```
+
