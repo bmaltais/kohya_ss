@@ -48,16 +48,3 @@ AI Badgr returns an endpoint URL. Stop billing any time with:
 badgr down <id>
 ```
 
-#### README badge
-
-To add a launch badge to your own README, use:
-
-```markdown
-[![Run on AI Badgr](https://aibadgr.com/badge.svg)](https://aibadgr.com/gpu/launch?template=kohya-ss)
-```
-
-For provider lists, use the plain link:
-
-```markdown
-[AI Badgr](https://aibadgr.com/gpu/launch?template=kohya-ss)
-```

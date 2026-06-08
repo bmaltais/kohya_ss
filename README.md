@@ -4,7 +4,6 @@
 [![GitHub forks](https://img.shields.io/github/forks/bmaltais/kohya_ss?style=social)](https://github.com/bmaltais/kohya_ss/network/members)
 [![License](https://img.shields.io/github/license/bmaltais/kohya_ss)](LICENSE.md)
 [![GitHub issues](https://img.shields.io/github/issues/bmaltais/kohya_ss)](https://github.com/bmaltais/kohya_ss/issues)
-[![Run on AI Badgr](https://aibadgr.com/badge.svg)](https://aibadgr.com/gpu/launch?template=kohya-ss)
 
 This is a GUI and CLI for training diffusion models.
 
