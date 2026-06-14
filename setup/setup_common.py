@@ -174,7 +174,7 @@ def install_requirements_inbulk(
     log.info(f"Installing/Validating requirements from {requirements_file}...")
 
     # Build the command as a list
-    cmd = ["pip", "install", "-r", requirements_file]
+    cmd = [sys.executable, "-m", "pip", "install", "-r", requirements_file]
     if installed("uv") and shutil.which("uv"):
         log.info("Using uv for pip...")
         cmd.insert(0, "uv")
