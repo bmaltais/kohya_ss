@@ -983,7 +983,8 @@ def set_pretrained_model_name_or_path_input(
 
     Returns:
         tuple: A tuple containing the Dropdown widget, v2 checkbox, v_parameterization checkbox,
-               and sdxl checkbox.
+               sdxl checkbox, sd3 checkbox, flux1 checkbox, hunyuan_image checkbox, and anima
+               checkbox.
     """
     # Check if the given pretrained_model_name_or_path is in the list of SDXL models
     if pretrained_model_name_or_path in SDXL_MODELS:

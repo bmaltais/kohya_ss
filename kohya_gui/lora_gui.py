@@ -1156,6 +1156,21 @@ def train_model(
             )
             return TRAIN_BUTTON_VISIBLE
 
+    # `network_module` is derived from `LoRA_type` while the training script is selected
+    # from `anima_checkbox`; keep the two in sync so the GUI can't emit a mismatched
+    # command (wrong script paired with the wrong/missing Anima-only args).
+    if anima_checkbox and LoRA_type != "Anima":
+        log.error(
+            "LoRA type must be set to 'Anima' if the Anima model checkbox is checked."
+        )
+        return TRAIN_BUTTON_VISIBLE
+
+    if LoRA_type == "Anima" and not anima_checkbox:
+        log.error(
+            "The Anima model checkbox must be checked when LoRA type is set to 'Anima'."
+        )
+        return TRAIN_BUTTON_VISIBLE
+
     #
     # Validate paths
     #
