@@ -1,15 +1,17 @@
 import os
+import shlex
 import subprocess
 
 def run_command(command):
-    """Runs a shell command and prints its output."""
+    """Runs a command and prints its output."""
     print(f"Running command: {command}")
-    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    args = shlex.split(command, posix=(os.name != "nt"))
+    process = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     for line in process.stdout:
         print(line, end="")
     process.wait()
     if process.returncode != 0:
-        raise Exception(f"Command failed with return code {process.returncode}: {command}")
+        raise subprocess.CalledProcessError(process.returncode, command)
 
 def main():
     print("Starting local training setup...")

@@ -4,22 +4,16 @@ import subprocess
 import time
 import webbrowser
 import shutil
-import cpuinfo
 
 def check_avx_support():
     try:
+        import cpuinfo
         info = cpuinfo.get_cpu_info()
-        return 'avx' in info['flags']
+        return 'avx' in info.get('flags', [])
     except Exception:
         return False
 
-try:
-    if shutil.which("tensorboard") and check_avx_support():
-        visibility = True
-    else:
-        visibility = False
-except ImportError:
-    visibility = False
+visibility = bool(shutil.which("tensorboard") and check_avx_support())
 
 from easygui import msgbox
 from threading import Thread, Event

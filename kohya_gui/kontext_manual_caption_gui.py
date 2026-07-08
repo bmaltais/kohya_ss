@@ -152,7 +152,7 @@ def update_image_tags(
     selected_tags_set = set(selected_tags)
 
     output_tags = [t for t in quick_tags if t in selected_tags_set] + [
-        t for t in selected_tags if t not in quick_tags_set
+        t for t in selected_tags if t.lower() not in quick_tags_set
     ]
     caption = ", ".join(output_tags)
 
@@ -349,7 +349,14 @@ def save_image_with_backup(image_path, image_to_save):
             
         base_filename = os.path.basename(image_path)
         backup_path = os.path.join(original_dir, base_filename)
-        
+
+        if os.path.exists(backup_path):
+            name, ext = os.path.splitext(base_filename)
+            counter = 1
+            while os.path.exists(backup_path):
+                backup_path = os.path.join(original_dir, f"{name}_{counter}{ext}")
+                counter += 1
+
         os.rename(image_path, backup_path)
         log.info(f"Backed up original image to {backup_path}")
         
@@ -413,8 +420,14 @@ def apply_correction(
 
         except Exception as e:
             log.error(f"Could not process or save image {image_file}. Error: {e}")
-            
-    gr.Info(f"Corrected {corrected_files} images with aspect ratio mismatches.")
+
+    if save_padded:
+        gr.Info(f"Corrected {corrected_files} images with aspect ratio mismatches.")
+    else:
+        gr.Info(
+            f"Found {corrected_files} images with aspect ratio mismatches. "
+            "Enable 'Save Corrected Images (Crop/Pad)' to write the corrected files."
+        )
     return gr.update()
 
 
@@ -429,8 +442,12 @@ def update_images(
     # REFACTOR: No more os.listdir here! We get the list directly from state.
     if not image_files or not target_images_dir:
         # Return empty updates if state is not ready
-        empty_row = gr.Row(visible=False)
-        return [empty_row] * (IMAGES_TO_SHOW * 5 + 2)
+        hidden_row = gr.Row(visible=False)
+        return (
+            [hidden_row] * IMAGES_TO_SHOW
+            + [gr.update()] * (IMAGES_TO_SHOW * 5)
+            + [hidden_row, hidden_row]
+        )
 
     quick_tags, quick_tags_set = _get_quick_tags(quick_tags_text or "")
 
@@ -527,7 +544,7 @@ def gradio_kontext_manual_caption_gui_tab(headless=False, default_images_dir=Non
             
             with gr.Row():
                 aspect_ratio_correction = gr.Dropdown(["None", "Crop", "Pad"], label="Aspect Ratio Correction", value="None")
-                save_padded_images = gr.Checkbox(label="Save Padded Images", value=False)
+                save_padded_images = gr.Checkbox(label="Save Corrected Images (Crop/Pad)", value=True)
                 
             apply_correction_button = gr.Button("Apply Correction")
 

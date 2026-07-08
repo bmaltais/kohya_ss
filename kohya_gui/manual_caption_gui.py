@@ -101,7 +101,7 @@ def update_image_tags(
     selected_tags_set = set(selected_tags)
 
     output_tags = [t for t in quick_tags if t in selected_tags_set] + [
-        t for t in selected_tags if t not in quick_tags_set
+        t for t in selected_tags if t.lower() not in quick_tags_set
     ]
     caption = ", ".join(output_tags)
 
@@ -180,8 +180,12 @@ def update_images(
     page,
 ):
     if not image_files or not images_dir:
-        empty_row = gr.Row(visible=False)
-        return [empty_row] * (IMAGES_TO_SHOW * 4 + 2)
+        hidden_row = gr.Row(visible=False)
+        return (
+            [hidden_row] * IMAGES_TO_SHOW
+            + [gr.update()] * (IMAGES_TO_SHOW * 4)
+            + [hidden_row, hidden_row]
+        )
 
     quick_tags, quick_tags_set = _get_quick_tags(quick_tags_text or "")
 

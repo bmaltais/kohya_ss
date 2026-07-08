@@ -27,7 +27,12 @@ if (-not $Output) {
 
 Write-Host "Extracting LoHa: $TunedModel -> $Output (rank=$Rank, iter=$Iterations)"
 
-D:\kohya_ss\.venv\Scripts\python.exe D:\kohya_ss\tools\extract_loha_from_tuned_model.py `
+$repoRoot = Split-Path -Parent $PSScriptRoot
+$venvPython = Join-Path $repoRoot ".venv\Scripts\python.exe"
+$pythonExe = if (Test-Path $venvPython) { $venvPython } else { "python" }
+$scriptPath = Join-Path $PSScriptRoot "extract_loha_from_tuned_model.py"
+
+& $pythonExe $scriptPath `
     $BaseModel `
     $TunedModel `
     $Output `
