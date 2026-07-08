@@ -1,5 +1,6 @@
 import gradio as gr
 from easygui import boolbox
+from PIL import Image
 from .common_gui import get_folder_path, scriptdir, list_dirs
 from math import ceil
 import os
@@ -248,6 +249,25 @@ def load_images(
             "No shared images found between the target and control directories."
         )
 
+    mismatched_files = []
+    for image_file in shared_files:
+        target_image_path = os.path.join(target_images_dir, image_file)
+        control_image_path = os.path.join(control_images_dir, image_file)
+
+        try:
+            with Image.open(target_image_path) as target_img, Image.open(control_image_path) as control_img:
+                target_aspect_ratio = target_img.width / target_img.height
+                control_aspect_ratio = control_img.width / control_img.height
+
+                if abs(target_aspect_ratio - control_aspect_ratio) > 1e-2:
+                    mismatched_files.append(image_file)
+                    log.warning(f"Aspect ratio mismatch for {image_file}: Target AR is {target_aspect_ratio:.4f}, Control AR is {control_aspect_ratio:.4f}")
+        except Exception as e:
+            log.error(f"Could not load or process image {image_file}. Error: {e}")
+    
+    if mismatched_files:
+        gr.Warning(f"Found {len(mismatched_files)} images with aspect ratio mismatches. Use the 'Apply Correction' button to fix them.")
+
     total_images = len(shared_files)
     max_pages = ceil(total_images / IMAGES_TO_SHOW)
 
@@ -273,6 +293,129 @@ def load_images(
         gr.Markdown(info, visible=True),
         new_quick_tags,
     ]
+
+
+def crop_image(image, target_aspect_ratio):
+    width, height = image.size
+    current_aspect_ratio = width / height
+
+    if current_aspect_ratio > target_aspect_ratio:
+        # Crop width
+        new_width = int(target_aspect_ratio * height)
+        left = (width - new_width) / 2
+        top = 0
+        right = left + new_width
+        bottom = height
+    else:
+        # Crop height
+        new_height = int(width / target_aspect_ratio)
+        left = 0
+        top = (height - new_height) / 2
+        right = width
+        bottom = top + new_height
+        
+    return image.crop((left, top, right, bottom))
+
+
+def pad_image(image, target_aspect_ratio, color="white"):
+    width, height = image.size
+    current_aspect_ratio = width / height
+
+    if current_aspect_ratio > target_aspect_ratio:
+        # Pad height
+        new_height = int(width / target_aspect_ratio)
+        padded_image = Image.new(image.mode, (width, new_height), color)
+        padded_image.paste(image, (0, int((new_height - height) / 2)))
+    else:
+        # Pad width
+        new_width = int(height * target_aspect_ratio)
+        padded_image = Image.new(image.mode, (new_width, height), color)
+        padded_image.paste(image, (int((new_width - width) / 2), 0))
+        
+    return padded_image
+
+
+def save_image_with_backup(image_path, image_to_save):
+    if not os.path.exists(image_path):
+        log.error(f"Image path does not exist: {image_path}")
+        return
+
+    try:
+        directory = os.path.dirname(image_path)
+        original_dir = os.path.join(directory, "original")
+        
+        if not os.path.exists(original_dir):
+            os.makedirs(original_dir)
+            
+        base_filename = os.path.basename(image_path)
+        backup_path = os.path.join(original_dir, base_filename)
+        
+        os.rename(image_path, backup_path)
+        log.info(f"Backed up original image to {backup_path}")
+        
+        image_to_save.save(image_path)
+        log.info(f"Saved modified image to {image_path}")
+        
+    except Exception as e:
+        log.error(f"Error saving image with backup: {e}")
+
+
+def apply_correction(
+    image_files,
+    target_images_dir,
+    control_images_dir,
+    correction_method,
+    save_padded,
+):
+    if not image_files:
+        gr.Warning("No images loaded.")
+        return gr.update()
+
+    if correction_method == "None":
+        gr.Info("No correction method selected.")
+        return gr.update()
+
+    corrected_files = 0
+    for image_file in image_files:
+        target_image_path = os.path.join(target_images_dir, image_file)
+        control_image_path = os.path.join(control_images_dir, image_file)
+
+        try:
+            with Image.open(target_image_path) as target_img, Image.open(
+                control_image_path
+            ) as control_img:
+                target_aspect_ratio = target_img.width / target_img.height
+                control_aspect_ratio = control_img.width / control_img.height
+
+                if abs(target_aspect_ratio - control_aspect_ratio) > 1e-2:
+                    if target_aspect_ratio > control_aspect_ratio:
+                        # Target is wider, so we correct it
+                        image_to_correct = target_img
+                        path_to_save = target_image_path
+                        correct_aspect_ratio = control_aspect_ratio
+                    else:
+                        # Control is wider, so we correct it
+                        image_to_correct = control_img
+                        path_to_save = control_image_path
+                        correct_aspect_ratio = target_aspect_ratio
+
+                    if correction_method == "Crop":
+                        modified_image = crop_image(image_to_correct, correct_aspect_ratio)
+                    elif correction_method == "Pad":
+                        modified_image = pad_image(image_to_correct, correct_aspect_ratio)
+                    else:
+                        continue  # Should not happen
+
+                    if save_padded:
+                        save_image_with_backup(path_to_save, modified_image)
+                    
+                    corrected_files += 1
+
+        except Exception as e:
+            log.error(f"Could not process or save image {image_file}. Error: {e}")
+            
+    gr.Info(f"Corrected {corrected_files} images with aspect ratio mismatches.")
+    return gr.update()
 
 
 def update_images(
@@ -381,6 +524,24 @@ def gradio_kontext_manual_caption_gui_tab(headless=False, default_images_dir=Non
                 auto_save = gr.Checkbox(label="Autosave", value=True, interactive=True)
 
             load_images_button = gr.Button("Load Images", variant="primary")
+            
+            with gr.Row():
+                aspect_ratio_correction = gr.Dropdown(["None", "Crop", "Pad"], label="Aspect Ratio Correction", value="None")
+                save_padded_images = gr.Checkbox(label="Save Padded Images", value=False)
+                
+            apply_correction_button = gr.Button("Apply Correction")
+
+            apply_correction_button.click(
+                apply_correction,
+                inputs=[
+                    image_files_state,
+                    loaded_images_dir,
+                    loaded_control_images_dir,
+                    aspect_ratio_correction,
+                    save_padded_images,
+                ],
+                outputs=info_box,
+            )
 
             target_images_dir.change(update_dir_list, inputs=target_images_dir, outputs=target_images_dir, show_progress=False)
             control_images_dir.change(
