@@ -27,7 +27,8 @@ Support for Linux and macOS is also available. While Linux support is actively m
     - [Colab](#-colab)
     - [Runpod, Novita, Docker](#runpod-novita-docker)
 - [Custom Path Defaults](#custom-path-defaults)
-    - [LoRA](#lora)
+- [Server Options](#server-options)
+- [LoRA](#lora)
   - [Sample image generation during training](#sample-image-generation-during-training)
   - [Troubleshooting](#troubleshooting)
   - [Page File Limit](#page-file-limit)
@@ -101,9 +102,9 @@ I would like to express my gratitude to camenduru for their valuable contributio
 
 These options are for users running training on hosted GPU infrastructure or containers.
 
-- **[Runpod setup](docs/runpod_setup.md)** – Ready-made GPU background training via templates.
-- **[Novita setup](docs/novita_setup.md)** – Similar to Runpod, but integrated into the Novita UI.
-- **[Docker setup](docs/docker.md)** – For developers/sysadmins using containerized environments.
+- **[Runpod setup](docs/installation_runpod.md)** – Ready-made GPU background training via templates.
+- **[Novita setup](docs/installation_novita.md)** – Similar to Runpod, but integrated into the Novita UI.
+- **[Docker setup](docs/installation_docker.md)** – For developers/sysadmins using containerized environments.
 
 
 ## Custom Path Defaults with `config.toml`
@@ -179,6 +180,21 @@ If you prefer to name your configuration file differently or store it in another
 *   On Linux/macOS: `./gui.sh --config /home/user/my_configs/kohya_settings.toml`
 
 By effectively using `config.toml`, you can significantly speed up your training setup process. Always refer to the `config example.toml` for the most up-to-date list of configurable paths.
+
+## Server Options
+
+The `config.toml` file can also be used to configure the Gradio server.
+
+### `allowed_paths`
+
+The `allowed_paths` option allows you to specify a list of directories that the application can access. This is useful if you want to store your models, datasets, or other files on an external drive or in a location outside of the application's root directory.
+
+**Example:**
+
+```toml
+[server]
+allowed_paths = ["/mnt/external_drive/models", "/home/user/datasets"]
+```
 
 ## LoRA
 

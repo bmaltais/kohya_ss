@@ -1,3 +1,4 @@
+py-cpuinfo
 accelerate>=1.7.0
 aiofiles==23.2.1
 altair==4.2.2

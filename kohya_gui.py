@@ -102,6 +102,7 @@ def UI(**kwargs):
         "share": False if kwargs.get("do_not_share", False) else kwargs.get("share", False),
         "root_path": kwargs.get("root_path", None),
         "debug": kwargs.get("debug", False),
+        "allowed_paths": config.allowed_paths,
     }
   
     # This line filters out any key-value pairs from `launch_params` where the value is `None`, ensuring only valid parameters are passed to the `launch` function.
