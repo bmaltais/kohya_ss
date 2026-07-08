@@ -884,6 +884,17 @@ def train_model(
         # image, so latent caching cannot be used at the same time.
         cache_latents = False
         cache_latents_to_disk = False
+    # `parameters` was snapshotted from locals() before the overrides above;
+    # keep the saved JSON training config in sync with the corrected values.
+    parameters = [
+        (name, value)
+        for name, value in parameters
+        if name not in ("train_inpainting", "cache_latents", "cache_latents_to_disk")
+    ] + [
+        ("train_inpainting", train_inpainting),
+        ("cache_latents", cache_latents),
+        ("cache_latents_to_disk", cache_latents_to_disk),
+    ]
     if max_data_loader_n_workers in ("", None):
         max_data_loader_n_workers = 0
     else:

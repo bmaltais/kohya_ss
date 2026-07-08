@@ -6,7 +6,11 @@ even though that script never defines either arg.
 import unittest
 
 from kohya_gui import finetune_gui
-from conftest import build_train_model_kwargs, run_train_model_and_load_toml
+from conftest import (
+    build_train_model_kwargs,
+    run_train_model_and_load_saved_json,
+    run_train_model_and_load_toml,
+)
 
 FIXTURE = "test/config/finetune-AdamW-toml.json"
 
@@ -110,6 +114,28 @@ class TestFinetuneTrainInpainting(unittest.TestCase):
         config = run_train_model_and_load_toml(finetune_gui, kwargs)
 
         self.assertNotIn("train_inpainting", config)
+
+    def test_saved_json_config_reflects_forced_overrides(self):
+        # The JSON training config saved via SaveConfigFile() must not
+        # persist the pre-override checkbox state (train_inpainting=True
+        # with cache_latents=True), which would produce an invalid combo
+        # if the user reloads this saved config later.
+        kwargs = build_train_model_kwargs(
+            finetune_gui.train_model,
+            FIXTURE,
+            numeric_fixups=NUMERIC_FIXUPS,
+            string_overrides=STRING_OVERRIDES,
+            overrides={
+                "train_inpainting": True,
+                "cache_latents": True,
+                "cache_latents_to_disk": True,
+            },
+        )
+        config = run_train_model_and_load_saved_json(finetune_gui, kwargs)
+
+        self.assertTrue(config.get("train_inpainting"))
+        self.assertFalse(config.get("cache_latents"))
+        self.assertFalse(config.get("cache_latents_to_disk"))
 
 
 if __name__ == "__main__":

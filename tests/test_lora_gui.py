@@ -5,7 +5,11 @@ sd-scripts v0.11.1 silently ignores (LoRA+ ratios, stale `lowvram`).
 import unittest
 
 from kohya_gui import lora_gui
-from conftest import build_train_model_kwargs, run_train_model_and_load_toml
+from conftest import (
+    build_train_model_kwargs,
+    run_train_model_and_load_saved_json,
+    run_train_model_and_load_toml,
+)
 
 FIXTURE = "test/config/locon-AdamW8bit-toml.json"
 
@@ -178,6 +182,28 @@ class TestLoraTrainInpainting(unittest.TestCase):
             }
         )
         self.assertNotIn("train_inpainting", config)
+
+    def test_saved_json_config_reflects_forced_overrides(self):
+        # The JSON training config saved via SaveConfigFile() must not
+        # persist the pre-override checkbox state (train_inpainting=True
+        # with cache_latents=True), which would produce an invalid combo
+        # if the user reloads this saved config later.
+        kwargs = build_train_model_kwargs(
+            lora_gui.train_model,
+            FIXTURE,
+            numeric_fixups=NUMERIC_FIXUPS,
+            string_overrides=STRING_OVERRIDES,
+            overrides={
+                "train_inpainting": True,
+                "cache_latents": True,
+                "cache_latents_to_disk": True,
+            },
+        )
+        config = run_train_model_and_load_saved_json(lora_gui, kwargs)
+
+        self.assertTrue(config.get("train_inpainting"))
+        self.assertFalse(config.get("cache_latents"))
+        self.assertFalse(config.get("cache_latents_to_disk"))
 
 
 if __name__ == "__main__":
