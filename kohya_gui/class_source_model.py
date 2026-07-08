@@ -198,6 +198,13 @@ class SourceModel:
                             value=self.config.get("model.dataset_config", ""),
                             interactive=True,
                             allow_custom_value=True,
+                            info=(
+                                "Multi-resolution / duplicate-subset datasets are configured"
+                                " entirely in this TOML file, not via GUI fields. See 'Behavior"
+                                " when there are duplicate subsets': https://github.com/kohya-ss"
+                                "/sd-scripts/blob/main/docs/config_README-en.md"
+                                "#behavior-when-there-are-duplicate-subsets"
+                            ),
                         )
                         # Refresh button for dataset_config directory
                         create_refresh_button(
