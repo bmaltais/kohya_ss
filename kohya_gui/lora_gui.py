@@ -42,6 +42,7 @@ from .class_huggingface import HuggingFace
 from .class_metadata import MetaData
 from .class_gui_config import KohyaSSGUIConfig
 from .class_flux1 import flux1Training
+from .class_hunyuan_image import hunyuanImageTraining
 
 from .dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -321,6 +322,23 @@ def save_configuration(
     sd3_text_encoder_batch_size,
     weighting_scheme,
     sd3_checkbox,
+    # HunyuanImage-2.1 parameters
+    hunyuan_image_cache_text_encoder_outputs,
+    hunyuan_image_cache_text_encoder_outputs_to_disk,
+    hunyuan_text_encoder,
+    hunyuan_byt5,
+    hunyuan_vae,
+    hunyuan_discrete_flow_shift,
+    hunyuan_model_prediction_type,
+    hunyuan_timestep_sampling,
+    hunyuan_sigmoid_scale,
+    hunyuan_attn_mode,
+    hunyuan_split_attn,
+    hunyuan_fp8_scaled,
+    hunyuan_fp8_vl,
+    hunyuan_text_encoder_cpu,
+    hunyuan_vae_chunk_size,
+    hunyuan_image_checkbox,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -609,6 +627,23 @@ def open_configuration(
     sd3_text_encoder_batch_size,
     weighting_scheme,
     sd3_checkbox,
+    # HunyuanImage-2.1 parameters
+    hunyuan_image_cache_text_encoder_outputs,
+    hunyuan_image_cache_text_encoder_outputs_to_disk,
+    hunyuan_text_encoder,
+    hunyuan_byt5,
+    hunyuan_vae,
+    hunyuan_discrete_flow_shift,
+    hunyuan_model_prediction_type,
+    hunyuan_timestep_sampling,
+    hunyuan_sigmoid_scale,
+    hunyuan_attn_mode,
+    hunyuan_split_attn,
+    hunyuan_fp8_scaled,
+    hunyuan_fp8_vl,
+    hunyuan_text_encoder_cpu,
+    hunyuan_vae_chunk_size,
+    hunyuan_image_checkbox,
     ##
     training_preset,
 ):
@@ -1008,6 +1043,23 @@ def train_model(
     sd3_text_encoder_batch_size,
     weighting_scheme,
     sd3_checkbox,
+    # HunyuanImage-2.1 parameters
+    hunyuan_image_cache_text_encoder_outputs,
+    hunyuan_image_cache_text_encoder_outputs_to_disk,
+    hunyuan_text_encoder,
+    hunyuan_byt5,
+    hunyuan_vae,
+    hunyuan_discrete_flow_shift,
+    hunyuan_model_prediction_type,
+    hunyuan_timestep_sampling,
+    hunyuan_sigmoid_scale,
+    hunyuan_attn_mode,
+    hunyuan_split_attn,
+    hunyuan_fp8_scaled,
+    hunyuan_fp8_vl,
+    hunyuan_text_encoder_cpu,
+    hunyuan_vae_chunk_size,
+    hunyuan_image_checkbox,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -1291,6 +1343,8 @@ def train_model(
         run_cmd.append(rf"{scriptdir}/sd-scripts/flux_train_network.py")
     elif sd3_checkbox:
         run_cmd.append(rf"{scriptdir}/sd-scripts/sd3_train_network.py")
+    elif hunyuan_image_checkbox:
+        run_cmd.append(rf"{scriptdir}/sd-scripts/hunyuan_image_train_network.py")
     else:
         run_cmd.append(rf"{scriptdir}/sd-scripts/train_network.py")
 
@@ -1400,6 +1454,9 @@ def train_model(
         for key, value in kohya_lora_vars.items():
             if value:
                 network_args += f" {key}={value}"
+
+    if LoRA_type == "HunyuanImage-2.1":
+        network_module = "networks.lora_hunyuan_image"
 
     if LoRA_type in ["Kohya LoCon", "Standard"]:
         kohya_lora_var_list = [
@@ -1537,7 +1594,9 @@ def train_model(
     # Flag to train text encoder only if its learning rate is non-zero and unet's is zero.
     network_train_text_encoder_only = text_encoder_lr_float != 0 and unet_lr_float == 0
     # Flag to train unet only if its learning rate is non-zero and text encoder's is zero.
-    network_train_unet_only = text_encoder_lr_float == 0 and unet_lr_float != 0
+    network_train_unet_only = (
+        text_encoder_lr_float == 0 and unet_lr_float != 0
+    ) or hunyuan_image_checkbox
 
     clip_l_value = None
     if sd3_checkbox:
@@ -1557,6 +1616,8 @@ def train_model(
     if sd3_checkbox:
         disable_mmap_load_safetensors_value = sd3_disable_mmap_load_safetensors
 
+    vae_value = hunyuan_vae if hunyuan_image_checkbox else vae
+
     config_toml_data = {
         "adaptive_noise_scale": (
             adaptive_noise_scale
@@ -1573,6 +1634,7 @@ def train_model(
             if (sdxl and sdxl_cache_text_encoder_outputs)
             or (flux1_checkbox and flux1_cache_text_encoder_outputs)
             or (sd3_checkbox and sd3_cache_text_encoder_outputs)
+            or (hunyuan_image_checkbox and hunyuan_image_cache_text_encoder_outputs)
             else None
         ),
         "cache_text_encoder_outputs_to_disk": (
@@ -1581,13 +1643,15 @@ def train_model(
             and flux1_cache_text_encoder_outputs_to_disk
             or sd3_checkbox
             and sd3_cache_text_encoder_outputs_to_disk
+            or hunyuan_image_checkbox
+            and hunyuan_image_cache_text_encoder_outputs_to_disk
             else None
         ),
         "caption_dropout_every_n_epochs": int(caption_dropout_every_n_epochs),
         "caption_dropout_rate": caption_dropout_rate,
         "caption_extension": caption_extension,
         "clip_l": clip_l_value,
-        "clip_skip": clip_skip if clip_skip != 0 else None,
+        "clip_skip": clip_skip if clip_skip != 0 and not hunyuan_image_checkbox else None,
         "color_aug": color_aug,
         "dataset_config": dataset_config,
         "debiased_estimation_loss": debiased_estimation_loss,
@@ -1638,7 +1702,11 @@ def train_model(
         "max_bucket_reso": max_bucket_reso,
         "max_grad_norm": max_grad_norm,
         "max_timestep": max_timestep if max_timestep != 0 else None,
-        "max_token_length": int(max_token_length) if not flux1_checkbox else None,
+        "max_token_length": (
+            int(max_token_length)
+            if not flux1_checkbox and not hunyuan_image_checkbox
+            else None
+        ),
         "max_train_epochs": (
             int(max_train_epochs) if int(max_train_epochs) != 0 else None
         ),
@@ -1738,7 +1806,7 @@ def train_model(
         "v2": v2,
         "v_parameterization": v_parameterization,
         "v_pred_like_loss": v_pred_like_loss if v_pred_like_loss != 0 else None,
-        "vae": vae,
+        "vae": vae_value,
         "vae_batch_size": vae_batch_size if vae_batch_size != 0 else None,
         "wandb_api_key": wandb_api_key,
         "wandb_run_name": wandb_run_name if wandb_run_name != "" else output_name,
@@ -1774,9 +1842,8 @@ def train_model(
         "ae": ae if flux1_checkbox else None,
         # "clip_l": see previous assignment above for code
         "t5xxl": t5xxl_value,
-        "discrete_flow_shift": float(discrete_flow_shift) if flux1_checkbox else None,
-        "model_prediction_type": model_prediction_type if flux1_checkbox else None,
-        "timestep_sampling": timestep_sampling if flux1_checkbox else None,
+        # "discrete_flow_shift", "model_prediction_type", "timestep_sampling":
+        # see consolidated HunyuanImage-2.1/Flux1 assignment below
         "split_mode": split_mode if flux1_checkbox else None,
         "t5xxl_max_token_length": (
             int(t5xxl_max_token_length) if flux1_checkbox else None
@@ -1787,15 +1854,58 @@ def train_model(
         "cpu_offload_checkpointing": (
             cpu_offload_checkpointing if flux1_checkbox else None
         ),
-        "blocks_to_swap": blocks_to_swap if flux1_checkbox or sd3_checkbox else None,
+        "blocks_to_swap": (
+            blocks_to_swap
+            if flux1_checkbox or sd3_checkbox or hunyuan_image_checkbox
+            else None
+        ),
         "single_blocks_to_swap": single_blocks_to_swap if flux1_checkbox else None,
         "double_blocks_to_swap": double_blocks_to_swap if flux1_checkbox else None,
         "show_timesteps": (
-            show_timesteps if (flux1_checkbox or sd3_checkbox) and show_timesteps else None
+            show_timesteps
+            if (flux1_checkbox or sd3_checkbox) and show_timesteps
+            else None
         ),
         "show_timesteps_resolution": (
             show_timesteps_resolution
             if (flux1_checkbox or sd3_checkbox) and show_timesteps
+            else None
+        ),
+        # HunyuanImage-2.1 specific parameters
+        "text_encoder": hunyuan_text_encoder if hunyuan_image_checkbox else None,
+        "byt5": hunyuan_byt5 if hunyuan_image_checkbox else None,
+        "discrete_flow_shift": (
+            float(hunyuan_discrete_flow_shift)
+            if hunyuan_image_checkbox
+            else float(discrete_flow_shift) if flux1_checkbox else None
+        ),
+        "model_prediction_type": (
+            hunyuan_model_prediction_type
+            if hunyuan_image_checkbox
+            else model_prediction_type if flux1_checkbox else None
+        ),
+        "timestep_sampling": (
+            hunyuan_timestep_sampling
+            if hunyuan_image_checkbox
+            else timestep_sampling if flux1_checkbox else None
+        ),
+        "sigmoid_scale": (
+            float(hunyuan_sigmoid_scale) if hunyuan_image_checkbox else None
+        ),
+        "attn_mode": (
+            hunyuan_attn_mode
+            if hunyuan_image_checkbox and hunyuan_attn_mode != "torch"
+            else None
+        ),
+        "split_attn": hunyuan_split_attn if hunyuan_image_checkbox else None,
+        "fp8_scaled": hunyuan_fp8_scaled if hunyuan_image_checkbox else None,
+        "fp8_vl": hunyuan_fp8_vl if hunyuan_image_checkbox else None,
+        "text_encoder_cpu": (
+            hunyuan_text_encoder_cpu if hunyuan_image_checkbox else None
+        ),
+        "vae_chunk_size": (
+            int(hunyuan_vae_chunk_size)
+            if hunyuan_image_checkbox and hunyuan_vae_chunk_size
             else None
         ),
     }
@@ -1962,6 +2072,7 @@ def lora_tab(
                         choices=[
                             "Flux1",
                             "Flux1 OFT",
+                            "HunyuanImage-2.1",
                             "Kohya DyLoRA",
                             "Kohya LoCon",
                             "LoRA-FA",
@@ -2277,6 +2388,7 @@ def lora_tab(
                                 in {
                                     "Flux1",
                                     "Flux1 OFT",
+                                    "HunyuanImage-2.1",
                                     "Kohya DyLoRA",
                                     "Kohya LoCon",
                                     "LoRA-FA",
@@ -2317,6 +2429,7 @@ def lora_tab(
                                 in {
                                     "Flux1",
                                     "Flux1 OFT",
+                                    "HunyuanImage-2.1",
                                     "Standard",
                                     "Kohya DyLoRA",
                                     "Kohya LoCon",
@@ -2331,6 +2444,7 @@ def lora_tab(
                                 in {
                                     "Flux1",
                                     "Flux1 OFT",
+                                    "HunyuanImage-2.1",
                                     "Standard",
                                     "LoCon",
                                     "Kohya DyLoRA",
@@ -2353,6 +2467,7 @@ def lora_tab(
                                 in {
                                     "Flux1",
                                     "Flux1 OFT",
+                                    "HunyuanImage-2.1",
                                     "Standard",
                                     "LoCon",
                                     "Kohya DyLoRA",
@@ -2375,6 +2490,7 @@ def lora_tab(
                                 in {
                                     "Flux1",
                                     "Flux1 OFT",
+                                    "HunyuanImage-2.1",
                                     "Standard",
                                     "LoCon",
                                     "Kohya DyLoRA",
@@ -2714,6 +2830,13 @@ def lora_tab(
             # Add SD3 Parameters
             sd3_training = sd3Training(
                 headless=headless, config=config, sd3_checkbox=source_model.sd3_checkbox
+            )
+
+            # Add HunyuanImage-2.1 Parameters
+            hunyuan_image_training = hunyuanImageTraining(
+                headless=headless,
+                config=config,
+                hunyuan_image_checkbox=source_model.hunyuan_image_checkbox,
             )
 
             with gr.Accordion(
@@ -3068,6 +3191,23 @@ def lora_tab(
             sd3_training.sd3_text_encoder_batch_size,
             sd3_training.weighting_scheme,
             source_model.sd3_checkbox,
+            # HunyuanImage-2.1 parameters
+            hunyuan_image_training.hunyuan_image_cache_text_encoder_outputs,
+            hunyuan_image_training.hunyuan_image_cache_text_encoder_outputs_to_disk,
+            hunyuan_image_training.text_encoder,
+            hunyuan_image_training.byt5,
+            hunyuan_image_training.vae,
+            hunyuan_image_training.discrete_flow_shift,
+            hunyuan_image_training.model_prediction_type,
+            hunyuan_image_training.timestep_sampling,
+            hunyuan_image_training.sigmoid_scale,
+            hunyuan_image_training.attn_mode,
+            hunyuan_image_training.split_attn,
+            hunyuan_image_training.fp8_scaled,
+            hunyuan_image_training.fp8_vl,
+            hunyuan_image_training.text_encoder_cpu,
+            hunyuan_image_training.vae_chunk_size,
+            source_model.hunyuan_image_checkbox,
         ]
 
         configuration.button_open_config.click(
