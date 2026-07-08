@@ -285,6 +285,8 @@ def save_configuration(
     blocks_to_swap,
     single_blocks_to_swap,
     double_blocks_to_swap,
+    show_timesteps,
+    show_timesteps_resolution,
     img_attn_dim,
     img_mlp_dim,
     img_mod_dim,
@@ -571,6 +573,8 @@ def open_configuration(
     blocks_to_swap,
     single_blocks_to_swap,
     double_blocks_to_swap,
+    show_timesteps,
+    show_timesteps_resolution,
     img_attn_dim,
     img_mlp_dim,
     img_mod_dim,
@@ -968,6 +972,8 @@ def train_model(
     blocks_to_swap,
     single_blocks_to_swap,
     double_blocks_to_swap,
+    show_timesteps,
+    show_timesteps_resolution,
     img_attn_dim,
     img_mlp_dim,
     img_mod_dim,
@@ -1784,6 +1790,12 @@ def train_model(
         "blocks_to_swap": blocks_to_swap if flux1_checkbox or sd3_checkbox else None,
         "single_blocks_to_swap": single_blocks_to_swap if flux1_checkbox else None,
         "double_blocks_to_swap": double_blocks_to_swap if flux1_checkbox else None,
+        "show_timesteps": (
+            show_timesteps if (flux1_checkbox or sd3_checkbox) and show_timesteps else None
+        ),
+        "show_timesteps_resolution": (
+            show_timesteps_resolution if (flux1_checkbox or sd3_checkbox) else None
+        ),
     }
 
     # Given dictionary `config_toml_data`
@@ -3018,6 +3030,8 @@ def lora_tab(
             advanced_training.blocks_to_swap,
             flux1_training.single_blocks_to_swap,
             flux1_training.double_blocks_to_swap,
+            advanced_training.show_timesteps,
+            advanced_training.show_timesteps_resolution,
             flux1_training.img_attn_dim,
             flux1_training.img_mlp_dim,
             flux1_training.img_mod_dim,

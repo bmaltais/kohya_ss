@@ -241,6 +241,8 @@ def save_configuration(
     blocks_to_swap,
     single_blocks_to_swap,
     double_blocks_to_swap,
+    show_timesteps,
+    show_timesteps_resolution,
     mem_eff_save,
     apply_t5_attn_mask,
 ):
@@ -457,6 +459,8 @@ def open_configuration(
     blocks_to_swap,
     single_blocks_to_swap,
     double_blocks_to_swap,
+    show_timesteps,
+    show_timesteps_resolution,
     mem_eff_save,
     apply_t5_attn_mask,
     training_preset,
@@ -679,6 +683,8 @@ def train_model(
     blocks_to_swap,
     single_blocks_to_swap,
     double_blocks_to_swap,
+    show_timesteps,
+    show_timesteps_resolution,
     mem_eff_save,
     apply_t5_attn_mask,
 ):
@@ -1129,6 +1135,12 @@ def train_model(
         "blocks_to_swap": blocks_to_swap if flux1_checkbox else None,
         "single_blocks_to_swap": single_blocks_to_swap if flux1_checkbox else None,
         "double_blocks_to_swap": double_blocks_to_swap if flux1_checkbox else None,
+        "show_timesteps": (
+            show_timesteps if (flux1_checkbox or sd3_checkbox) and show_timesteps else None
+        ),
+        "show_timesteps_resolution": (
+            show_timesteps_resolution if (flux1_checkbox or sd3_checkbox) else None
+        ),
         "mem_eff_save": mem_eff_save if flux1_checkbox else None,
         "apply_t5_attn_mask": apply_t5_attn_mask if flux1_checkbox else None,
     }
@@ -1555,6 +1567,8 @@ def finetune_tab(
             advanced_training.blocks_to_swap,
             flux1_training.single_blocks_to_swap,
             flux1_training.double_blocks_to_swap,
+            advanced_training.show_timesteps,
+            advanced_training.show_timesteps_resolution,
             flux1_training.mem_eff_save,
             flux1_training.apply_t5_attn_mask,
         ]
