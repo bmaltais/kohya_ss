@@ -940,6 +940,33 @@ def color_aug_changed(color_aug):
         return gr.Checkbox(interactive=True)
 
 
+def train_inpainting_changed(train_inpainting):
+    """
+    Handles the change in the "Train inpainting model" checkbox.
+
+    Inpainting training generates masks randomly per training step from the
+    source image, so latent caching (which would freeze the latents) cannot
+    be used at the same time. When inpainting training is enabled, both
+    "Cache latents" and "Cache latents to disk" are forced off and disabled.
+
+    Args:
+        train_inpainting (bool): The new state of the "Train inpainting model" checkbox.
+
+    Returns:
+        Tuple[gr.Checkbox, gr.Checkbox]: New checkboxes for cache_latents and
+        cache_latents_to_disk with the appropriate value/interactive settings.
+    """
+    if train_inpainting:
+        msgbox(
+            'Disabling "Cache latents" and "Cache latents to disk" because "Train inpainting model" has been selected...'
+        )
+        return gr.Checkbox(value=False, interactive=False), gr.Checkbox(
+            value=False, interactive=False
+        )
+    else:
+        return gr.Checkbox(interactive=True), gr.Checkbox(interactive=True)
+
+
 def set_pretrained_model_name_or_path_input(
     pretrained_model_name_or_path, refresh_method=None
 ):

@@ -17,6 +17,7 @@ from .common_gui import (
     run_cmd_advanced_training,
     SaveConfigFile,
     scriptdir,
+    train_inpainting_changed,
     update_my_data,
     validate_file_path,
     validate_folder_path,
@@ -138,6 +139,7 @@ def save_configuration(
     model_list,
     cache_latents,
     cache_latents_to_disk,
+    train_inpainting,
     use_latent_files,
     keep_tokens,
     persistent_data_loader_workers,
@@ -356,6 +358,7 @@ def open_configuration(
     model_list,
     cache_latents,
     cache_latents_to_disk,
+    train_inpainting,
     use_latent_files,
     keep_tokens,
     persistent_data_loader_workers,
@@ -580,6 +583,7 @@ def train_model(
     model_list,  # Keep this. Yes, it is unused here but required given the common list used
     cache_latents,
     cache_latents_to_disk,
+    train_inpainting,
     use_latent_files,
     keep_tokens,
     persistent_data_loader_workers,
@@ -939,6 +943,14 @@ def train_model(
     ) or (flux1_checkbox and flux1_cache_text_encoder_outputs_to_disk)
     no_half_vae = sdxl_checkbox and sdxl_no_half_vae
 
+    # --train_inpainting is only supported by fine_tune.py/sdxl_train.py
+    train_inpainting = train_inpainting and not (sd3_checkbox or flux1_checkbox)
+    if train_inpainting:
+        # Masks are generated randomly per training step from the source
+        # image, so latent caching cannot be used at the same time.
+        cache_latents = False
+        cache_latents_to_disk = False
+
     if max_data_loader_n_workers in ("", None):
         max_data_loader_n_workers = 0
     else:
@@ -1084,6 +1096,7 @@ def train_model(
         "t5xxl": t5xxl if sd3_checkbox else flux1_t5xxl if flux1_checkbox else None,
         "train_batch_size": train_batch_size,
         "train_data_dir": image_folder,
+        "train_inpainting": train_inpainting,
         "train_text_encoder": train_text_encoder,
         "log_with": log_with,
         "v2": v2,
@@ -1338,6 +1351,19 @@ def finetune_tab(
                         train_text_encoder = gr.Checkbox(
                             label="Train text encoder", value=True
                         )
+                        train_inpainting = gr.Checkbox(
+                            label="Train inpainting model",
+                            value=config.get("basic.train_inpainting", False),
+                            info='Trains a 9-channel inpainting model with randomly generated masks. Incompatible with "Cache latents".',
+                        )
+                    train_inpainting.change(
+                        train_inpainting_changed,
+                        inputs=[train_inpainting],
+                        outputs=[
+                            basic_training.cache_latents,
+                            basic_training.cache_latents_to_disk,
+                        ],
+                    )
 
             # Add FLUX1 Parameters
             flux1_training = flux1Training(
@@ -1466,6 +1492,7 @@ def finetune_tab(
             source_model.model_list,
             basic_training.cache_latents,
             basic_training.cache_latents_to_disk,
+            train_inpainting,
             use_latent_files,
             advanced_training.keep_tokens,
             advanced_training.persistent_data_loader_workers,

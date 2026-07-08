@@ -18,6 +18,7 @@ from .common_gui import (
     run_cmd_advanced_training,
     SaveConfigFile,
     scriptdir,
+    train_inpainting_changed,
     update_my_data,
     validate_file_path,
     validate_folder_path,
@@ -109,6 +110,7 @@ def save_configuration(
     seed,
     cache_latents,
     cache_latents_to_disk,
+    train_inpainting,
     caption_extension,
     enable_bucket,
     stop_text_encoder_training,
@@ -414,6 +416,7 @@ def open_configuration(
     seed,
     cache_latents,
     cache_latents_to_disk,
+    train_inpainting,
     caption_extension,
     enable_bucket,
     stop_text_encoder_training,
@@ -830,6 +833,7 @@ def train_model(
     seed,
     cache_latents,
     cache_latents_to_disk,
+    train_inpainting,
     caption_extension,
     enable_bucket,
     stop_text_encoder_training,
@@ -1348,6 +1352,16 @@ def train_model(
     else:
         run_cmd.append(rf"{scriptdir}/sd-scripts/train_network.py")
 
+    # --train_inpainting is only supported by train_network.py/sdxl_train_network.py
+    train_inpainting = train_inpainting and not (
+        flux1_checkbox or sd3_checkbox or hunyuan_image_checkbox
+    )
+    if train_inpainting:
+        # Masks are generated randomly per training step from the source
+        # image, so latent caching cannot be used at the same time.
+        cache_latents = False
+        cache_latents_to_disk = False
+
     network_args = ""
 
     if LoRA_type == "LyCORIS/BOFT":
@@ -1804,6 +1818,7 @@ def train_model(
         "text_encoder_lr": text_encoder_lr_list if text_encoder_lr_list != [] else None,
         "train_batch_size": train_batch_size,
         "train_data_dir": train_data_dir,
+        "train_inpainting": train_inpainting,
         "training_comment": training_comment,
         "unet_lr": unet_lr_float if unet_lr_float != 0.0 else None,
         "log_with": log_with,
@@ -2132,6 +2147,21 @@ def lora_tab(
                     lr_warmup_value=10,
                     sdxl_checkbox=source_model.sdxl_checkbox,
                     config=config,
+                )
+
+                with gr.Row():
+                    train_inpainting = gr.Checkbox(
+                        label="Train inpainting model",
+                        value=config.get("basic.train_inpainting", False),
+                        info='Trains a 9-channel inpainting model with randomly generated masks (train_network.py/sdxl_train_network.py only). Incompatible with "Cache latents".',
+                    )
+                train_inpainting.change(
+                    train_inpainting_changed,
+                    inputs=[train_inpainting],
+                    outputs=[
+                        basic_training.cache_latents,
+                        basic_training.cache_latents_to_disk,
+                    ],
                 )
 
                 with gr.Row():
@@ -2988,6 +3018,7 @@ def lora_tab(
             basic_training.seed,
             basic_training.cache_latents,
             basic_training.cache_latents_to_disk,
+            train_inpainting,
             basic_training.caption_extension,
             basic_training.enable_bucket,
             basic_training.stop_text_encoder_training,
