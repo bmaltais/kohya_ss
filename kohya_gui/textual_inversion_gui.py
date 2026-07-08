@@ -866,9 +866,8 @@ def train_model(
         "seed": int(seed) if int(seed) != 0 else None,
         "shuffle_caption": shuffle_caption,
         "skip_cache_check": skip_cache_check,
-        "stop_text_encoder_training": (
-            stop_text_encoder_training if stop_text_encoder_training != 0 else None
-        ),
+        # stop_text_encoder_training is only defined by train_db.py; neither
+        # train_textual_inversion.py nor sdxl_train_textual_inversion.py accept it.
         "token_string": token_string,
         "train_batch_size": train_batch_size,
         "train_data_dir": train_data_dir,

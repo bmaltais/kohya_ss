@@ -1068,8 +1068,10 @@ def train_model(
         "discrete_flow_shift": discrete_flow_shift if flux1_checkbox else None,
         "model_prediction_type": model_prediction_type if flux1_checkbox else None,
         "timestep_sampling": timestep_sampling if flux1_checkbox else None,
-        "split_mode": split_mode if flux1_checkbox else None,
-        "train_blocks": train_blocks if flux1_checkbox else None,
+        # split_mode/train_blocks are LoRA-only (flux_train_network.py); this
+        # tab only ever targets flux_train.py, which does not accept them.
+        "split_mode": None,
+        "train_blocks": None,
         "t5xxl_max_token_length": t5xxl_max_token_length if flux1_checkbox else None,
         "guidance_scale": guidance_scale if flux1_checkbox else None,
         "blockwise_fused_optimizers": (

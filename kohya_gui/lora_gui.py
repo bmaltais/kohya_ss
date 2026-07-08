@@ -739,6 +739,26 @@ def get_effective_lr_messages(
     return messages
 
 
+def append_loraplus_network_args(
+    network_args: str,
+    loraplus_lr_ratio: float,
+    loraplus_unet_lr_ratio: float,
+    loraplus_text_encoder_lr_ratio: float,
+) -> str:
+    # sd-scripts only reads loraplus_* via --network_args (networks/lora.py's
+    # create_network kwargs), not as top-level config keys, so they must be
+    # appended here rather than written as their own config_toml_data entries.
+    if loraplus_lr_ratio:
+        network_args += f" loraplus_lr_ratio={loraplus_lr_ratio}"
+    if loraplus_unet_lr_ratio:
+        network_args += f" loraplus_unet_lr_ratio={loraplus_unet_lr_ratio}"
+    if loraplus_text_encoder_lr_ratio:
+        network_args += (
+            f" loraplus_text_encoder_lr_ratio={loraplus_text_encoder_lr_ratio}"
+        )
+    return network_args
+
+
 def train_model(
     headless,
     print_only,
@@ -1462,6 +1482,13 @@ def train_model(
             if value:
                 network_args += f" {key}={value}"
 
+    network_args = append_loraplus_network_args(
+        network_args,
+        loraplus_lr_ratio,
+        loraplus_unet_lr_ratio,
+        loraplus_text_encoder_lr_ratio,
+    )
+
     # Set the text_encoder_lr to multiple values if both text_encoder_lr and t5xxl_lr are set
     if text_encoder_lr == 0 and t5xxl_lr > 0:
         log.error(
@@ -1588,13 +1615,9 @@ def train_model(
         "log_config": log_config,
         "log_tracker_name": log_tracker_name,
         "log_tracker_config": log_tracker_config,
-        "loraplus_lr_ratio": loraplus_lr_ratio if loraplus_lr_ratio != 0 else None,
-        "loraplus_text_encoder_lr_ratio": (
-            loraplus_text_encoder_lr_ratio if loraplus_text_encoder_lr_ratio != 0 else None
-        ),
-        "loraplus_unet_lr_ratio": loraplus_unet_lr_ratio if loraplus_unet_lr_ratio != 0 else None,
         "loss_type": loss_type,
-        "lowvram": lowvram,
+        # lowvram was removed from sd-scripts; only --highvram remains, so it
+        # must not be forwarded here.
         "lr_scheduler": lr_scheduler,
         "lr_scheduler_args": str(lr_scheduler_args).replace('"', "").split(),
         "lr_scheduler_num_cycles": (
