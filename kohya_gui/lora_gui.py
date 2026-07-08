@@ -741,9 +741,9 @@ def get_effective_lr_messages(
 
 def append_loraplus_network_args(
     network_args: str,
-    loraplus_lr_ratio: float,
-    loraplus_unet_lr_ratio: float,
-    loraplus_text_encoder_lr_ratio: float,
+    loraplus_lr_ratio: float | None,
+    loraplus_unet_lr_ratio: float | None,
+    loraplus_text_encoder_lr_ratio: float | None,
 ) -> str:
     # sd-scripts only reads loraplus_* via --network_args (networks/lora.py's
     # create_network kwargs), not as top-level config keys, so they must be

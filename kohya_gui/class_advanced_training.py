@@ -286,11 +286,17 @@ class AdvancedTraining:
                 info="Disable low VRAM optimization. e.g. do not clear CUDA cache after each latent caching (for machines which have bigger VRAM)",
                 interactive=True,
             )
+            # lowvram was removed from sd-scripts (only --highvram remains) and
+            # is no longer forwarded to any training config; hidden rather than
+            # deleted to avoid touching every train_model()/save_configuration()/
+            # open_configuration() signature and .click() wiring list that
+            # still threads this widget through by position.
             self.lowvram = gr.Checkbox(
                 label="lowvram",
                 value=self.config.get("advanced.lowvram", False),
                 info="Enable low RAM optimization. e.g. load models to VRAM instead of RAM (for machines which have bigger VRAM than RAM such as Colab and Kaggle)",
                 interactive=True,
+                visible=False,
             )
             self.skip_cache_check = gr.Checkbox(
                 label="Skip cache check",
