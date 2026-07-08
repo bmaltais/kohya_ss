@@ -16,6 +16,7 @@ from .common_gui import (
     run_cmd_advanced_training,
     SaveConfigFile,
     scriptdir,
+    train_inpainting_changed,
     update_my_data,
     validate_file_path,
     validate_folder_path,
@@ -88,6 +89,7 @@ def save_configuration(
     num_cpu_threads_per_process,
     cache_latents,
     cache_latents_to_disk,
+    train_inpainting,
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
@@ -301,6 +303,7 @@ def open_configuration(
     num_cpu_threads_per_process,
     cache_latents,
     cache_latents_to_disk,
+    train_inpainting,
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
@@ -509,6 +512,7 @@ def train_model(
     num_cpu_threads_per_process,
     cache_latents,
     cache_latents_to_disk,
+    train_inpainting,
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
@@ -873,6 +877,24 @@ def train_model(
         sd3_checkbox and sd3_cache_text_encoder_outputs_to_disk
     ) or (flux1_checkbox and flux1_cache_text_encoder_outputs_to_disk)
     no_half_vae = sdxl and sdxl_no_half_vae
+    # --train_inpainting is only supported by train_db.py/sdxl_train.py
+    train_inpainting = train_inpainting and not (sd3_checkbox or flux1_checkbox)
+    if train_inpainting:
+        # Masks are generated randomly per training step from the source
+        # image, so latent caching cannot be used at the same time.
+        cache_latents = False
+        cache_latents_to_disk = False
+    # `parameters` was snapshotted from locals() before the overrides above;
+    # keep the saved JSON training config in sync with the corrected values.
+    parameters = [
+        (name, value)
+        for name, value in parameters
+        if name not in ("train_inpainting", "cache_latents", "cache_latents_to_disk")
+    ] + [
+        ("train_inpainting", train_inpainting),
+        ("cache_latents", cache_latents),
+        ("cache_latents_to_disk", cache_latents_to_disk),
+    ]
     if max_data_loader_n_workers in ("", None):
         max_data_loader_n_workers = 0
     else:
@@ -1038,6 +1060,7 @@ def train_model(
         "t5xxl": t5xxl if sd3_checkbox else flux1_t5xxl if flux1_checkbox else None,
         "train_batch_size": train_batch_size,
         "train_data_dir": train_data_dir,
+        "train_inpainting": train_inpainting,
         "train_text_encoder": train_text_encoder if sdxl else None,
         "v2": v2,
         "v_parameterization": v_parameterization,
@@ -1232,6 +1255,20 @@ def dreambooth_tab(
                         sdxl_checkbox=source_model.sdxl_checkbox,
                         config=config,
                     )
+                with gr.Row():
+                    train_inpainting = gr.Checkbox(
+                        label="Train inpainting model",
+                        value=config.get("basic.train_inpainting", False),
+                        info='Trains a 9-channel inpainting model with randomly generated masks. Incompatible with "Cache latents".',
+                    )
+                train_inpainting.change(
+                    train_inpainting_changed,
+                    inputs=[train_inpainting],
+                    outputs=[
+                        basic_training.cache_latents,
+                        basic_training.cache_latents_to_disk,
+                    ],
+                )
 
             # Add SDXL Parameters
             sdxl_params = SDXLParameters(
@@ -1306,6 +1343,7 @@ def dreambooth_tab(
             accelerate_launch.num_cpu_threads_per_process,
             basic_training.cache_latents,
             basic_training.cache_latents_to_disk,
+            train_inpainting,
             basic_training.caption_extension,
             basic_training.enable_bucket,
             advanced_training.gradient_checkpointing,

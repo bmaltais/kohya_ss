@@ -5,7 +5,11 @@ sd-scripts v0.11.1 silently ignores (LoRA+ ratios, stale `lowvram`).
 import unittest
 
 from kohya_gui import lora_gui
-from conftest import build_train_model_kwargs, run_train_model_and_load_toml
+from conftest import (
+    build_train_model_kwargs,
+    run_train_model_and_load_saved_json,
+    run_train_model_and_load_toml,
+)
 
 FIXTURE = "test/config/locon-AdamW8bit-toml.json"
 
@@ -132,6 +136,74 @@ class TestTrainModelConfigOutput(unittest.TestCase):
     def test_lowvram_never_appears_in_generated_config(self):
         config = self._run_and_load_toml({"lowvram": True})
         self.assertNotIn("lowvram", config)
+
+
+class TestLoraTrainInpainting(unittest.TestCase):
+    """GH issue #3527: inpainting model training support (SD1.5/SDXL).
+
+    `--train_inpainting` must be forwarded to train_network.py/
+    sdxl_train_network.py and must never be combined with
+    `--cache_latents`/`--cache_latents_to_disk` since masks are generated
+    randomly per step from the source image. It must also never leak into
+    flux_train_network.py/sd3_train_network.py/hunyuan_image_train_network.py,
+    which aren't in the supported script list.
+    """
+
+    def _run_and_load_toml(self, overrides):
+        kwargs = build_train_model_kwargs(
+            lora_gui.train_model,
+            FIXTURE,
+            numeric_fixups=NUMERIC_FIXUPS,
+            string_overrides=STRING_OVERRIDES,
+            overrides=overrides,
+        )
+        return run_train_model_and_load_toml(lora_gui, kwargs)
+
+    def test_train_inpainting_forwarded_and_cache_latents_dropped(self):
+        config = self._run_and_load_toml(
+            {
+                "train_inpainting": True,
+                "cache_latents": True,
+                "cache_latents_to_disk": True,
+            }
+        )
+        self.assertTrue(config.get("train_inpainting"))
+        self.assertNotIn("cache_latents", config)
+        self.assertNotIn("cache_latents_to_disk", config)
+
+    def test_train_inpainting_dropped_for_flux_backend(self):
+        # train_inpainting is only supported by train_network.py/
+        # sdxl_train_network.py; flux_train_network.py must never receive it.
+        config = self._run_and_load_toml(
+            {
+                "train_inpainting": True,
+                "flux1_checkbox": True,
+                "LoRA_type": "Flux1",
+            }
+        )
+        self.assertNotIn("train_inpainting", config)
+
+    def test_saved_json_config_reflects_forced_overrides(self):
+        # The JSON training config saved via SaveConfigFile() must not
+        # persist the pre-override checkbox state (train_inpainting=True
+        # with cache_latents=True), which would produce an invalid combo
+        # if the user reloads this saved config later.
+        kwargs = build_train_model_kwargs(
+            lora_gui.train_model,
+            FIXTURE,
+            numeric_fixups=NUMERIC_FIXUPS,
+            string_overrides=STRING_OVERRIDES,
+            overrides={
+                "train_inpainting": True,
+                "cache_latents": True,
+                "cache_latents_to_disk": True,
+            },
+        )
+        config = run_train_model_and_load_saved_json(lora_gui, kwargs)
+
+        self.assertTrue(config.get("train_inpainting"))
+        self.assertFalse(config.get("cache_latents"))
+        self.assertFalse(config.get("cache_latents_to_disk"))
 
 
 if __name__ == "__main__":

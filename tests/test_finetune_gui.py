@@ -6,7 +6,11 @@ even though that script never defines either arg.
 import unittest
 
 from kohya_gui import finetune_gui
-from conftest import build_train_model_kwargs, run_train_model_and_load_toml
+from conftest import (
+    build_train_model_kwargs,
+    run_train_model_and_load_saved_json,
+    run_train_model_and_load_toml,
+)
 
 FIXTURE = "test/config/finetune-AdamW-toml.json"
 
@@ -64,6 +68,74 @@ class TestFinetuneFluxConfigOutput(unittest.TestCase):
 
         self.assertNotIn("split_mode", config)
         self.assertNotIn("train_blocks", config)
+
+
+class TestFinetuneTrainInpainting(unittest.TestCase):
+    """GH issue #3527: inpainting model training support (SD1.5/SDXL).
+
+    `--train_inpainting` must be forwarded to fine_tune.py/sdxl_train.py and
+    must never be combined with `--cache_latents`/`--cache_latents_to_disk`
+    since masks are generated randomly per step from the source image. It
+    must also never leak into flux_train.py/sd3_train.py, which aren't in
+    the supported script list.
+    """
+
+    def test_train_inpainting_forwarded_and_cache_latents_dropped(self):
+        kwargs = build_train_model_kwargs(
+            finetune_gui.train_model,
+            FIXTURE,
+            numeric_fixups=NUMERIC_FIXUPS,
+            string_overrides=STRING_OVERRIDES,
+            overrides={
+                "train_inpainting": True,
+                "cache_latents": True,
+                "cache_latents_to_disk": True,
+            },
+        )
+        config = run_train_model_and_load_toml(finetune_gui, kwargs)
+
+        self.assertTrue(config.get("train_inpainting"))
+        self.assertNotIn("cache_latents", config)
+        self.assertNotIn("cache_latents_to_disk", config)
+
+    def test_train_inpainting_dropped_for_flux_backend(self):
+        # train_inpainting is only supported by fine_tune.py/sdxl_train.py;
+        # flux_train.py must never receive it.
+        kwargs = build_train_model_kwargs(
+            finetune_gui.train_model,
+            FIXTURE,
+            numeric_fixups=NUMERIC_FIXUPS,
+            string_overrides=STRING_OVERRIDES,
+            overrides={
+                "train_inpainting": True,
+                "flux1_checkbox": True,
+            },
+        )
+        config = run_train_model_and_load_toml(finetune_gui, kwargs)
+
+        self.assertNotIn("train_inpainting", config)
+
+    def test_saved_json_config_reflects_forced_overrides(self):
+        # The JSON training config saved via SaveConfigFile() must not
+        # persist the pre-override checkbox state (train_inpainting=True
+        # with cache_latents=True), which would produce an invalid combo
+        # if the user reloads this saved config later.
+        kwargs = build_train_model_kwargs(
+            finetune_gui.train_model,
+            FIXTURE,
+            numeric_fixups=NUMERIC_FIXUPS,
+            string_overrides=STRING_OVERRIDES,
+            overrides={
+                "train_inpainting": True,
+                "cache_latents": True,
+                "cache_latents_to_disk": True,
+            },
+        )
+        config = run_train_model_and_load_saved_json(finetune_gui, kwargs)
+
+        self.assertTrue(config.get("train_inpainting"))
+        self.assertFalse(config.get("cache_latents"))
+        self.assertFalse(config.get("cache_latents_to_disk"))
 
 
 if __name__ == "__main__":
