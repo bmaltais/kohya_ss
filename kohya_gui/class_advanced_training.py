@@ -508,6 +508,20 @@ class AdvancedTraining:
                 step=1,
                 interactive=True,
             )
+        with gr.Row():
+            self.show_timesteps = gr.Dropdown(
+                label="Show timesteps",
+                choices=["", "console", "image"],
+                value=self.config.get("advanced.show_timesteps", ""),
+                info="Visualize the actual sampled timestep distribution and loss weighting for the current settings, then exit without training. 'console' prints an ASCII histogram, 'image' shows a matplotlib plot. Applies to FLUX and SD3 training.",
+                interactive=True,
+            )
+            self.show_timesteps_resolution = gr.Textbox(
+                label="Show timesteps resolution",
+                value=self.config.get("advanced.show_timesteps_resolution", "1024"),
+                info="Image resolution (pixels) assumed by 'Show timesteps' for resolution-dependent sampling (e.g. flux_shift). Comma-separated: a single value is used for both H and W, two values are H,W.",
+                interactive=True,
+            )
         with gr.Group(), gr.Row():
             self.save_state = gr.Checkbox(
                 label="Save training state",
