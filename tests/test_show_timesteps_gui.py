@@ -123,9 +123,11 @@ class TestShowTimestepsFlow(unittest.TestCase):
                 "flux1_checkbox": True,
                 "LoRA_type": "Flux1",
                 "show_timesteps": "",
+                "show_timesteps_resolution": "1024",
             }
         )
         self.assertNotIn("show_timesteps", config)
+        self.assertNotIn("show_timesteps_resolution", config)
 
     def test_never_emitted_for_non_dit_families(self):
         config = self._run_and_load_toml(

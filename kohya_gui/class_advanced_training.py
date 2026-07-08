@@ -513,7 +513,7 @@ class AdvancedTraining:
                 label="Show timesteps",
                 choices=["", "console", "image"],
                 value=self.config.get("advanced.show_timesteps", ""),
-                info="Visualize the actual sampled timestep distribution and loss weighting for the current settings, then exit without training. 'console' prints an ASCII histogram, 'image' shows a matplotlib plot. Applies to FLUX/SD3/Lumina/Anima (DiT) training.",
+                info="Visualize the actual sampled timestep distribution and loss weighting for the current settings, then exit without training. 'console' prints an ASCII histogram, 'image' shows a matplotlib plot. Applies to FLUX and SD3 training.",
                 interactive=True,
             )
             self.show_timesteps_resolution = gr.Textbox(

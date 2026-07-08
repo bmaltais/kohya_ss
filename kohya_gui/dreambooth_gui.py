@@ -1094,7 +1094,9 @@ def train_model(
             show_timesteps if (flux1_checkbox or sd3_checkbox) and show_timesteps else None
         ),
         "show_timesteps_resolution": (
-            show_timesteps_resolution if (flux1_checkbox or sd3_checkbox) else None
+            show_timesteps_resolution
+            if (flux1_checkbox or sd3_checkbox) and show_timesteps
+            else None
         ),
         "mem_eff_save": mem_eff_save if flux1_checkbox else None,
         "apply_t5_attn_mask": apply_t5_attn_mask if flux1_checkbox else None,

@@ -1794,7 +1794,9 @@ def train_model(
             show_timesteps if (flux1_checkbox or sd3_checkbox) and show_timesteps else None
         ),
         "show_timesteps_resolution": (
-            show_timesteps_resolution if (flux1_checkbox or sd3_checkbox) else None
+            show_timesteps_resolution
+            if (flux1_checkbox or sd3_checkbox) and show_timesteps
+            else None
         ),
     }
 
