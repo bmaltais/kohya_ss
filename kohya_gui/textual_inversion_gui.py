@@ -590,16 +590,7 @@ def train_model(
         log.info(
             "Dataset config toml file used, skipping total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps calculations..."
         )
-        if max_train_steps > 0:
-            # calculate stop encoder training
-            if stop_text_encoder_training_pct == 0:
-                stop_text_encoder_training = 0
-            else:
-                stop_text_encoder_training = math.ceil(
-                    float(max_train_steps) / 100 * int(stop_text_encoder_training_pct)
-                )
-        else:
-            stop_text_encoder_training = 0
+        if max_train_steps == 0:
             lr_warmup_steps = 0
 
         if max_train_steps == 0:
@@ -684,14 +675,6 @@ def train_model(
             else:
                 max_train_steps_info = f"Max train steps: {max_train_steps}"
 
-        # calculate stop encoder training
-        if stop_text_encoder_training_pct == 0:
-            stop_text_encoder_training = 0
-        else:
-            stop_text_encoder_training = math.ceil(
-                float(max_train_steps) / 100 * int(stop_text_encoder_training_pct)
-            )
-
         log.info(f"Total steps: {total_steps}")
 
     # Calculate lr_warmup_steps
@@ -708,7 +691,10 @@ def train_model(
     log.info(f"Gradient accumulation steps: {gradient_accumulation_steps}")
     log.info(f"Epoch: {epoch}")
     log.info(max_train_steps_info)
-    log.info(f"stop_text_encoder_training = {stop_text_encoder_training}")
+    # stop_text_encoder_training_pct is not forwarded to the training config
+    # (train_textual_inversion.py / sdxl_train_textual_inversion.py don't
+    # accept it — see the config_toml_data comment below), so it's not
+    # calculated or logged here either.
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
     accelerate_path = get_executable_path("accelerate")
