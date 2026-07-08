@@ -523,7 +523,7 @@ def train_model(
 
     current_datetime = datetime.now()
     formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
-    tmpfilename = rf"{output_dir}/config_leco-{formatted_datetime}.toml"
+    tmpfilename = os.path.join(output_dir, f"config_leco-{formatted_datetime}.toml")
 
     with open(tmpfilename, "w", encoding="utf-8") as toml_file:
         toml.dump(config_toml_data, toml_file)
