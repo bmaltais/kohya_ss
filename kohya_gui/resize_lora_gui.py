@@ -32,6 +32,7 @@ def resize_lora(
     dynamic_method,
     dynamic_param,
     verbose,
+    svd_lowrank_niter,
 ):
     # Check for caption_text_input
     if model == "":
@@ -85,6 +86,10 @@ def resize_lora(
         run_cmd.append(dynamic_method)
         run_cmd.append("--dynamic_param")
         run_cmd.append(str(dynamic_param))
+
+    if svd_lowrank_niter is not None:
+        run_cmd.append("--svd_lowrank_niter")
+        run_cmd.append(str(int(svd_lowrank_niter)))
 
     # Check for verbosity
     if verbose:
@@ -231,6 +236,16 @@ def gradio_resize_lora_tab(
                 value="cuda",
                 interactive=True,
             )
+        with gr.Row():
+            svd_lowrank_niter = gr.Number(
+                label="SVD lowrank iterations",
+                info="Number of iterations for svd_lowrank on large matrices (>2048 dims). 0 to disable and use full SVD",
+                value=2,
+                minimum=0,
+                step=1,
+                precision=0,
+                interactive=True,
+            )
 
         convert_button = gr.Button("Resize model")
 
@@ -245,6 +260,7 @@ def gradio_resize_lora_tab(
                 dynamic_method,
                 dynamic_param,
                 verbose,
+                svd_lowrank_niter,
             ],
             show_progress=False,
         )
