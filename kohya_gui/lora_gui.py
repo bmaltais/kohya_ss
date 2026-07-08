@@ -44,6 +44,7 @@ from .class_metadata import MetaData
 from .class_gui_config import KohyaSSGUIConfig
 from .class_flux1 import flux1Training
 from .class_hunyuan_image import hunyuanImageTraining
+from .class_anima import animaTraining
 
 from .dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -341,6 +342,24 @@ def save_configuration(
     hunyuan_text_encoder_cpu,
     hunyuan_vae_chunk_size,
     hunyuan_image_checkbox,
+    # Anima parameters
+    anima_cache_text_encoder_outputs,
+    anima_cache_text_encoder_outputs_to_disk,
+    anima_qwen3,
+    anima_vae,
+    anima_llm_adapter_path,
+    anima_t5_tokenizer_path,
+    anima_discrete_flow_shift,
+    anima_timestep_sampling,
+    anima_sigmoid_scale,
+    anima_qwen3_max_token_length,
+    anima_t5_max_token_length,
+    anima_attn_mode,
+    anima_split_attn,
+    anima_vae_chunk_size,
+    anima_vae_disable_cache,
+    anima_unsloth_offload_checkpointing,
+    anima_checkbox,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -647,6 +666,24 @@ def open_configuration(
     hunyuan_text_encoder_cpu,
     hunyuan_vae_chunk_size,
     hunyuan_image_checkbox,
+    # Anima parameters
+    anima_cache_text_encoder_outputs,
+    anima_cache_text_encoder_outputs_to_disk,
+    anima_qwen3,
+    anima_vae,
+    anima_llm_adapter_path,
+    anima_t5_tokenizer_path,
+    anima_discrete_flow_shift,
+    anima_timestep_sampling,
+    anima_sigmoid_scale,
+    anima_qwen3_max_token_length,
+    anima_t5_max_token_length,
+    anima_attn_mode,
+    anima_split_attn,
+    anima_vae_chunk_size,
+    anima_vae_disable_cache,
+    anima_unsloth_offload_checkpointing,
+    anima_checkbox,
     ##
     training_preset,
 ):
@@ -1064,6 +1101,24 @@ def train_model(
     hunyuan_text_encoder_cpu,
     hunyuan_vae_chunk_size,
     hunyuan_image_checkbox,
+    # Anima parameters
+    anima_cache_text_encoder_outputs,
+    anima_cache_text_encoder_outputs_to_disk,
+    anima_qwen3,
+    anima_vae,
+    anima_llm_adapter_path,
+    anima_t5_tokenizer_path,
+    anima_discrete_flow_shift,
+    anima_timestep_sampling,
+    anima_sigmoid_scale,
+    anima_qwen3_max_token_length,
+    anima_t5_max_token_length,
+    anima_attn_mode,
+    anima_split_attn,
+    anima_vae_chunk_size,
+    anima_vae_disable_cache,
+    anima_unsloth_offload_checkpointing,
+    anima_checkbox,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -1100,6 +1155,21 @@ def train_model(
                 "LoRA type must be set to 'Flux1', 'Flux1 OFT' or 'LyCORIS' if Flux1 checkbox is checked."
             )
             return TRAIN_BUTTON_VISIBLE
+
+    # `network_module` is derived from `LoRA_type` while the training script is selected
+    # from `anima_checkbox`; keep the two in sync so the GUI can't emit a mismatched
+    # command (wrong script paired with the wrong/missing Anima-only args).
+    if anima_checkbox and LoRA_type != "Anima":
+        log.error(
+            "LoRA type must be set to 'Anima' if the Anima model checkbox is checked."
+        )
+        return TRAIN_BUTTON_VISIBLE
+
+    if LoRA_type == "Anima" and not anima_checkbox:
+        log.error(
+            "The Anima model checkbox must be checked when LoRA type is set to 'Anima'."
+        )
+        return TRAIN_BUTTON_VISIBLE
 
     #
     # Validate paths
@@ -1349,12 +1419,14 @@ def train_model(
         run_cmd.append(rf"{scriptdir}/sd-scripts/sd3_train_network.py")
     elif hunyuan_image_checkbox:
         run_cmd.append(rf"{scriptdir}/sd-scripts/hunyuan_image_train_network.py")
+    elif anima_checkbox:
+        run_cmd.append(rf"{scriptdir}/sd-scripts/anima_train_network.py")
     else:
         run_cmd.append(rf"{scriptdir}/sd-scripts/train_network.py")
 
     # --train_inpainting is only supported by train_network.py/sdxl_train_network.py
     train_inpainting = train_inpainting and not (
-        flux1_checkbox or sd3_checkbox or hunyuan_image_checkbox
+        flux1_checkbox or sd3_checkbox or hunyuan_image_checkbox or anima_checkbox
     )
     if train_inpainting:
         # Masks are generated randomly per training step from the source
@@ -1482,6 +1554,9 @@ def train_model(
 
     if LoRA_type == "HunyuanImage-2.1":
         network_module = "networks.lora_hunyuan_image"
+
+    if LoRA_type == "Anima":
+        network_module = "networks.lora_anima"
 
     if LoRA_type in ["Kohya LoCon", "Standard"]:
         kohya_lora_var_list = [
@@ -1645,7 +1720,9 @@ def train_model(
     if sd3_checkbox:
         disable_mmap_load_safetensors_value = sd3_disable_mmap_load_safetensors
 
-    vae_value = hunyuan_vae if hunyuan_image_checkbox else vae
+    vae_value = (
+        anima_vae if anima_checkbox else hunyuan_vae if hunyuan_image_checkbox else vae
+    )
 
     config_toml_data = {
         "adaptive_noise_scale": (
@@ -1664,6 +1741,7 @@ def train_model(
             or (flux1_checkbox and flux1_cache_text_encoder_outputs)
             or (sd3_checkbox and sd3_cache_text_encoder_outputs)
             or (hunyuan_image_checkbox and hunyuan_image_cache_text_encoder_outputs)
+            or (anima_checkbox and anima_cache_text_encoder_outputs)
             else None
         ),
         "cache_text_encoder_outputs_to_disk": (
@@ -1674,13 +1752,19 @@ def train_model(
             and sd3_cache_text_encoder_outputs_to_disk
             or hunyuan_image_checkbox
             and hunyuan_image_cache_text_encoder_outputs_to_disk
+            or anima_checkbox
+            and anima_cache_text_encoder_outputs_to_disk
             else None
         ),
         "caption_dropout_every_n_epochs": int(caption_dropout_every_n_epochs),
         "caption_dropout_rate": caption_dropout_rate,
         "caption_extension": caption_extension,
         "clip_l": clip_l_value,
-        "clip_skip": clip_skip if clip_skip != 0 and not hunyuan_image_checkbox else None,
+        "clip_skip": (
+            clip_skip
+            if clip_skip != 0 and not hunyuan_image_checkbox and not anima_checkbox
+            else None
+        ),
         "color_aug": color_aug,
         "dataset_config": dataset_config,
         "debiased_estimation_loss": debiased_estimation_loss,
@@ -1733,7 +1817,7 @@ def train_model(
         "max_timestep": max_timestep if max_timestep != 0 else None,
         "max_token_length": (
             int(max_token_length)
-            if not flux1_checkbox and not hunyuan_image_checkbox
+            if not flux1_checkbox and not hunyuan_image_checkbox and not anima_checkbox
             else None
         ),
         "max_train_epochs": (
@@ -1886,7 +1970,10 @@ def train_model(
         ),
         "blocks_to_swap": (
             blocks_to_swap
-            if flux1_checkbox or sd3_checkbox or hunyuan_image_checkbox
+            if flux1_checkbox
+            or sd3_checkbox
+            or hunyuan_image_checkbox
+            or anima_checkbox
             else None
         ),
         "single_blocks_to_swap": single_blocks_to_swap if flux1_checkbox else None,
@@ -1905,9 +1992,13 @@ def train_model(
         "text_encoder": hunyuan_text_encoder if hunyuan_image_checkbox else None,
         "byt5": hunyuan_byt5 if hunyuan_image_checkbox else None,
         "discrete_flow_shift": (
-            float(hunyuan_discrete_flow_shift)
-            if hunyuan_image_checkbox
-            else float(discrete_flow_shift) if flux1_checkbox else None
+            float(anima_discrete_flow_shift)
+            if anima_checkbox
+            else (
+                float(hunyuan_discrete_flow_shift)
+                if hunyuan_image_checkbox
+                else float(discrete_flow_shift) if flux1_checkbox else None
+            )
         ),
         "model_prediction_type": (
             hunyuan_model_prediction_type
@@ -1915,28 +2006,68 @@ def train_model(
             else model_prediction_type if flux1_checkbox else None
         ),
         "timestep_sampling": (
-            hunyuan_timestep_sampling
-            if hunyuan_image_checkbox
-            else timestep_sampling if flux1_checkbox else None
+            anima_timestep_sampling
+            if anima_checkbox
+            else (
+                hunyuan_timestep_sampling
+                if hunyuan_image_checkbox
+                else timestep_sampling if flux1_checkbox else None
+            )
         ),
         "sigmoid_scale": (
-            float(hunyuan_sigmoid_scale) if hunyuan_image_checkbox else None
+            float(anima_sigmoid_scale)
+            if anima_checkbox
+            else float(hunyuan_sigmoid_scale) if hunyuan_image_checkbox else None
         ),
         "attn_mode": (
-            hunyuan_attn_mode
-            if hunyuan_image_checkbox and hunyuan_attn_mode != "torch"
-            else None
+            anima_attn_mode
+            if anima_checkbox and anima_attn_mode != "torch"
+            else (
+                hunyuan_attn_mode
+                if hunyuan_image_checkbox and hunyuan_attn_mode != "torch"
+                else None
+            )
         ),
-        "split_attn": hunyuan_split_attn if hunyuan_image_checkbox else None,
+        "split_attn": (
+            anima_split_attn
+            if anima_checkbox
+            else hunyuan_split_attn if hunyuan_image_checkbox else None
+        ),
         "fp8_scaled": hunyuan_fp8_scaled if hunyuan_image_checkbox else None,
         "fp8_vl": hunyuan_fp8_vl if hunyuan_image_checkbox else None,
         "text_encoder_cpu": (
             hunyuan_text_encoder_cpu if hunyuan_image_checkbox else None
         ),
         "vae_chunk_size": (
-            int(hunyuan_vae_chunk_size)
-            if hunyuan_image_checkbox and hunyuan_vae_chunk_size
+            int(anima_vae_chunk_size)
+            if anima_checkbox and anima_vae_chunk_size
+            else (
+                int(hunyuan_vae_chunk_size)
+                if hunyuan_image_checkbox and hunyuan_vae_chunk_size
+                else None
+            )
+        ),
+        # Anima specific parameters
+        "qwen3": anima_qwen3 if anima_checkbox else None,
+        "llm_adapter_path": (
+            anima_llm_adapter_path
+            if anima_checkbox and anima_llm_adapter_path
             else None
+        ),
+        "t5_tokenizer_path": (
+            anima_t5_tokenizer_path
+            if anima_checkbox and anima_t5_tokenizer_path
+            else None
+        ),
+        "qwen3_max_token_length": (
+            int(anima_qwen3_max_token_length) if anima_checkbox else None
+        ),
+        "t5_max_token_length": (
+            int(anima_t5_max_token_length) if anima_checkbox else None
+        ),
+        "vae_disable_cache": anima_vae_disable_cache if anima_checkbox else None,
+        "unsloth_offload_checkpointing": (
+            anima_unsloth_offload_checkpointing if anima_checkbox else None
         ),
     }
 
@@ -2100,6 +2231,7 @@ def lora_tab(
                     LoRA_type = gr.Dropdown(
                         label="LoRA type",
                         choices=[
+                            "Anima",
                             "Flux1",
                             "Flux1 OFT",
                             "HunyuanImage-2.1",
@@ -2431,6 +2563,7 @@ def lora_tab(
                             "update_params": {
                                 "visible": LoRA_type
                                 in {
+                                    "Anima",
                                     "Flux1",
                                     "Flux1 OFT",
                                     "HunyuanImage-2.1",
@@ -2472,6 +2605,7 @@ def lora_tab(
                             "update_params": {
                                 "visible": LoRA_type
                                 in {
+                                    "Anima",
                                     "Flux1",
                                     "Flux1 OFT",
                                     "HunyuanImage-2.1",
@@ -2487,6 +2621,7 @@ def lora_tab(
                             "update_params": {
                                 "visible": LoRA_type
                                 in {
+                                    "Anima",
                                     "Flux1",
                                     "Flux1 OFT",
                                     "HunyuanImage-2.1",
@@ -2510,6 +2645,7 @@ def lora_tab(
                             "update_params": {
                                 "visible": LoRA_type
                                 in {
+                                    "Anima",
                                     "Flux1",
                                     "Flux1 OFT",
                                     "HunyuanImage-2.1",
@@ -2533,6 +2669,7 @@ def lora_tab(
                             "update_params": {
                                 "visible": LoRA_type
                                 in {
+                                    "Anima",
                                     "Flux1",
                                     "Flux1 OFT",
                                     "HunyuanImage-2.1",
@@ -2882,6 +3019,13 @@ def lora_tab(
                 headless=headless,
                 config=config,
                 hunyuan_image_checkbox=source_model.hunyuan_image_checkbox,
+            )
+
+            # Add Anima Parameters
+            anima_training = animaTraining(
+                headless=headless,
+                config=config,
+                anima_checkbox=source_model.anima_checkbox,
             )
 
             with gr.Accordion(
@@ -3254,6 +3398,24 @@ def lora_tab(
             hunyuan_image_training.text_encoder_cpu,
             hunyuan_image_training.vae_chunk_size,
             source_model.hunyuan_image_checkbox,
+            # Anima parameters
+            anima_training.cache_text_encoder_outputs,
+            anima_training.cache_text_encoder_outputs_to_disk,
+            anima_training.qwen3,
+            anima_training.vae,
+            anima_training.llm_adapter_path,
+            anima_training.t5_tokenizer_path,
+            anima_training.discrete_flow_shift,
+            anima_training.timestep_sampling,
+            anima_training.sigmoid_scale,
+            anima_training.qwen3_max_token_length,
+            anima_training.t5_max_token_length,
+            anima_training.attn_mode,
+            anima_training.split_attn,
+            anima_training.vae_chunk_size,
+            anima_training.vae_disable_cache,
+            anima_training.unsloth_offload_checkpointing,
+            source_model.anima_checkbox,
         ]
 
         configuration.button_open_config.click(
