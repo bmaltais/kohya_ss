@@ -11,6 +11,7 @@ from kohya_gui.finetune_gui import finetune_tab
 from kohya_gui.textual_inversion_gui import ti_tab
 from kohya_gui.utilities import utilities_tab
 from kohya_gui.lora_gui import lora_tab
+from kohya_gui.leco_gui import leco_tab
 from kohya_gui.class_lora_tab import LoRATools
 from kohya_gui.custom_logging import setup_logging
 from kohya_gui.localization_ext import add_javascript
@@ -43,6 +44,8 @@ def initialize_ui_interface(config, headless, use_shell, release_info, readme_co
             ) = dreambooth_tab(headless=headless, config=config, use_shell_flag=use_shell)
         with gr.Tab("LoRA"):
             lora_tab(headless=headless, config=config, use_shell_flag=use_shell)
+        with gr.Tab("LECO"):
+            leco_tab(headless=headless, config=config, use_shell_flag=use_shell)
         with gr.Tab("Textual Inversion"):
             ti_tab(headless=headless, config=config, use_shell_flag=use_shell)
         with gr.Tab("Finetuning"):
