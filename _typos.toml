@@ -29,6 +29,7 @@ koo="koo"
 yos="yos"
 wn="wn"
 parm = "parm"
+byt = "byt" # byT5 text encoder (HunyuanImage-2.1)
 
 
 [files]
