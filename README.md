@@ -247,7 +247,7 @@ See [Troubleshooting LORA Training on TESLA V100](docs/troubleshooting_tesla_v10
 
 ## SDXL training
 
-For detailed guidance on SDXL training, please refer to the [official sd-scripts documentation](https://github.com/kohya-ss/sd-scripts/blob/main/README.md#sdxl-training) and relevant sections in our [LoRA Training Guide](docs/LoRA/top_level.md).
+For detailed guidance on SDXL training, please refer to the [official sd-scripts documentation](https://github.com/kohya-ss/sd-scripts/blob/main/docs/train_SDXL-en.md) and relevant sections in our [LoRA Training Guide](docs/LoRA/top_level.md).
 
 ## Masked loss
 
