@@ -306,7 +306,7 @@ class SourceModel:
                                     # If any checkbox is checked, return checkboxes with current interactive state
                                     return (
                                         gr.Checkbox(interactive=v2),  # v2 checkbox
-                                        gr.Checkbox(interactive=sdxl_checkbox),  # v_parameterization checkbox
+                                        gr.Checkbox(interactive=v2),  # v_parameterization checkbox
                                         gr.Checkbox(interactive=sdxl_checkbox),  # sdxl_checkbox
                                         gr.Checkbox(interactive=sd3_checkbox),  # sd3_checkbox
                                         gr.Checkbox(interactive=flux1_checkbox),  # flux1_checkbox

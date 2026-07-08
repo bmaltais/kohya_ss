@@ -1592,7 +1592,11 @@ def train_model(
         output_message(msg="Please input learning rate values.", headless=headless)
         return TRAIN_BUTTON_VISIBLE
     # Flag to train text encoder only if its learning rate is non-zero and unet's is zero.
-    network_train_text_encoder_only = text_encoder_lr_float != 0 and unet_lr_float == 0
+    network_train_text_encoder_only = (
+        text_encoder_lr_float != 0
+        and unet_lr_float == 0
+        and not hunyuan_image_checkbox
+    )
     # Flag to train unet only if its learning rate is non-zero and text encoder's is zero.
     network_train_unet_only = (
         text_encoder_lr_float == 0 and unet_lr_float != 0
