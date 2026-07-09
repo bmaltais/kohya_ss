@@ -12,12 +12,14 @@ class luminaTraining:
         finetuning: bool = False,
         training_type: str = "",
         config: dict = {},
-        lumina_checkbox: gr.Checkbox = False,
+        lumina_checkbox: gr.Checkbox = None,
     ) -> None:
         self.headless = headless
         self.finetuning = finetuning
         self.training_type = training_type
         self.config = config
+        if lumina_checkbox is None:
+            raise ValueError("lumina_checkbox must be provided")
         self.lumina_checkbox = lumina_checkbox
 
         with gr.Accordion(
