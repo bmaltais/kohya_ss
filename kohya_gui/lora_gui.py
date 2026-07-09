@@ -774,6 +774,8 @@ def open_configuration(
         "LoCon",
         "Kohya DyLoRA",
         "Kohya LoCon",
+        "Kohya LoHa",
+        "Kohya LoKr",
         "LoRA-FA",
         "LyCORIS/Diag-OFT",
         "LyCORIS/DyLoRA",
@@ -873,6 +875,49 @@ def append_loraplus_network_args(
             f" loraplus_text_encoder_lr_ratio={loraplus_text_encoder_lr_ratio}"
         )
     return network_args
+
+
+# Native sd-scripts LoHa/LoKr (networks.loha / networks.lokr) — distinct from
+# LyCORIS/LoHa and LyCORIS/LoKr which use the third-party lycoris.kohya module.
+# Architecture (SDXL / Anima) is auto-detected by the backend; see
+# sd-scripts/docs/loha_lokr.md and GH issue #3528.
+KOHYA_LOHA_LOKR_TYPES = frozenset({"Kohya LoHa", "Kohya LoKr"})
+
+
+def build_native_loha_lokr_network_args(
+    *,
+    is_lokr: bool,
+    conv_dim: float | int | None = 0,
+    conv_alpha: float | int | None = 1,
+    use_tucker: bool = False,
+    factor: float | int | None = -1,
+    rank_dropout: float | int | None = 0,
+    module_dropout: float | int | None = 0,
+) -> str:
+    """Build optional --network_args for networks.loha / networks.lokr.
+
+    Only non-default optional values are emitted so the backend can apply its
+    architecture auto-detection defaults (targets, exclude_patterns).
+    conv_dim=0 means "do not train Conv2d 3x3+ layers".
+    """
+    parts: list[str] = []
+    if conv_dim is not None and float(conv_dim) > 0:
+        parts.append(f"conv_dim={int(conv_dim)}")
+        if conv_alpha is not None:
+            # Preserve int form when whole number for cleaner CLI args.
+            alpha_val = (
+                int(conv_alpha) if float(conv_alpha) == int(conv_alpha) else conv_alpha
+            )
+            parts.append(f"conv_alpha={alpha_val}")
+    if use_tucker:
+        parts.append("use_tucker=True")
+    if is_lokr and factor is not None and int(factor) != -1:
+        parts.append(f"factor={int(factor)}")
+    if rank_dropout is not None and float(rank_dropout) > 0:
+        parts.append(f"rank_dropout={rank_dropout}")
+    if module_dropout is not None and float(module_dropout) > 0:
+        parts.append(f"module_dropout={module_dropout}")
+    return (" " + " ".join(parts)) if parts else ""
 
 
 def train_model(
@@ -1204,9 +1249,12 @@ def train_model(
     # `network_module` is derived from `LoRA_type` while the training script is selected
     # from `anima_checkbox`; keep the two in sync so the GUI can't emit a mismatched
     # command (wrong script paired with the wrong/missing Anima-only args).
-    if anima_checkbox and LoRA_type != "Anima":
+    # Native Kohya LoHa/LoKr also run on Anima (auto-detect architecture).
+    anima_compatible_types = {"Anima"} | KOHYA_LOHA_LOKR_TYPES
+    if anima_checkbox and LoRA_type not in anima_compatible_types:
         log.error(
-            "LoRA type must be set to 'Anima' if the Anima model checkbox is checked."
+            "LoRA type must be set to 'Anima', 'Kohya LoHa', or 'Kohya LoKr' "
+            "if the Anima model checkbox is checked."
         )
         return TRAIN_BUTTON_VISIBLE
 
@@ -1215,6 +1263,21 @@ def train_model(
             "The Anima model checkbox must be checked when LoRA type is set to 'Anima'."
         )
         return TRAIN_BUTTON_VISIBLE
+
+    # Native LoHa/LoKr only support SDXL and Anima (see sd-scripts/docs/loha_lokr.md).
+    if LoRA_type in KOHYA_LOHA_LOKR_TYPES:
+        if not (sdxl or anima_checkbox):
+            log.error(
+                f"{LoRA_type} requires SDXL or Anima. Enable the SDXL or Anima "
+                "model checkbox (native networks.loha / networks.lokr only "
+                "auto-detect those architectures)."
+            )
+            return TRAIN_BUTTON_VISIBLE
+        if flux1_checkbox or sd3_checkbox or hunyuan_image_checkbox:
+            log.error(
+                f"{LoRA_type} is not supported with Flux1, SD3, or HunyuanImage-2.1."
+            )
+            return TRAIN_BUTTON_VISIBLE
 
     # Backend mirrors this as a startup assertion (see anima_train_network.py);
     # the GUI checkboxes already clear one another on change, but validate again
@@ -1611,6 +1674,32 @@ def train_model(
 
     if LoRA_type == "Anima":
         network_module = "networks.lora_anima"
+
+    # Native sd-scripts LoHa/LoKr (not lycoris.kohya). Targets/excludes are
+    # auto-detected from the loaded model; optional conv/factor args only.
+    if LoRA_type == "Kohya LoHa":
+        network_module = "networks.loha"
+        network_args = build_native_loha_lokr_network_args(
+            is_lokr=False,
+            conv_dim=conv_dim,
+            conv_alpha=conv_alpha,
+            use_tucker=use_tucker,
+            factor=factor,
+            rank_dropout=rank_dropout,
+            module_dropout=module_dropout,
+        )
+
+    if LoRA_type == "Kohya LoKr":
+        network_module = "networks.lokr"
+        network_args = build_native_loha_lokr_network_args(
+            is_lokr=True,
+            conv_dim=conv_dim,
+            conv_alpha=conv_alpha,
+            use_tucker=use_tucker,
+            factor=factor,
+            rank_dropout=rank_dropout,
+            module_dropout=module_dropout,
+        )
 
     if LoRA_type in ["Kohya LoCon", "Standard"]:
         kohya_lora_var_list = [
@@ -2315,6 +2404,8 @@ def lora_tab(
                             "HunyuanImage-2.1",
                             "Kohya DyLoRA",
                             "Kohya LoCon",
+                            "Kohya LoHa",
+                            "Kohya LoKr",
                             "LoRA-FA",
                             "LyCORIS/iA3",
                             "LyCORIS/BOFT",
@@ -2647,6 +2738,8 @@ def lora_tab(
                                     "HunyuanImage-2.1",
                                     "Kohya DyLoRA",
                                     "Kohya LoCon",
+                                    "Kohya LoHa",
+                                    "Kohya LoKr",
                                     "LoRA-FA",
                                     "LyCORIS/BOFT",
                                     "LyCORIS/Diag-OFT",
@@ -2667,6 +2760,8 @@ def lora_tab(
                                     "LoCon",
                                     "Kohya DyLoRA",
                                     "Kohya LoCon",
+                                    "Kohya LoHa",
+                                    "Kohya LoKr",
                                     "LoRA-FA",
                                     "LyCORIS/BOFT",
                                     "LyCORIS/Diag-OFT",
@@ -2707,6 +2802,8 @@ def lora_tab(
                                     "LoCon",
                                     "Kohya DyLoRA",
                                     "Kohya LoCon",
+                                    "Kohya LoHa",
+                                    "Kohya LoKr",
                                     "LoRA-FA",
                                     "LyCORIS/BOFT",
                                     "LyCORIS/Diag-OFT",
@@ -2731,6 +2828,8 @@ def lora_tab(
                                     "LoCon",
                                     "Kohya DyLoRA",
                                     "Kohya LoCon",
+                                    "Kohya LoHa",
+                                    "Kohya LoKr",
                                     "LoRA-FA",
                                     "LyCORIS/BOFT",
                                     "LyCORIS/Diag-OFT",
@@ -2755,6 +2854,8 @@ def lora_tab(
                                     "LoCon",
                                     "Kohya DyLoRA",
                                     "Kohya LoCon",
+                                    "Kohya LoHa",
+                                    "Kohya LoKr",
                                     "LoRA-FA",
                                     "LyCORIS/BOFT",
                                     "LyCORIS/Diag-OFT",
@@ -2771,6 +2872,7 @@ def lora_tab(
                             "update_params": {
                                 "visible": LoRA_type
                                 in {
+                                    "Kohya LoKr",
                                     "LyCORIS/LoKr",
                                 },
                             },
@@ -2845,6 +2947,8 @@ def lora_tab(
                             "update_params": {
                                 "visible": LoRA_type
                                 in {
+                                    "Kohya LoHa",
+                                    "Kohya LoKr",
                                     "LyCORIS/BOFT",
                                     "LyCORIS/Diag-OFT",
                                     "LyCORIS/DyLoRA",
@@ -2973,6 +3077,8 @@ def lora_tab(
                                 in {
                                     "LoCon",
                                     "Kohya DyLoRA",
+                                    "Kohya LoHa",
+                                    "Kohya LoKr",
                                     "LyCORIS/BOFT",
                                     "LyCORIS/Diag-OFT",
                                     "LyCORIS/GLoRA",
@@ -2995,6 +3101,8 @@ def lora_tab(
                                     "LyCORIS/BOFT",
                                     "LyCORIS/Diag-OFT",
                                     "Kohya DyLoRA",
+                                    "Kohya LoHa",
+                                    "Kohya LoKr",
                                     "LyCORIS/GLoRA",
                                     "LyCORIS/LoCon",
                                     "LyCORIS/LoHa",
@@ -3038,6 +3146,8 @@ def lora_tab(
                             "update_params": {
                                 "visible": LoRA_type
                                 in {
+                                    "Kohya LoHa",
+                                    "Kohya LoKr",
                                     "LyCORIS/DyLoRA",
                                     "LyCORIS/iA3",
                                     "LyCORIS/BOFT",
@@ -3057,6 +3167,8 @@ def lora_tab(
                                 in {
                                     "LoCon",
                                     "Kohya DyLoRA",
+                                    "Kohya LoHa",
+                                    "Kohya LoKr",
                                     "LyCORIS/BOFT",
                                     "LyCORIS/Diag-OFT",
                                     "LyCORIS/GLoRA",
