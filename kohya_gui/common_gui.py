@@ -993,8 +993,8 @@ def set_pretrained_model_name_or_path_input(
 
     Returns:
         tuple: A tuple containing the Dropdown widget, v2 checkbox, v_parameterization checkbox,
-               sdxl checkbox, sd3 checkbox, flux1 checkbox, hunyuan_image checkbox, and anima
-               checkbox.
+               sdxl checkbox, sd3 checkbox, flux1 checkbox, hunyuan_image checkbox, anima
+               checkbox, and lumina checkbox.
     """
     # Check if the given pretrained_model_name_or_path is in the list of SDXL models
     if pretrained_model_name_or_path in SDXL_MODELS:
@@ -1006,6 +1006,7 @@ def set_pretrained_model_name_or_path_input(
         flux1 = gr.Checkbox(value=False, visible=False)
         hunyuan_image = gr.Checkbox(value=False, visible=False)
         anima = gr.Checkbox(value=False, visible=False)
+        lumina = gr.Checkbox(value=False, visible=False)
         return (
             gr.Dropdown(),
             v2,
@@ -1015,6 +1016,7 @@ def set_pretrained_model_name_or_path_input(
             flux1,
             hunyuan_image,
             anima,
+            lumina,
         )
 
     # Check if the given pretrained_model_name_or_path is in the list of V2 base models
@@ -1027,6 +1029,7 @@ def set_pretrained_model_name_or_path_input(
         flux1 = gr.Checkbox(value=False, visible=False)
         hunyuan_image = gr.Checkbox(value=False, visible=False)
         anima = gr.Checkbox(value=False, visible=False)
+        lumina = gr.Checkbox(value=False, visible=False)
         return (
             gr.Dropdown(),
             v2,
@@ -1036,6 +1039,7 @@ def set_pretrained_model_name_or_path_input(
             flux1,
             hunyuan_image,
             anima,
+            lumina,
         )
 
     # Check if the given pretrained_model_name_or_path is in the list of V parameterization models
@@ -1050,6 +1054,7 @@ def set_pretrained_model_name_or_path_input(
         flux1 = gr.Checkbox(value=False, visible=False)
         hunyuan_image = gr.Checkbox(value=False, visible=False)
         anima = gr.Checkbox(value=False, visible=False)
+        lumina = gr.Checkbox(value=False, visible=False)
         return (
             gr.Dropdown(),
             v2,
@@ -1059,6 +1064,7 @@ def set_pretrained_model_name_or_path_input(
             flux1,
             hunyuan_image,
             anima,
+            lumina,
         )
 
     # Check if the given pretrained_model_name_or_path is in the list of V1 models
@@ -1071,6 +1077,7 @@ def set_pretrained_model_name_or_path_input(
         flux1 = gr.Checkbox(value=False, visible=False)
         hunyuan_image = gr.Checkbox(value=False, visible=False)
         anima = gr.Checkbox(value=False, visible=False)
+        lumina = gr.Checkbox(value=False, visible=False)
         return (
             gr.Dropdown(),
             v2,
@@ -1080,6 +1087,7 @@ def set_pretrained_model_name_or_path_input(
             flux1,
             hunyuan_image,
             anima,
+            lumina,
         )
 
     # Check if the model_list is set to 'custom'
@@ -1090,6 +1098,7 @@ def set_pretrained_model_name_or_path_input(
     flux1 = gr.Checkbox(visible=True)
     hunyuan_image = gr.Checkbox(visible=True)
     anima = gr.Checkbox(visible=True)
+    lumina = gr.Checkbox(visible=True)
 
     # Auto-detect model type if safetensors file path is given
     if pretrained_model_name_or_path.lower().endswith(".safetensors"):
@@ -1116,6 +1125,7 @@ def set_pretrained_model_name_or_path_input(
         flux1,
         hunyuan_image,
         anima,
+        lumina,
     )
 
 
