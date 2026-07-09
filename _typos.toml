@@ -33,4 +33,9 @@ byt = "byt" # byT5 text encoder (HunyuanImage-2.1)
 
 
 [files]
-extend-exclude = ["_typos.toml", "venv"]
+extend-exclude = [
+    "_typos.toml",
+    "venv",
+    # Vendored minified third-party; short identifiers trip false positives.
+    "assets/js/iframeResizer.contentWindow.min.js",
+]

@@ -9,6 +9,7 @@ import os
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+from urllib.parse import urlparse
 
 import gradio as gr
 import pytest
@@ -31,6 +32,17 @@ _spec = importlib.util.spec_from_file_location(
 kohya_gui_launcher = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(kohya_gui_launcher)
 
+_GOOGLE_FONTS_HOSTS = frozenset({"fonts.googleapis.com", "fonts.gstatic.com"})
+
+
+def _url_hostname(url: str) -> str:
+    """Return the URL hostname (CodeQL-safe host check, not a substring)."""
+    return (urlparse(url).hostname or "").lower()
+
+
+def _is_google_fonts_url(url: str) -> bool:
+    return _url_hostname(url) in _GOOGLE_FONTS_HOSTS
+
 
 # --- Cycle 1: system / local fonts (no Google Fonts) ---
 
@@ -39,15 +51,14 @@ def test_ui_theme_does_not_emit_google_fonts_stylesheet():
     theme = build_offline_theme()
     urls = theme_stylesheet_urls(theme)
     for url in urls:
-        assert "fonts.googleapis.com" not in url
-        assert "fonts.gstatic.com" not in url
+        assert not _is_google_fonts_url(url)
     assert urls == []
 
 
 def test_default_gradio_theme_still_uses_google_fonts_for_contrast():
     """Guard: stock Default() still hits Google Fonts; our helper must diverge."""
     stock_urls = theme_stylesheet_urls(gr.themes.Default())
-    assert any("fonts.googleapis.com" in u for u in stock_urls)
+    assert any(_is_google_fonts_url(u) for u in stock_urls)
 
 
 # --- Cycle 2: About / README offline-safe content ---
@@ -145,7 +156,7 @@ def test_blocks_created_with_analytics_disabled():
     theme = kwargs.get("theme")
     assert theme is not None
     for url in theme_stylesheet_urls(theme):
-        assert "fonts.googleapis.com" not in url
+        assert not _is_google_fonts_url(url)
 
 
 # --- Cycle 4: iframe-resizer / Gradio template CDN ---
