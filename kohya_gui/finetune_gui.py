@@ -1632,7 +1632,7 @@ def finetune_tab(
             # train_model lists sd3_fused_backward_pass immediately after the
             # cache flags; the pre-registry settings_list had fused later (after
             # batch size). Pair each name with its true widget so dict adapters
-            # do not re-create the old positional mis-wiring.
+            # do not re-create the old positional wiring bug.
             ("sd3_fused_backward_pass", sd3_training.sd3_fused_backward_pass),
             ("clip_g", sd3_training.clip_g),
             ("clip_l", sd3_training.clip_l),

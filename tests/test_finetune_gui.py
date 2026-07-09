@@ -201,7 +201,7 @@ class TestFinetuneGuiFieldRegistry(unittest.TestCase):
         self.assertEqual(registry_names, open_config_params[3:-1])
 
     def test_sd3_registry_names_map_to_matching_widget_labels(self):
-        # Regression for the finetune SD3 mis-association: the old settings_list
+        # Regression for the finetune SD3 field association bug: the old settings_list
         # ordered clip_g before sd3_fused_backward_pass while train_model's
         # signature has fused first. Pairing by index then labeled fused as
         # "CLIP-G Path". Assert labels match the intended widgets.
