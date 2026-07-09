@@ -14,6 +14,7 @@ from kohya_gui.lora_gui import lora_tab
 from kohya_gui.leco_gui import leco_tab
 from kohya_gui.anima_lllite_gui import anima_lllite_tab
 from kohya_gui.class_lora_tab import LoRATools
+from kohya_gui.settings_gui import settings_tab
 from kohya_gui.custom_logging import setup_logging
 from kohya_gui.localization_ext import add_javascript
 
@@ -30,17 +31,23 @@ def read_file_content(file_path):
 
 
 # Function to initialize the Gradio UI interface
-def initialize_ui_interface(config, headless, use_shell, release_info, readme_content):
+def initialize_ui_interface(
+    config, config_file_path, headless, use_shell, release_info, readme_content
+):
     # Load custom CSS if available
     css = read_file_content("./assets/style.css")
     # Positions the hover-revealed `info=` tooltip (see assets/style.css);
     # always injected, unlike add_javascript() below which only fires when
-    # --language is set.
+    # --language is set. The initial enabled/disabled state comes from the
+    # Settings tab's persisted config.toml value; the checkbox there
+    # live-updates window.KOHYA_INFO_TOOLTIP_ENABLED via its own js= handler.
+    enable_info_tooltip = config.get("settings.enable_info_tooltip", True)
     info_tooltip_js = read_file_content("./assets/js/info_tooltip.js")
+    icon_button_titles_js = read_file_content("./assets/js/icon_button_titles.js")
     head = (
+        f'<script type="text/javascript">window.KOHYA_INFO_TOOLTIP_ENABLED = {str(enable_info_tooltip).lower()};</script>'
         f'<script type="text/javascript">{info_tooltip_js}</script>'
-        if info_tooltip_js
-        else None
+        f'<script type="text/javascript">{icon_button_titles_js}</script>'
     )
 
     # Create the main Gradio Blocks interface
@@ -83,6 +90,8 @@ def initialize_ui_interface(config, headless, use_shell, release_info, readme_co
             )
             with gr.Tab("LoRA"):
                 _ = LoRATools(headless=headless)
+        with gr.Tab("Settings"):
+            settings_tab(config=config, config_file_path=config_file_path)
         with gr.Tab("About"):
             # About tab to display release information and README content
             gr.Markdown(f"kohya_ss GUI release {release_info}")
@@ -106,9 +115,10 @@ def UI(**kwargs):
     readme_content = read_file_content("./README.md")
 
     # Load configuration from the specified file
-    config = KohyaSSGUIConfig(config_file_path=kwargs.get("config"))
+    config_file_path = kwargs.get("config") or "./config.toml"
+    config = KohyaSSGUIConfig(config_file_path=config_file_path)
     if config.is_config_loaded():
-        log.info(f"Loaded default GUI values from '{kwargs.get('config')}'...")
+        log.info(f"Loaded default GUI values from '{config_file_path}'...")
 
     # Determine if shell should be used for running external commands
     use_shell = not kwargs.get("do_not_use_shell", False) and config.get(
@@ -119,7 +129,12 @@ def UI(**kwargs):
 
     # Initialize the Gradio UI interface
     ui_interface = initialize_ui_interface(
-        config, kwargs.get("headless", False), use_shell, release_info, readme_content
+        config,
+        config_file_path,
+        kwargs.get("headless", False),
+        use_shell,
+        release_info,
+        readme_content,
     )
 
     # Construct launch parameters using dictionary comprehension
