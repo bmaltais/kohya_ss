@@ -299,7 +299,7 @@ This project is licensed under the Apache License 2.0. See the [LICENSE.md](LICE
 
 ## Change History
 
-Only the latest release is detailed here. For the full history back to v25.0.0 and earlier, see [GitHub Releases](https://github.com/bmaltais/kohya_ss/releases).
+Only the upcoming release is detailed here. For the full history of published releases, see [GitHub Releases](https://github.com/bmaltais/kohya_ss/releases).
 
 ### v26.0.0
 
