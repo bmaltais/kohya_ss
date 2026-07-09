@@ -25,6 +25,11 @@ Part of the GUI front end. No files here belong to `sd-scripts` — this package
 ## Verification
 
 - No dedicated unit tests for this package yet beyond `test/test_allowed_paths.py` (launcher-level) — smoke-test new/changed tabs by launching the GUI (`gui.sh` / `gui.bat`) and exercising the tab manually.
+- **Launching as an agent (non-interactive/background shell):** use the same invocation as the `gui-uv.*` launcher scripts, not a bare `uv run python kohya_gui.py`:
+  - Cross-platform baseline (matches `gui-uv.sh`): `uv run kohya_gui.py --noverify`
+  - Windows (matches `gui-uv.bat`): add `--link-mode=copy --index-strategy unsafe-best-match` before the script name, i.e. `uv run --link-mode=copy --index-strategy unsafe-best-match kohya_gui.py --noverify`
+  Without `--noverify`, kohya_gui.py re-validates/reinstalls requirements every launch (slow, and reinstalls the editable `sd-scripts` package unnecessarily).
+  When stdout is piped to a background-process log file (not a TTY), Python buffers it — the `* Running on local URL: ...` line may not appear in the log for a long time even though the server is already up. Don't treat a quiet log as a hang: poll the HTTP endpoint instead (`curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:7860/`, expect `200`) rather than grepping the log for the ready banner.
 
 ## Child DOX Index
 

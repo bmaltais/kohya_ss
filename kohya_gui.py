@@ -33,10 +33,22 @@ def read_file_content(file_path):
 def initialize_ui_interface(config, headless, use_shell, release_info, readme_content):
     # Load custom CSS if available
     css = read_file_content("./assets/style.css")
+    # Positions the hover-revealed `info=` tooltip (see assets/style.css);
+    # always injected, unlike add_javascript() below which only fires when
+    # --language is set.
+    info_tooltip_js = read_file_content("./assets/js/info_tooltip.js")
+    head = (
+        f'<script type="text/javascript">{info_tooltip_js}</script>'
+        if info_tooltip_js
+        else None
+    )
 
     # Create the main Gradio Blocks interface
     ui_interface = gr.Blocks(
-        css=css, title=f"Kohya_ss GUI {release_info}", theme=gr.themes.Default()
+        css=css,
+        head=head,
+        title=f"Kohya_ss GUI {release_info}",
+        theme=gr.themes.Default(),
     )
     with ui_interface:
         # Create tabs for different functionalities

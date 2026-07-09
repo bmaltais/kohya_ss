@@ -11,7 +11,7 @@ log = setup_logging()
 folder_symbol = "\U0001f4c2"  # 📂
 refresh_symbol = "\U0001f504"  # 🔄
 save_style_symbol = "\U0001f4be"  # 💾
-document_symbol = "\U0001F4C4"  # 📄
+document_symbol = "\U0001f4c4"  # 📄
 
 
 ###
@@ -104,7 +104,6 @@ def create_prompt_file(sample_prompts, output_dir):
 #     return run_cmd
 
 
-
 class SampleImages:
     """
     A class for managing the Gradio interface for sampling images during training.
@@ -118,7 +117,7 @@ class SampleImages:
         Initializes the SampleImages class.
         """
         self.config = config
-        
+
         self.initialize_accordion()
 
     def initialize_accordion(self):
@@ -167,6 +166,6 @@ class SampleImages:
                 label="Sample prompts",
                 interactive=True,
                 placeholder="masterpiece, best quality, 1girl, in white shirts, upper body, looking at viewer, simple background --n low quality, worst quality, bad anatomy,bad composition, poor, low effort --w 768 --h 768 --d 1 --l 7.5 --s 28",
-                info="Enter one sample prompt per line to generate multiple samples per cycle. Optional specifiers include: --w (width), --h (height), --d (seed), --l (cfg scale), --s (sampler steps) and --n (negative prompt). To modify sample prompts during training, edit the prompt.txt file in the samples directory.",
+                info="One prompt per line. Flags: --w width, --h height, --d seed, --l cfg scale, --s steps, --n negative. Edit prompt.txt in samples dir to update live.",
                 value=self.config.get("samples.sample_prompts", ""),
             )

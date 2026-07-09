@@ -186,7 +186,7 @@ class animaTraining:
                     self.qwen_image_vae_2d = gr.Checkbox(
                         label="Qwen-Image VAE 2D",
                         value=self.config.get("anima.qwen_image_vae_2d", False),
-                        info="Use the image-only 2D Qwen-Image VAE (official weights are converted on load). ~2x faster encode/decode and ~1/3 peak VRAM for single-image latent pre-caching; numerically equivalent to the 3D VAE for single images. VAE Disable Cache has no effect with this option, since the 2D VAE has no temporal cache.",
+                        info="2D Qwen-Image VAE: ~2x faster encode/decode, ~1/3 peak VRAM for single-image caching. VAE Disable Cache has no effect here (2D VAE has no temporal cache).",
                         interactive=True,
                     )
 

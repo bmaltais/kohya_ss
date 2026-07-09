@@ -8,6 +8,68 @@
     background: #000000;
 }
 
+/*
+ * Hover-reveal for auto-generated `info=` hint text (Gradio 5.34.2).
+ * Gradio wraps info text in a div carrying its Info.svelte scope class
+ * (currently svelte-j9uq24) with a `.prose`-classed span inside; this
+ * differs from a real gr.Markdown() block, which has no such wrapper and
+ * lacks the `chatbot` class on its inner span. Re-verify these class names
+ * after any Gradio version bump.
+ * Reveal is scoped to the field's own label/container element, NOT to
+ * `.block`: Gradio reuses the `.block` class identically for individual
+ * fields AND for their Row/Column/Accordion parents (same scope hash,
+ * `block svelte-1svsvh2 padded auto-margin`, on both), so `.block:hover`
+ * would reveal every info line in the whole panel at once. Two field
+ * shapes exist in this Gradio build: components with a `<label>` wrapper
+ * (Textbox/Number/Slider/Radio), Dropdown, which instead wraps
+ * label+info+control in `div.svelte-1hfxrpf.container` with no `<label>`
+ * at all, and Checkbox, whose info div is a direct child of its own leaf
+ * `.block` with neither a `<label>` nor a `.container` ancestor. The
+ * Checkbox rule is scoped with `.block:has(> .svelte-j9uq24 ...)` (direct
+ * child only) so it never matches an outer Row/Column/Accordion `.block`,
+ * whose children are always `.form`/`.row` wrappers, not the info div
+ * itself.
+ *
+ * Revealed info renders as a `position: fixed` tooltip instead of
+ * growing in-flow, so hovering one field never reflows/pushes down
+ * neighboring rows. A pure-CSS absolutely-positioned overlay was tried
+ * first but gets clipped: Gradio's Accordion wrappers use
+ * `overflow: hidden` on their content for the collapse/expand
+ * animation, and that clips any absolutely-positioned descendant too,
+ * not just in-flow overflow. `position: fixed` escapes that (fixed
+ * positioning is computed against the viewport, not a clipping
+ * ancestor, as long as no ancestor establishes its own containing
+ * block via `transform`/`filter`/`perspective` — none of the Gradio
+ * chrome around these fields does). assets/info_tooltip.js computes
+ * the anchor's viewport position on hover/focus and sets `top`/`left`
+ * inline, then toggles the `.info-tooltip-visible` class below.
+ */
+.svelte-j9uq24:has(> .prose) {
+    position: fixed;
+    z-index: 9999;
+    width: max-content;
+    min-width: 12em;
+    max-width: 26em;
+    max-height: 16em;
+    overflow-y: auto;
+    padding: 0.5em 0.75em;
+    border-radius: var(--block-radius, 6px);
+    background: rgba(20, 20, 20, 0.85);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid var(--border-color-primary, #555);
+    box-shadow: var(--shadow-drop, 0 2px 8px rgba(0, 0, 0, 0.3));
+    color: #f0f0f0;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+.svelte-j9uq24.info-tooltip-visible:has(> .prose) {
+    opacity: 1;
+    visibility: visible;
+}
+
 #open_folder_small {
     display: inline-flex;
     align-items: center;
@@ -15,6 +77,11 @@
     height: 2.5em;
     min-width: 2.5em;
     flex-grow: 0;
+    /* Rows put the button next to a labeled input; the row itself is
+       align-items:flex-start, so without this the fixed-height button
+       sits level with the label text above the input instead of the
+       input box itself. */
+    align-self: flex-end;
     padding: 0 1em;
     font-size: 1.1em;
     font-weight: 500;
