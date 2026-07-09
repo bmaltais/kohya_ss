@@ -251,7 +251,7 @@ class flux1Training:
                         info="Enables the fusing of the optimizer step into the backward pass for each parameter.  Only Adafactor optimizer is supported.",
                         interactive=True,
                     )
-                    
+
                 with gr.Accordion(
                     "Blocks to train",
                     open=True,
@@ -262,16 +262,20 @@ class flux1Training:
                         self.train_double_block_indices = gr.Textbox(
                             label="train_double_block_indices",
                             info="The indices are specified as a list of integers or a range of integers, like '0,1,5,8' or '0,1,4-5,7' or 'all' or 'none'. The number of double blocks is 19.",
-                            value=self.config.get("flux1.train_double_block_indices", "all"),
+                            value=self.config.get(
+                                "flux1.train_double_block_indices", "all"
+                            ),
                             interactive=True,
                         )
                         self.train_single_block_indices = gr.Textbox(
                             label="train_single_block_indices",
                             info="The indices are specified as a list of integers or a range of integers, like '0,1,5,8' or '0,1,4-5,7' or 'all' or 'none'. The number of single blocks is 38.",
-                            value=self.config.get("flux1.train_single_block_indices", "all"),
+                            value=self.config.get(
+                                "flux1.train_single_block_indices", "all"
+                            ),
                             interactive=True,
                         )
-                        
+
                 with gr.Accordion(
                     "Rank for layers",
                     open=False,
@@ -325,7 +329,7 @@ class flux1Training:
                             label="in_dims",
                             value=self.config.get("flux1.in_dims", ""),
                             placeholder="e.g., [4,0,0,0,4]",
-                            info="Each number corresponds to img_in, time_in, vector_in, guidance_in, txt_in. The above example applies LoRA to all conditioning layers, with rank 4 for img_in, 2 for time_in, vector_in, guidance_in, and 4 for txt_in.",
+                            info="Order: img_in, time_in, vector_in, guidance_in, txt_in. Example applies LoRA to all conditioning layers per the ranks shown.",
                             interactive=True,
                         )
 
