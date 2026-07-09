@@ -28,6 +28,7 @@ Support for Linux and macOS is also available. While Linux support is actively m
   - [Cloud Installation Overview](#cloud-installation-overview)
     - [Colab](#-colab)
     - [Runpod, Novita, Docker](#runpod-novita-docker)
+  - [Offline / air-gapped GUI shell](#offline--air-gapped-gui-shell)
 - [Custom Path Defaults](#custom-path-defaults)
 - [Server Options](#server-options)
 - [LoRA](#lora)
@@ -104,6 +105,18 @@ These options are for users running training on hosted GPU infrastructure or con
 - **[Runpod setup](docs/installation_runpod.md)** – Ready-made GPU background training via templates.
 - **[Novita setup](docs/installation_novita.md)** – Similar to Runpod, but integrated into the Novita UI.
 - **[Docker setup](docs/installation_docker.md)** – For developers/sysadmins using containerized environments.
+
+### Offline / air-gapped GUI shell
+
+After a normal install, the **local Gradio UI shell** is intended to run without the browser (or server process) fetching third-party CDN hosts for core assets:
+
+| Layer | Offline after install? | Notes |
+|-------|------------------------|--------|
+| GUI shell (HTML/JS/CSS, theme fonts, About tab) | Yes | No Google Fonts, cdnjs iframe-resizer, About remote badges, or Gradio analytics by default |
+| Install (PyPI / torch wheels / `uv` sync) | No | One-time network (or a pre-populated cache / mirror) is still required |
+| Captioning / HF models / W&B / HF upload | Feature-dependent | Needs local model caches or intentional network; for hard offline training set `HF_HUB_OFFLINE=1` and `TRANSFORMERS_OFFLINE=1` |
+
+The public GitHub `README.md` may still use marketing badges; the **in-app About → README** view strips remote images so the browser does not load them.
 
 
 ## Custom Path Defaults with `config.toml`

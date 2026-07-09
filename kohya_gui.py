@@ -17,6 +17,11 @@ from kohya_gui.class_lora_tab import LoRATools
 from kohya_gui.settings_gui import settings_tab
 from kohya_gui.custom_logging import setup_logging
 from kohya_gui.localization_ext import add_javascript
+from kohya_gui.offline_assets import (
+    build_offline_theme,
+    install_offline_template_patches,
+    sanitize_readme_for_about,
+)
 
 PYTHON = sys.executable
 project_dir = os.path.dirname(os.path.abspath(__file__))
@@ -50,12 +55,13 @@ def initialize_ui_interface(
         f'<script type="text/javascript">{icon_button_titles_js}</script>'
     )
 
-    # Create the main Gradio Blocks interface
+    # Create the main Gradio Blocks interface (offline-safe theme + no analytics)
     ui_interface = gr.Blocks(
         css=css,
         head=head,
         title=f"Kohya_ss GUI {release_info}",
-        theme=gr.themes.Default(),
+        theme=build_offline_theme(),
+        analytics_enabled=False,
     )
     with ui_interface:
         # Create tabs for different functionalities
@@ -106,13 +112,17 @@ def initialize_ui_interface(
 
 # Function to configure and launch the UI
 def UI(**kwargs):
+    # Offline HTML patch first so localization's TemplateResponse wrapper (if any)
+    # still chains through GrRoutesTemplateResponse after CDN/font rewrites.
+    install_offline_template_patches()
     # Add custom JavaScript if specified
     add_javascript(kwargs.get("language"))
     log.info(f"headless: {kwargs.get('headless', False)}")
 
     # Load release and README information
     release_info = read_file_content("./.release")
-    readme_content = read_file_content("./README.md")
+    # Strip remote badges/images so About does not fetch third-party hosts.
+    readme_content = sanitize_readme_for_about(read_file_content("./README.md"))
 
     # Load configuration from the specified file
     config_file_path = kwargs.get("config") or "./config.toml"
