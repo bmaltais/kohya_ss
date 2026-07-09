@@ -45,8 +45,17 @@
     }
 
     function showTooltip(anchorEl, infoDiv) {
+        // Settings tab toggle; window.KOHYA_INFO_TOOLTIP_ENABLED is set from
+        // config.toml on page load and live-updated by the checkbox's own
+        // js= handler, so this stays in sync without a page reload.
+        if (window.KOHYA_INFO_TOOLTIP_ENABLED === false) return;
         const rect = anchorEl.getBoundingClientRect();
-        infoDiv.style.top = rect.bottom + 4 + "px";
+        // Anchored by `bottom` (distance from the viewport's bottom edge up
+        // to the name's top) rather than `top`, so the tooltip renders
+        // above the field name without needing to know its own rendered
+        // height up front.
+        infoDiv.style.top = "auto";
+        infoDiv.style.bottom = window.innerHeight - rect.top + 4 + "px";
         infoDiv.style.left = rect.left + "px";
         infoDiv.classList.add(VISIBLE_CLASS);
     }

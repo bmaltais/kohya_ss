@@ -41,8 +41,9 @@
  * ancestor, as long as no ancestor establishes its own containing
  * block via `transform`/`filter`/`perspective` — none of the Gradio
  * chrome around these fields does). assets/info_tooltip.js computes
- * the anchor's viewport position on hover/focus and sets `top`/`left`
- * inline, then toggles the `.info-tooltip-visible` class below.
+ * the anchor's viewport position on hover/focus and sets `bottom`/`left`
+ * inline (rendering the tooltip above the field name), then toggles the
+ * `.info-tooltip-visible` class below.
  */
 .svelte-j9uq24:has(> .prose) {
     position: fixed;
