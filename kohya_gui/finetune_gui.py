@@ -41,6 +41,7 @@ from .class_metadata import MetaData
 from .class_gui_config import KohyaSSGUIConfig
 from .class_flux1 import flux1Training
 from .class_anima import animaTraining
+from .class_lumina import luminaTraining
 
 from .custom_logging import setup_logging
 
@@ -286,6 +287,20 @@ def save_configuration(
     anima_compile_fullgraph,
     anima_compile_cache_size_limit,
     anima_checkbox,
+    # Lumina Image 2.0
+    lumina_cache_text_encoder_outputs,
+    lumina_cache_text_encoder_outputs_to_disk,
+    lumina_gemma2,
+    lumina_ae,
+    lumina_discrete_flow_shift,
+    lumina_model_prediction_type,
+    lumina_timestep_sampling,
+    lumina_sigmoid_scale,
+    lumina_gemma2_max_token_length,
+    lumina_system_prompt,
+    lumina_use_flash_attn,
+    lumina_use_sage_attn,
+    lumina_checkbox,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -531,6 +546,20 @@ def open_configuration(
     anima_compile_fullgraph,
     anima_compile_cache_size_limit,
     anima_checkbox,
+    # Lumina Image 2.0
+    lumina_cache_text_encoder_outputs,
+    lumina_cache_text_encoder_outputs_to_disk,
+    lumina_gemma2,
+    lumina_ae,
+    lumina_discrete_flow_shift,
+    lumina_model_prediction_type,
+    lumina_timestep_sampling,
+    lumina_sigmoid_scale,
+    lumina_gemma2_max_token_length,
+    lumina_system_prompt,
+    lumina_use_flash_attn,
+    lumina_use_sage_attn,
+    lumina_checkbox,
     training_preset,
 ):
     # Get list of function parameters and values
@@ -782,6 +811,20 @@ def train_model(
     anima_compile_fullgraph,
     anima_compile_cache_size_limit,
     anima_checkbox,
+    # Lumina Image 2.0
+    lumina_cache_text_encoder_outputs,
+    lumina_cache_text_encoder_outputs_to_disk,
+    lumina_gemma2,
+    lumina_ae,
+    lumina_discrete_flow_shift,
+    lumina_model_prediction_type,
+    lumina_timestep_sampling,
+    lumina_sigmoid_scale,
+    lumina_gemma2_max_token_length,
+    lumina_system_prompt,
+    lumina_use_flash_attn,
+    lumina_use_sage_attn,
+    lumina_checkbox,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -1029,6 +1072,8 @@ def train_model(
         run_cmd.append(rf"{scriptdir}/sd-scripts/flux_train.py")
     elif anima_checkbox:
         run_cmd.append(rf"{scriptdir}/sd-scripts/anima_train.py")
+    elif lumina_checkbox:
+        run_cmd.append(rf"{scriptdir}/sd-scripts/lumina_train.py")
     else:
         run_cmd.append(rf"{scriptdir}/sd-scripts/fine_tune.py")
 
@@ -1042,17 +1087,19 @@ def train_model(
         or (sd3_checkbox and sd3_cache_text_encoder_outputs)
         or (flux1_checkbox and flux1_cache_text_encoder_outputs)
         or (anima_checkbox and anima_cache_text_encoder_outputs)
+        or (lumina_checkbox and lumina_cache_text_encoder_outputs)
     )
     cache_text_encoder_outputs_to_disk = (
         (sd3_checkbox and sd3_cache_text_encoder_outputs_to_disk)
         or (flux1_checkbox and flux1_cache_text_encoder_outputs_to_disk)
         or (anima_checkbox and anima_cache_text_encoder_outputs_to_disk)
+        or (lumina_checkbox and lumina_cache_text_encoder_outputs_to_disk)
     )
     no_half_vae = sdxl_checkbox and sdxl_no_half_vae
 
     # --train_inpainting is only supported by fine_tune.py/sdxl_train.py
     train_inpainting = train_inpainting and not (
-        sd3_checkbox or flux1_checkbox or anima_checkbox
+        sd3_checkbox or flux1_checkbox or anima_checkbox or lumina_checkbox
     )
     if train_inpainting:
         # Masks are generated randomly per training step from the source
@@ -1098,7 +1145,11 @@ def train_model(
         "caption_dropout_rate": caption_dropout_rate,
         "caption_extension": caption_extension,
         "clip_l": flux1_clip_l if flux1_checkbox else clip_l if sd3_checkbox else None,
-        "clip_skip": (clip_skip if clip_skip != 0 and not anima_checkbox else None),
+        "clip_skip": (
+            clip_skip
+            if clip_skip != 0 and not anima_checkbox and not lumina_checkbox
+            else None
+        ),
         "color_aug": color_aug,
         "dataset_config": dataset_config,
         "dataset_repeats": int(dataset_repeats),
@@ -1154,7 +1205,11 @@ def train_model(
         "masked_loss": masked_loss,
         "max_bucket_reso": int(max_bucket_reso),
         "max_timestep": max_timestep if max_timestep != 0 else None,
-        "max_token_length": (int(max_token_length) if not anima_checkbox else None),
+        "max_token_length": (
+            int(max_token_length)
+            if not anima_checkbox and not lumina_checkbox
+            else None
+        ),
         "max_train_epochs": (
             int(max_train_epochs) if int(max_train_epochs) != 0 else None
         ),
@@ -1252,19 +1307,31 @@ def train_model(
         # Flux.1 specific parameters
         # "cache_text_encoder_outputs": see previous assignment above for code
         # "cache_text_encoder_outputs_to_disk": see previous assignment above for code
-        "ae": ae if flux1_checkbox else None,
+        "ae": (lumina_ae if lumina_checkbox else ae if flux1_checkbox else None),
         # "clip_l": see previous assignment above for code
         # "t5xxl": see previous assignment above for code
         "discrete_flow_shift": (
-            float(anima_discrete_flow_shift)
-            if anima_checkbox
-            else discrete_flow_shift if flux1_checkbox else None
+            float(lumina_discrete_flow_shift)
+            if lumina_checkbox
+            else (
+                float(anima_discrete_flow_shift)
+                if anima_checkbox
+                else discrete_flow_shift if flux1_checkbox else None
+            )
         ),
-        "model_prediction_type": model_prediction_type if flux1_checkbox else None,
+        "model_prediction_type": (
+            lumina_model_prediction_type
+            if lumina_checkbox
+            else model_prediction_type if flux1_checkbox else None
+        ),
         "timestep_sampling": (
-            anima_timestep_sampling
-            if anima_checkbox
-            else timestep_sampling if flux1_checkbox else None
+            lumina_timestep_sampling
+            if lumina_checkbox
+            else (
+                anima_timestep_sampling
+                if anima_checkbox
+                else timestep_sampling if flux1_checkbox else None
+            )
         ),
         # split_mode/train_blocks are LoRA-only (flux_train_network.py); this
         # tab only ever targets flux_train.py, which does not accept them.
@@ -1279,24 +1346,32 @@ def train_model(
             cpu_offload_checkpointing if flux1_checkbox else None
         ),
         "blocks_to_swap": (
-            blocks_to_swap if flux1_checkbox or anima_checkbox else None
+            blocks_to_swap
+            if flux1_checkbox or anima_checkbox or lumina_checkbox
+            else None
         ),
         "single_blocks_to_swap": single_blocks_to_swap if flux1_checkbox else None,
         "double_blocks_to_swap": double_blocks_to_swap if flux1_checkbox else None,
         "show_timesteps": (
             show_timesteps
-            if (flux1_checkbox or sd3_checkbox or anima_checkbox) and show_timesteps
+            if (flux1_checkbox or sd3_checkbox or anima_checkbox or lumina_checkbox)
+            and show_timesteps
             else None
         ),
         "show_timesteps_resolution": (
             show_timesteps_resolution
-            if (flux1_checkbox or sd3_checkbox or anima_checkbox) and show_timesteps
+            if (flux1_checkbox or sd3_checkbox or anima_checkbox or lumina_checkbox)
+            and show_timesteps
             else None
         ),
         "mem_eff_save": mem_eff_save if flux1_checkbox else None,
         "apply_t5_attn_mask": apply_t5_attn_mask if flux1_checkbox else None,
-        # Anima specific parameters
-        "sigmoid_scale": (float(anima_sigmoid_scale) if anima_checkbox else None),
+        # Anima / Lumina shared DiT-family parameter
+        "sigmoid_scale": (
+            float(lumina_sigmoid_scale)
+            if lumina_checkbox
+            else float(anima_sigmoid_scale) if anima_checkbox else None
+        ),
         "attn_mode": (
             anima_attn_mode if anima_checkbox and anima_attn_mode != "torch" else None
         ),
@@ -1352,14 +1427,26 @@ def train_model(
             if anima_checkbox and anima_compile and anima_compile_cache_size_limit
             else None
         ),
+        # Lumina Image 2.0 specific parameters
+        "gemma2": lumina_gemma2 if lumina_checkbox else None,
+        "gemma2_max_token_length": (
+            int(lumina_gemma2_max_token_length)
+            if lumina_checkbox and lumina_gemma2_max_token_length
+            else None
+        ),
+        "system_prompt": (
+            lumina_system_prompt if lumina_checkbox and lumina_system_prompt else None
+        ),
+        "use_flash_attn": lumina_use_flash_attn if lumina_checkbox else None,
+        "use_sage_attn": lumina_use_sage_attn if lumina_checkbox else None,
     }
 
-    # Given dictionary `config_toml_data`
-    # Remove all values = ""
+    # Drop empty/absent values only. Use identity for False so numeric 0 / 0.0
+    # (e.g. sigmoid_scale=0.0) are kept — `0 == False` would otherwise omit them.
     config_toml_data = {
         key: value
         for key, value in config_toml_data.items()
-        if value not in ["", False, None]
+        if value not in ("", None) and value is not False
     }
 
     config_toml_data["max_data_loader_n_workers"] = int(max_data_loader_n_workers)
@@ -1577,6 +1664,14 @@ def finetune_tab(
                 headless=headless,
                 config=config,
                 anima_checkbox=source_model.anima_checkbox,
+                finetuning=True,
+            )
+
+            # Add Lumina Image 2.0 Parameters
+            lumina_training = luminaTraining(
+                headless=headless,
+                config=config,
+                lumina_checkbox=source_model.lumina_checkbox,
                 finetuning=True,
             )
 
@@ -1883,6 +1978,31 @@ def finetune_tab(
                 anima_training.compile_cache_size_limit,
             ),
             ("anima_checkbox", source_model.anima_checkbox),
+            (
+                "lumina_cache_text_encoder_outputs",
+                lumina_training.cache_text_encoder_outputs,
+            ),
+            (
+                "lumina_cache_text_encoder_outputs_to_disk",
+                lumina_training.cache_text_encoder_outputs_to_disk,
+            ),
+            ("lumina_gemma2", lumina_training.gemma2),
+            ("lumina_ae", lumina_training.ae),
+            ("lumina_discrete_flow_shift", lumina_training.discrete_flow_shift),
+            (
+                "lumina_model_prediction_type",
+                lumina_training.model_prediction_type,
+            ),
+            ("lumina_timestep_sampling", lumina_training.timestep_sampling),
+            ("lumina_sigmoid_scale", lumina_training.sigmoid_scale),
+            (
+                "lumina_gemma2_max_token_length",
+                lumina_training.gemma2_max_token_length,
+            ),
+            ("lumina_system_prompt", lumina_training.system_prompt),
+            ("lumina_use_flash_attn", lumina_training.use_flash_attn),
+            ("lumina_use_sage_attn", lumina_training.use_sage_attn),
+            ("lumina_checkbox", source_model.lumina_checkbox),
         ]
         settings_list = [comp for _, comp in FIELD_REGISTRY]
 
