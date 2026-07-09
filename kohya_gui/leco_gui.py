@@ -1275,25 +1275,21 @@ def leco_tab(
 
         configuration.button_open_config.click(
             open_config_entry,
-            inputs=set([dummy_db_true, configuration.config_file_name] + settings_list),
-            outputs=set([configuration.config_file_name] + settings_list),
+            inputs={dummy_db_true, configuration.config_file_name, *settings_list},
+            outputs={configuration.config_file_name, *settings_list},
             show_progress=False,
         )
 
         configuration.button_load_config.click(
             load_config_entry,
-            inputs=set(
-                [dummy_db_false, configuration.config_file_name] + settings_list
-            ),
-            outputs=set([configuration.config_file_name] + settings_list),
+            inputs={dummy_db_false, configuration.config_file_name, *settings_list},
+            outputs={configuration.config_file_name, *settings_list},
             show_progress=False,
         )
 
         configuration.button_save_config.click(
             _save_configuration_entry,
-            inputs=set(
-                [dummy_db_false, configuration.config_file_name] + settings_list
-            ),
+            inputs={dummy_db_false, configuration.config_file_name, *settings_list},
             outputs=[configuration.config_file_name],
             show_progress=False,
         )
@@ -1307,7 +1303,7 @@ def leco_tab(
 
         executor.button_run.click(
             train_model_entry,
-            inputs=set([dummy_headless, dummy_db_false] + settings_list),
+            inputs={dummy_headless, dummy_db_false, *settings_list},
             outputs=[executor.button_run, executor.button_stop_training, run_state],
             show_progress=False,
         )
@@ -1319,6 +1315,6 @@ def leco_tab(
 
         button_print.click(
             print_command_entry,
-            inputs=set([dummy_headless, dummy_db_true] + settings_list),
+            inputs={dummy_headless, dummy_db_true, *settings_list},
             show_progress=False,
         )
