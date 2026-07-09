@@ -260,7 +260,11 @@ def configure_accelerate(run_accelerate=False):
     target_config_location = None
 
     env_vars = {
-        "HF_HOME": Path(os.environ.get("HF_HOME", "")),
+        "HF_HOME": Path(
+            os.environ.get("HF_HOME", ""),
+            "accelerate",
+            "default_config.yaml",
+        ),
         "LOCALAPPDATA": Path(
             os.environ.get("LOCALAPPDATA", ""),
             "huggingface",
@@ -285,15 +289,20 @@ def configure_accelerate(run_accelerate=False):
 
     if target_config_location:
         if not target_config_location.is_file():
-            log.debug(
-                f"Creating target config directory: {target_config_location.parent}"
-            )
-            target_config_location.parent.mkdir(parents=True, exist_ok=True)
-            log.debug(
-                f"Copying config file to target location: {target_config_location}"
-            )
-            shutil.copyfile(source_accelerate_config_file, target_config_location)
-            log.info(f"Copied accelerate config file to: {target_config_location}")
+            try:
+                log.debug(
+                    f"Creating target config directory: {target_config_location.parent}"
+                )
+                target_config_location.parent.mkdir(parents=True, exist_ok=True)
+                log.debug(
+                    f"Copying config file to target location: {target_config_location}"
+                )
+                shutil.copyfile(source_accelerate_config_file, target_config_location)
+                log.info(f"Copied accelerate config file to: {target_config_location}")
+            except OSError as e:
+                log.error(
+                    f"Failed to copy accelerate config to {target_config_location}: {e}"
+                )
         elif run_accelerate:
             log.debug("Running accelerate configuration command...")
             run_cmd([sys.executable, "-m", "accelerate", "config"])
