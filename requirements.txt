@@ -15,10 +15,10 @@ invisible-watermark==0.2.0
 lion-pytorch==0.2.3
 lycoris_lora==3.2.0.post2
 omegaconf==2.3.0
-onnx==1.16.1
+onnx==1.17.0
 prodigyopt==1.1.2
-protobuf==3.20.3
-open-clip-torch==2.20.0
+protobuf==4.25.8
+open-clip-torch==2.32.0
 opencv-python==4.10.0.84
 prodigy-plus-schedule-free==1.9.2
 pytorch-optimizer==3.10.0
