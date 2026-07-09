@@ -16,6 +16,7 @@ from .common_gui import (
     run_cmd_advanced_training,
     SaveConfigFile,
     scriptdir,
+    train_inpainting_changed,
     update_my_data,
     validate_file_path,
     validate_folder_path,
@@ -57,6 +58,17 @@ huggingface = None
 use_shell = False
 train_state_value = time.time()
 
+# Populated by the tab builder with the (param_name, component) pairs backing
+# settings_list, in the same order as train_model's/save_configuration's/
+# open_configuration's shared keyword-argument order. Exposed at module level
+# so tests can assert it stays in sync without rebuilding the whole GUI.
+last_built_field_registry = None
+
+# Populated by the tab builder with the dict-keyed adapter callables wired to
+# the train/save/load buttons (GH #3543 M3). Exposed at module level so tests
+# can invoke the real .click()-bound callables directly.
+last_built_gui_entries = None
+
 
 def save_configuration(
     save_as_bool,
@@ -88,6 +100,7 @@ def save_configuration(
     num_cpu_threads_per_process,
     cache_latents,
     cache_latents_to_disk,
+    train_inpainting,
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
@@ -234,6 +247,8 @@ def save_configuration(
     blocks_to_swap,
     single_blocks_to_swap,
     double_blocks_to_swap,
+    show_timesteps,
+    show_timesteps_resolution,
     mem_eff_save,
     apply_t5_attn_mask,
 ):
@@ -299,6 +314,7 @@ def open_configuration(
     num_cpu_threads_per_process,
     cache_latents,
     cache_latents_to_disk,
+    train_inpainting,
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
@@ -445,6 +461,8 @@ def open_configuration(
     blocks_to_swap,
     single_blocks_to_swap,
     double_blocks_to_swap,
+    show_timesteps,
+    show_timesteps_resolution,
     mem_eff_save,
     apply_t5_attn_mask,
 ):
@@ -505,6 +523,7 @@ def train_model(
     num_cpu_threads_per_process,
     cache_latents,
     cache_latents_to_disk,
+    train_inpainting,
     caption_extension,
     enable_bucket,
     gradient_checkpointing,
@@ -651,6 +670,8 @@ def train_model(
     blocks_to_swap,
     single_blocks_to_swap,
     double_blocks_to_swap,
+    show_timesteps,
+    show_timesteps_resolution,
     mem_eff_save,
     apply_t5_attn_mask,
 ):
@@ -814,7 +835,9 @@ def train_model(
     if lr_warmup_steps > 0:
         lr_warmup_steps = int(lr_warmup_steps)
         if lr_warmup > 0:
-            log.warning("Both lr_warmup and lr_warmup_steps are set. lr_warmup_steps will be used.")
+            log.warning(
+                "Both lr_warmup and lr_warmup_steps are set. lr_warmup_steps will be used."
+            )
     elif lr_warmup != 0:
         lr_warmup_steps = lr_warmup / 100
     else:
@@ -867,6 +890,24 @@ def train_model(
         sd3_checkbox and sd3_cache_text_encoder_outputs_to_disk
     ) or (flux1_checkbox and flux1_cache_text_encoder_outputs_to_disk)
     no_half_vae = sdxl and sdxl_no_half_vae
+    # --train_inpainting is only supported by train_db.py/sdxl_train.py
+    train_inpainting = train_inpainting and not (sd3_checkbox or flux1_checkbox)
+    if train_inpainting:
+        # Masks are generated randomly per training step from the source
+        # image, so latent caching cannot be used at the same time.
+        cache_latents = False
+        cache_latents_to_disk = False
+    # `parameters` was snapshotted from locals() before the overrides above;
+    # keep the saved JSON training config in sync with the corrected values.
+    parameters = [
+        (name, value)
+        for name, value in parameters
+        if name not in ("train_inpainting", "cache_latents", "cache_latents_to_disk")
+    ] + [
+        ("train_inpainting", train_inpainting),
+        ("cache_latents", cache_latents),
+        ("cache_latents_to_disk", cache_latents_to_disk),
+    ]
     if max_data_loader_n_workers in ("", None):
         max_data_loader_n_workers = 0
     else:
@@ -881,7 +922,7 @@ def train_model(
         train_text_encoder = (learning_rate_te1 != None and learning_rate_te1 > 0) or (
             learning_rate_te2 != None and learning_rate_te2 > 0
         )
-        
+
     fused_backward_pass_value = False
     if sd3_checkbox:
         fused_backward_pass_value = sd3_fused_backward_pass
@@ -893,7 +934,9 @@ def train_model(
     # def save_huggingface_to_toml(self, toml_file_path: str):
     config_toml_data = {
         # Update the values in the TOML data
-        "adaptive_noise_scale": adaptive_noise_scale if adaptive_noise_scale != 0 else None,
+        "adaptive_noise_scale": (
+            adaptive_noise_scale if adaptive_noise_scale != 0 else None
+        ),
         "async_upload": async_upload,
         "bucket_no_upscale": bucket_no_upscale,
         "bucket_reso_steps": bucket_reso_steps,
@@ -974,7 +1017,9 @@ def train_model(
         "min_timestep": min_timestep if min_timestep != 0 else None,
         "mixed_precision": mixed_precision,
         "multires_noise_discount": multires_noise_discount,
-        "multires_noise_iterations": multires_noise_iterations if multires_noise_iterations != 0 else None,
+        "multires_noise_iterations": (
+            multires_noise_iterations if multires_noise_iterations != 0 else None
+        ),
         "no_half_vae": no_half_vae,
         "no_token_padding": no_token_padding,
         "noise_offset": noise_offset if noise_offset != 0 else None,
@@ -1032,6 +1077,7 @@ def train_model(
         "t5xxl": t5xxl if sd3_checkbox else flux1_t5xxl if flux1_checkbox else None,
         "train_batch_size": train_batch_size,
         "train_data_dir": train_data_dir,
+        "train_inpainting": train_inpainting,
         "train_text_encoder": train_text_encoder if sdxl else None,
         "v2": v2,
         "v_parameterization": v_parameterization,
@@ -1068,8 +1114,10 @@ def train_model(
         "discrete_flow_shift": discrete_flow_shift if flux1_checkbox else None,
         "model_prediction_type": model_prediction_type if flux1_checkbox else None,
         "timestep_sampling": timestep_sampling if flux1_checkbox else None,
-        "split_mode": split_mode if flux1_checkbox else None,
-        "train_blocks": train_blocks if flux1_checkbox else None,
+        # split_mode/train_blocks are LoRA-only (flux_train_network.py); this
+        # tab only ever targets flux_train.py, which does not accept them.
+        "split_mode": None,
+        "train_blocks": None,
         "t5xxl_max_token_length": t5xxl_max_token_length if flux1_checkbox else None,
         "guidance_scale": guidance_scale if flux1_checkbox else None,
         "blockwise_fused_optimizers": (
@@ -1082,6 +1130,16 @@ def train_model(
         "blocks_to_swap": blocks_to_swap if flux1_checkbox or sd3_checkbox else None,
         "single_blocks_to_swap": single_blocks_to_swap if flux1_checkbox else None,
         "double_blocks_to_swap": double_blocks_to_swap if flux1_checkbox else None,
+        "show_timesteps": (
+            show_timesteps
+            if (flux1_checkbox or sd3_checkbox) and show_timesteps
+            else None
+        ),
+        "show_timesteps_resolution": (
+            show_timesteps_resolution
+            if (flux1_checkbox or sd3_checkbox) and show_timesteps
+            else None
+        ),
         "mem_eff_save": mem_eff_save if flux1_checkbox else None,
         "apply_t5_attn_mask": apply_t5_attn_mask if flux1_checkbox else None,
     }
@@ -1216,6 +1274,20 @@ def dreambooth_tab(
                         sdxl_checkbox=source_model.sdxl_checkbox,
                         config=config,
                     )
+                with gr.Row():
+                    train_inpainting = gr.Checkbox(
+                        label="Train inpainting model",
+                        value=config.get("basic.train_inpainting", False),
+                        info='Trains a 9-channel inpainting model with randomly generated masks. Incompatible with "Cache latents".',
+                    )
+                train_inpainting.change(
+                    train_inpainting_changed,
+                    inputs=[train_inpainting],
+                    outputs=[
+                        basic_training.cache_latents,
+                        basic_training.cache_latents_to_disk,
+                    ],
+                )
 
             # Add SDXL Parameters
             sdxl_params = SDXLParameters(
@@ -1262,200 +1334,318 @@ def dreambooth_tab(
         # Setup gradio tensorboard buttons
         TensorboardManager(headless=headless, logging_dir=folders.logging_dir)
 
-        settings_list = [
-            source_model.pretrained_model_name_or_path,
-            source_model.v2,
-            source_model.v_parameterization,
-            source_model.sdxl_checkbox,
-            source_model.flux1_checkbox,
-            folders.logging_dir,
-            source_model.train_data_dir,
-            folders.reg_data_dir,
-            folders.output_dir,
-            source_model.dataset_config,
-            basic_training.max_resolution,
-            basic_training.learning_rate,
-            basic_training.learning_rate_te,
-            basic_training.learning_rate_te1,
-            basic_training.learning_rate_te2,
-            basic_training.lr_scheduler,
-            basic_training.lr_warmup,
-            basic_training.lr_warmup_steps,
-            basic_training.train_batch_size,
-            basic_training.epoch,
-            basic_training.save_every_n_epochs,
-            accelerate_launch.mixed_precision,
-            source_model.save_precision,
-            basic_training.seed,
-            accelerate_launch.num_cpu_threads_per_process,
-            basic_training.cache_latents,
-            basic_training.cache_latents_to_disk,
-            basic_training.caption_extension,
-            basic_training.enable_bucket,
-            advanced_training.gradient_checkpointing,
-            advanced_training.fp8_base,
-            advanced_training.full_fp16,
-            advanced_training.full_bf16,
-            advanced_training.no_token_padding,
-            basic_training.stop_text_encoder_training,
-            basic_training.min_bucket_reso,
-            basic_training.max_bucket_reso,
-            advanced_training.xformers,
-            source_model.save_model_as,
-            advanced_training.shuffle_caption,
-            advanced_training.save_state,
-            advanced_training.save_state_on_train_end,
-            advanced_training.resume,
-            advanced_training.prior_loss_weight,
-            advanced_training.color_aug,
-            advanced_training.flip_aug,
-            advanced_training.masked_loss,
-            advanced_training.clip_skip,
-            advanced_training.vae,
-            accelerate_launch.dynamo_backend,
-            accelerate_launch.dynamo_mode,
-            accelerate_launch.dynamo_use_fullgraph,
-            accelerate_launch.dynamo_use_dynamic,
-            accelerate_launch.extra_accelerate_launch_args,
-            accelerate_launch.num_processes,
-            accelerate_launch.num_machines,
-            accelerate_launch.multi_gpu,
-            accelerate_launch.gpu_ids,
-            accelerate_launch.main_process_port,
-            source_model.output_name,
-            advanced_training.max_token_length,
-            basic_training.max_train_epochs,
-            basic_training.max_train_steps,
-            advanced_training.max_data_loader_n_workers,
-            advanced_training.mem_eff_attn,
-            advanced_training.gradient_accumulation_steps,
-            source_model.model_list,
-            advanced_training.keep_tokens,
-            basic_training.lr_scheduler_num_cycles,
-            basic_training.lr_scheduler_power,
-            basic_training.max_grad_norm,
-            advanced_training.persistent_data_loader_workers,
-            advanced_training.bucket_no_upscale,
-            advanced_training.random_crop,
-            advanced_training.bucket_reso_steps,
-            advanced_training.v_pred_like_loss,
-            advanced_training.caption_dropout_every_n_epochs,
-            advanced_training.caption_dropout_rate,
-            basic_training.optimizer,
-            basic_training.optimizer_args,
-            basic_training.lr_scheduler_args,
-            basic_training.lr_scheduler_type,
-            advanced_training.noise_offset_type,
-            advanced_training.noise_offset,
-            advanced_training.noise_offset_random_strength,
-            advanced_training.adaptive_noise_scale,
-            advanced_training.multires_noise_iterations,
-            advanced_training.multires_noise_discount,
-            advanced_training.ip_noise_gamma,
-            advanced_training.ip_noise_gamma_random_strength,
-            sample.sample_every_n_steps,
-            sample.sample_every_n_epochs,
-            sample.sample_sampler,
-            sample.sample_prompts,
-            advanced_training.additional_parameters,
-            advanced_training.loss_type,
-            advanced_training.huber_schedule,
-            advanced_training.huber_c,
-            advanced_training.huber_scale,
-            advanced_training.vae_batch_size,
-            advanced_training.min_snr_gamma,
-            advanced_training.weighted_captions,
-            advanced_training.save_every_n_steps,
-            advanced_training.save_last_n_steps,
-            advanced_training.save_last_n_steps_state,
-            advanced_training.save_last_n_epochs,
-            advanced_training.save_last_n_epochs_state,
-            advanced_training.skip_cache_check,
-            advanced_training.log_with,
-            advanced_training.wandb_api_key,
-            advanced_training.wandb_run_name,
-            advanced_training.log_tracker_name,
-            advanced_training.log_tracker_config,
-            advanced_training.log_config,
-            advanced_training.scale_v_pred_loss_like_noise_pred,
-            sdxl_params.disable_mmap_load_safetensors,
-            sdxl_params.fused_backward_pass,
-            sdxl_params.fused_optimizer_groups,
-            sdxl_params.sdxl_cache_text_encoder_outputs,
-            sdxl_params.sdxl_no_half_vae,
-            advanced_training.min_timestep,
-            advanced_training.max_timestep,
-            advanced_training.debiased_estimation_loss,
-            huggingface.huggingface_repo_id,
-            huggingface.huggingface_token,
-            huggingface.huggingface_repo_type,
-            huggingface.huggingface_repo_visibility,
-            huggingface.huggingface_path_in_repo,
-            huggingface.save_state_to_huggingface,
-            huggingface.resume_from_huggingface,
-            huggingface.async_upload,
-            metadata.metadata_author,
-            metadata.metadata_description,
-            metadata.metadata_license,
-            metadata.metadata_tags,
-            metadata.metadata_title,
-            # SD3 Parameters
-            sd3_training.sd3_cache_text_encoder_outputs,
-            sd3_training.sd3_cache_text_encoder_outputs_to_disk,
-            sd3_training.sd3_fused_backward_pass,
-            sd3_training.clip_g,
-            sd3_training.clip_l,
-            sd3_training.logit_mean,
-            sd3_training.logit_std,
-            sd3_training.mode_scale,
-            sd3_training.save_clip,
-            sd3_training.save_t5xxl,
-            sd3_training.t5xxl,
-            sd3_training.t5xxl_device,
-            sd3_training.t5xxl_dtype,
-            sd3_training.sd3_text_encoder_batch_size,
-            sd3_training.weighting_scheme,
-            source_model.sd3_checkbox,
-            # Flux1 parameters
-            flux1_training.flux1_cache_text_encoder_outputs,
-            flux1_training.flux1_cache_text_encoder_outputs_to_disk,
-            flux1_training.ae,
-            flux1_training.clip_l,
-            flux1_training.t5xxl,
-            flux1_training.discrete_flow_shift,
-            flux1_training.model_prediction_type,
-            flux1_training.timestep_sampling,
-            flux1_training.split_mode,
-            flux1_training.train_blocks,
-            flux1_training.t5xxl_max_token_length,
-            flux1_training.guidance_scale,
-            flux1_training.blockwise_fused_optimizers,
-            flux1_training.flux_fused_backward_pass,
-            flux1_training.cpu_offload_checkpointing,
-            advanced_training.blocks_to_swap,
-            flux1_training.single_blocks_to_swap,
-            flux1_training.double_blocks_to_swap,
-            flux1_training.mem_eff_save,
-            flux1_training.apply_t5_attn_mask,
+        FIELD_REGISTRY = [
+            (
+                "pretrained_model_name_or_path",
+                source_model.pretrained_model_name_or_path,
+            ),
+            ("v2", source_model.v2),
+            ("v_parameterization", source_model.v_parameterization),
+            ("sdxl", source_model.sdxl_checkbox),
+            ("flux1_checkbox", source_model.flux1_checkbox),
+            ("logging_dir", folders.logging_dir),
+            ("train_data_dir", source_model.train_data_dir),
+            ("reg_data_dir", folders.reg_data_dir),
+            ("output_dir", folders.output_dir),
+            ("dataset_config", source_model.dataset_config),
+            ("max_resolution", basic_training.max_resolution),
+            ("learning_rate", basic_training.learning_rate),
+            ("learning_rate_te", basic_training.learning_rate_te),
+            ("learning_rate_te1", basic_training.learning_rate_te1),
+            ("learning_rate_te2", basic_training.learning_rate_te2),
+            ("lr_scheduler", basic_training.lr_scheduler),
+            ("lr_warmup", basic_training.lr_warmup),
+            ("lr_warmup_steps", basic_training.lr_warmup_steps),
+            ("train_batch_size", basic_training.train_batch_size),
+            ("epoch", basic_training.epoch),
+            ("save_every_n_epochs", basic_training.save_every_n_epochs),
+            ("mixed_precision", accelerate_launch.mixed_precision),
+            ("save_precision", source_model.save_precision),
+            ("seed", basic_training.seed),
+            (
+                "num_cpu_threads_per_process",
+                accelerate_launch.num_cpu_threads_per_process,
+            ),
+            ("cache_latents", basic_training.cache_latents),
+            ("cache_latents_to_disk", basic_training.cache_latents_to_disk),
+            ("train_inpainting", train_inpainting),
+            ("caption_extension", basic_training.caption_extension),
+            ("enable_bucket", basic_training.enable_bucket),
+            ("gradient_checkpointing", advanced_training.gradient_checkpointing),
+            ("fp8_base", advanced_training.fp8_base),
+            ("full_fp16", advanced_training.full_fp16),
+            ("full_bf16", advanced_training.full_bf16),
+            ("no_token_padding", advanced_training.no_token_padding),
+            ("stop_text_encoder_training", basic_training.stop_text_encoder_training),
+            ("min_bucket_reso", basic_training.min_bucket_reso),
+            ("max_bucket_reso", basic_training.max_bucket_reso),
+            ("xformers", advanced_training.xformers),
+            ("save_model_as", source_model.save_model_as),
+            ("shuffle_caption", advanced_training.shuffle_caption),
+            ("save_state", advanced_training.save_state),
+            ("save_state_on_train_end", advanced_training.save_state_on_train_end),
+            ("resume", advanced_training.resume),
+            ("prior_loss_weight", advanced_training.prior_loss_weight),
+            ("color_aug", advanced_training.color_aug),
+            ("flip_aug", advanced_training.flip_aug),
+            ("masked_loss", advanced_training.masked_loss),
+            ("clip_skip", advanced_training.clip_skip),
+            ("vae", advanced_training.vae),
+            ("dynamo_backend", accelerate_launch.dynamo_backend),
+            ("dynamo_mode", accelerate_launch.dynamo_mode),
+            ("dynamo_use_fullgraph", accelerate_launch.dynamo_use_fullgraph),
+            ("dynamo_use_dynamic", accelerate_launch.dynamo_use_dynamic),
+            (
+                "extra_accelerate_launch_args",
+                accelerate_launch.extra_accelerate_launch_args,
+            ),
+            ("num_processes", accelerate_launch.num_processes),
+            ("num_machines", accelerate_launch.num_machines),
+            ("multi_gpu", accelerate_launch.multi_gpu),
+            ("gpu_ids", accelerate_launch.gpu_ids),
+            ("main_process_port", accelerate_launch.main_process_port),
+            ("output_name", source_model.output_name),
+            ("max_token_length", advanced_training.max_token_length),
+            ("max_train_epochs", basic_training.max_train_epochs),
+            ("max_train_steps", basic_training.max_train_steps),
+            ("max_data_loader_n_workers", advanced_training.max_data_loader_n_workers),
+            ("mem_eff_attn", advanced_training.mem_eff_attn),
+            (
+                "gradient_accumulation_steps",
+                advanced_training.gradient_accumulation_steps,
+            ),
+            ("model_list", source_model.model_list),
+            ("keep_tokens", advanced_training.keep_tokens),
+            ("lr_scheduler_num_cycles", basic_training.lr_scheduler_num_cycles),
+            ("lr_scheduler_power", basic_training.lr_scheduler_power),
+            ("max_grad_norm", basic_training.max_grad_norm),
+            (
+                "persistent_data_loader_workers",
+                advanced_training.persistent_data_loader_workers,
+            ),
+            ("bucket_no_upscale", advanced_training.bucket_no_upscale),
+            ("random_crop", advanced_training.random_crop),
+            ("bucket_reso_steps", advanced_training.bucket_reso_steps),
+            ("v_pred_like_loss", advanced_training.v_pred_like_loss),
+            (
+                "caption_dropout_every_n_epochs",
+                advanced_training.caption_dropout_every_n_epochs,
+            ),
+            ("caption_dropout_rate", advanced_training.caption_dropout_rate),
+            ("optimizer", basic_training.optimizer),
+            ("optimizer_args", basic_training.optimizer_args),
+            ("lr_scheduler_args", basic_training.lr_scheduler_args),
+            ("lr_scheduler_type", basic_training.lr_scheduler_type),
+            ("noise_offset_type", advanced_training.noise_offset_type),
+            ("noise_offset", advanced_training.noise_offset),
+            (
+                "noise_offset_random_strength",
+                advanced_training.noise_offset_random_strength,
+            ),
+            ("adaptive_noise_scale", advanced_training.adaptive_noise_scale),
+            ("multires_noise_iterations", advanced_training.multires_noise_iterations),
+            ("multires_noise_discount", advanced_training.multires_noise_discount),
+            ("ip_noise_gamma", advanced_training.ip_noise_gamma),
+            (
+                "ip_noise_gamma_random_strength",
+                advanced_training.ip_noise_gamma_random_strength,
+            ),
+            ("sample_every_n_steps", sample.sample_every_n_steps),
+            ("sample_every_n_epochs", sample.sample_every_n_epochs),
+            ("sample_sampler", sample.sample_sampler),
+            ("sample_prompts", sample.sample_prompts),
+            ("additional_parameters", advanced_training.additional_parameters),
+            ("loss_type", advanced_training.loss_type),
+            ("huber_schedule", advanced_training.huber_schedule),
+            ("huber_c", advanced_training.huber_c),
+            ("huber_scale", advanced_training.huber_scale),
+            ("vae_batch_size", advanced_training.vae_batch_size),
+            ("min_snr_gamma", advanced_training.min_snr_gamma),
+            ("weighted_captions", advanced_training.weighted_captions),
+            ("save_every_n_steps", advanced_training.save_every_n_steps),
+            ("save_last_n_steps", advanced_training.save_last_n_steps),
+            ("save_last_n_steps_state", advanced_training.save_last_n_steps_state),
+            ("save_last_n_epochs", advanced_training.save_last_n_epochs),
+            ("save_last_n_epochs_state", advanced_training.save_last_n_epochs_state),
+            ("skip_cache_check", advanced_training.skip_cache_check),
+            ("log_with", advanced_training.log_with),
+            ("wandb_api_key", advanced_training.wandb_api_key),
+            ("wandb_run_name", advanced_training.wandb_run_name),
+            ("log_tracker_name", advanced_training.log_tracker_name),
+            ("log_tracker_config", advanced_training.log_tracker_config),
+            ("log_config", advanced_training.log_config),
+            (
+                "scale_v_pred_loss_like_noise_pred",
+                advanced_training.scale_v_pred_loss_like_noise_pred,
+            ),
+            (
+                "disable_mmap_load_safetensors",
+                sdxl_params.disable_mmap_load_safetensors,
+            ),
+            ("fused_backward_pass", sdxl_params.fused_backward_pass),
+            ("fused_optimizer_groups", sdxl_params.fused_optimizer_groups),
+            (
+                "sdxl_cache_text_encoder_outputs",
+                sdxl_params.sdxl_cache_text_encoder_outputs,
+            ),
+            ("sdxl_no_half_vae", sdxl_params.sdxl_no_half_vae),
+            ("min_timestep", advanced_training.min_timestep),
+            ("max_timestep", advanced_training.max_timestep),
+            ("debiased_estimation_loss", advanced_training.debiased_estimation_loss),
+            ("huggingface_repo_id", huggingface.huggingface_repo_id),
+            ("huggingface_token", huggingface.huggingface_token),
+            ("huggingface_repo_type", huggingface.huggingface_repo_type),
+            ("huggingface_repo_visibility", huggingface.huggingface_repo_visibility),
+            ("huggingface_path_in_repo", huggingface.huggingface_path_in_repo),
+            ("save_state_to_huggingface", huggingface.save_state_to_huggingface),
+            ("resume_from_huggingface", huggingface.resume_from_huggingface),
+            ("async_upload", huggingface.async_upload),
+            ("metadata_author", metadata.metadata_author),
+            ("metadata_description", metadata.metadata_description),
+            ("metadata_license", metadata.metadata_license),
+            ("metadata_tags", metadata.metadata_tags),
+            ("metadata_title", metadata.metadata_title),
+            (
+                "sd3_cache_text_encoder_outputs",
+                sd3_training.sd3_cache_text_encoder_outputs,
+            ),
+            (
+                "sd3_cache_text_encoder_outputs_to_disk",
+                sd3_training.sd3_cache_text_encoder_outputs_to_disk,
+            ),
+            ("sd3_fused_backward_pass", sd3_training.sd3_fused_backward_pass),
+            ("clip_g", sd3_training.clip_g),
+            ("clip_l", sd3_training.clip_l),
+            ("logit_mean", sd3_training.logit_mean),
+            ("logit_std", sd3_training.logit_std),
+            ("mode_scale", sd3_training.mode_scale),
+            ("save_clip", sd3_training.save_clip),
+            ("save_t5xxl", sd3_training.save_t5xxl),
+            ("t5xxl", sd3_training.t5xxl),
+            ("t5xxl_device", sd3_training.t5xxl_device),
+            ("t5xxl_dtype", sd3_training.t5xxl_dtype),
+            ("sd3_text_encoder_batch_size", sd3_training.sd3_text_encoder_batch_size),
+            ("weighting_scheme", sd3_training.weighting_scheme),
+            ("sd3_checkbox", source_model.sd3_checkbox),
+            (
+                "flux1_cache_text_encoder_outputs",
+                flux1_training.flux1_cache_text_encoder_outputs,
+            ),
+            (
+                "flux1_cache_text_encoder_outputs_to_disk",
+                flux1_training.flux1_cache_text_encoder_outputs_to_disk,
+            ),
+            ("ae", flux1_training.ae),
+            ("flux1_clip_l", flux1_training.clip_l),
+            ("flux1_t5xxl", flux1_training.t5xxl),
+            ("discrete_flow_shift", flux1_training.discrete_flow_shift),
+            ("model_prediction_type", flux1_training.model_prediction_type),
+            ("timestep_sampling", flux1_training.timestep_sampling),
+            ("split_mode", flux1_training.split_mode),
+            ("train_blocks", flux1_training.train_blocks),
+            ("t5xxl_max_token_length", flux1_training.t5xxl_max_token_length),
+            ("guidance_scale", flux1_training.guidance_scale),
+            ("blockwise_fused_optimizers", flux1_training.blockwise_fused_optimizers),
+            ("flux_fused_backward_pass", flux1_training.flux_fused_backward_pass),
+            ("cpu_offload_checkpointing", flux1_training.cpu_offload_checkpointing),
+            ("blocks_to_swap", advanced_training.blocks_to_swap),
+            ("single_blocks_to_swap", flux1_training.single_blocks_to_swap),
+            ("double_blocks_to_swap", flux1_training.double_blocks_to_swap),
+            ("show_timesteps", advanced_training.show_timesteps),
+            ("show_timesteps_resolution", advanced_training.show_timesteps_resolution),
+            ("mem_eff_save", flux1_training.mem_eff_save),
+            ("apply_t5_attn_mask", flux1_training.apply_t5_attn_mask),
         ]
+        settings_list = [comp for _, comp in FIELD_REGISTRY]
+
+        global last_built_field_registry
+        last_built_field_registry = FIELD_REGISTRY
+
+        # GH #3543 M3: adapters at the Gradio boundary look up each argument by
+        # component identity (via FIELD_REGISTRY) rather than by position, so a
+        # field added out of order can no longer silently shift every
+        # subsequent value into the wrong parameter. train_model's/
+        # save_configuration's/open_configuration's own signatures and bodies
+        # are untouched; only the .click() wiring below changes.
+        def _kwargs_from_registry(data: dict) -> dict:
+            return {name: data[comp] for name, comp in FIELD_REGISTRY}
+
+        def _make_open_configuration_entry(ask_for_file_comp):
+            def _entry(data: dict):
+                output_components = [configuration.config_file_name] + settings_list
+                result = open_configuration(
+                    ask_for_file=data[ask_for_file_comp],
+                    file_path=data[configuration.config_file_name],
+                    **_kwargs_from_registry(data),
+                )
+                # Missing config file returns None — emit no-op updates so every
+                # wired output is accounted for (partial {} is not guaranteed).
+                if result is None:
+                    return {comp: gr.update() for comp in output_components}
+                if len(result) != len(output_components):
+                    raise ValueError(
+                        f"open_configuration returned {len(result)} values, "
+                        f"expected {len(output_components)} "
+                        f"(FIELD_REGISTRY/signature drift?)"
+                    )
+                return dict(zip(output_components, result))
+
+            return _entry
+
+        def _save_configuration_entry(data: dict):
+            return save_configuration(
+                save_as_bool=data[dummy_db_false],
+                file_path=data[configuration.config_file_name],
+                **_kwargs_from_registry(data),
+            )
+
+        def _make_train_model_entry(print_only_comp):
+            def _entry(data: dict):
+                return train_model(
+                    headless=data[dummy_headless],
+                    print_only=data[print_only_comp],
+                    **_kwargs_from_registry(data),
+                )
+
+            return _entry
+
+        open_config_entry = _make_open_configuration_entry(dummy_db_true)
+        load_config_entry = _make_open_configuration_entry(dummy_db_false)
+        train_model_entry = _make_train_model_entry(dummy_db_false)
+        print_command_entry = _make_train_model_entry(dummy_db_true)
+
+        global last_built_gui_entries
+        last_built_gui_entries = {
+            "open_configuration": open_config_entry,
+            "load_configuration": load_config_entry,
+            "save_configuration": _save_configuration_entry,
+            "train_model": train_model_entry,
+            "print_command": print_command_entry,
+            "components": {
+                "dummy_headless": dummy_headless,
+                "dummy_db_true": dummy_db_true,
+                "dummy_db_false": dummy_db_false,
+                "config_file_name": configuration.config_file_name,
+            },
+        }
 
         configuration.button_open_config.click(
-            open_configuration,
-            inputs=[dummy_db_true, configuration.config_file_name] + settings_list,
-            outputs=[configuration.config_file_name] + settings_list,
+            open_config_entry,
+            inputs={dummy_db_true, configuration.config_file_name, *settings_list},
+            outputs={configuration.config_file_name, *settings_list},
             show_progress=False,
         )
 
         configuration.button_load_config.click(
-            open_configuration,
-            inputs=[dummy_db_false, configuration.config_file_name] + settings_list,
-            outputs=[configuration.config_file_name] + settings_list,
+            load_config_entry,
+            inputs={dummy_db_false, configuration.config_file_name, *settings_list},
+            outputs={configuration.config_file_name, *settings_list},
             show_progress=False,
         )
 
         configuration.button_save_config.click(
-            save_configuration,
-            inputs=[dummy_db_false, configuration.config_file_name] + settings_list,
+            _save_configuration_entry,
+            inputs={dummy_db_false, configuration.config_file_name, *settings_list},
             outputs=[configuration.config_file_name],
             show_progress=False,
         )
@@ -1468,8 +1658,8 @@ def dreambooth_tab(
         )
 
         executor.button_run.click(
-            train_model,
-            inputs=[dummy_headless] + [dummy_db_false] + settings_list,
+            train_model_entry,
+            inputs={dummy_headless, dummy_db_false, *settings_list},
             outputs=[executor.button_run, executor.button_stop_training, run_state],
             show_progress=False,
         )
@@ -1480,8 +1670,8 @@ def dreambooth_tab(
         )
 
         button_print.click(
-            train_model,
-            inputs=[dummy_headless] + [dummy_db_true] + settings_list,
+            print_command_entry,
+            inputs={dummy_headless, dummy_db_true, *settings_list},
             show_progress=False,
         )
 

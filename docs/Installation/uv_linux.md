@@ -34,7 +34,7 @@ If you have macOS please use **pip method**.
 
 ```bash
 sudo apt update
-sudo apt install python3.11 python3.11-venv git
+sudo apt install python3.11 python3.11-tk python3.11-venv git
 ```
 
 2. Install [CUDA 12.8 Toolkit](https://developer.nvidia.com/cuda-12-8-0-download-archive?target_os=Linux&target_arch=x86_64)  

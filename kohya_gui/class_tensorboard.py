@@ -3,14 +3,20 @@ import gradio as gr
 import subprocess
 import time
 import webbrowser
+import shutil
 
-try:
-    os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
-    import tensorflow  # Attempt to import tensorflow to check if it is installed
 
-    visibility = True
-except ImportError:
-    visibility = False
+def check_avx_support():
+    try:
+        import cpuinfo
+
+        info = cpuinfo.get_cpu_info()
+        return "avx" in info.get("flags", [])
+    except Exception:
+        return False
+
+
+visibility = bool(shutil.which("tensorboard") and check_avx_support())
 
 from easygui import msgbox
 from threading import Thread, Event
@@ -85,7 +91,7 @@ class TensorboardManager:
 
         if not self.headless:
             self.stop_event.clear()
-            
+
             time.sleep(self.wait_time)
             if not self.stop_event.is_set():
                 self.thread = Thread(target=self.open_tensorboard_url)

@@ -17,6 +17,7 @@ from .common_gui import (
     run_cmd_advanced_training,
     SaveConfigFile,
     scriptdir,
+    train_inpainting_changed,
     update_my_data,
     validate_file_path,
     validate_folder_path,
@@ -39,6 +40,8 @@ from .class_huggingface import HuggingFace
 from .class_metadata import MetaData
 from .class_gui_config import KohyaSSGUIConfig
 from .class_flux1 import flux1Training
+from .class_anima import animaTraining
+from .class_lumina import luminaTraining
 
 from .custom_logging import setup_logging
 
@@ -53,10 +56,22 @@ huggingface = None
 use_shell = False
 train_state_value = time.time()
 
+# Populated by the tab builder with the (param_name, component) pairs backing
+# settings_list, in the same order as train_model's/save_configuration's/
+# open_configuration's shared keyword-argument order. Exposed at module level
+# so tests can assert it stays in sync without rebuilding the whole GUI.
+last_built_field_registry = None
+
+# Populated by the tab builder with the dict-keyed adapter callables wired to
+# the train/save/load buttons (GH #3543 M3). Exposed at module level so tests
+# can invoke the real .click()-bound callables directly.
+last_built_gui_entries = None
+
+
 folder_symbol = "\U0001f4c2"  # 📂
 refresh_symbol = "\U0001f504"  # 🔄
 save_style_symbol = "\U0001f4be"  # 💾
-document_symbol = "\U0001F4C4"  # 📄
+document_symbol = "\U0001f4c4"  # 📄
 
 PYTHON = sys.executable
 
@@ -138,6 +153,7 @@ def save_configuration(
     model_list,
     cache_latents,
     cache_latents_to_disk,
+    train_inpainting,
     use_latent_files,
     keep_tokens,
     persistent_data_loader_workers,
@@ -241,8 +257,50 @@ def save_configuration(
     blocks_to_swap,
     single_blocks_to_swap,
     double_blocks_to_swap,
+    show_timesteps,
+    show_timesteps_resolution,
     mem_eff_save,
     apply_t5_attn_mask,
+    # Anima
+    anima_cache_text_encoder_outputs,
+    anima_cache_text_encoder_outputs_to_disk,
+    anima_qwen3,
+    anima_vae,
+    anima_llm_adapter_path,
+    anima_t5_tokenizer_path,
+    anima_discrete_flow_shift,
+    anima_timestep_sampling,
+    anima_sigmoid_scale,
+    anima_qwen3_max_token_length,
+    anima_t5_max_token_length,
+    anima_attn_mode,
+    anima_split_attn,
+    anima_vae_chunk_size,
+    anima_vae_disable_cache,
+    anima_unsloth_offload_checkpointing,
+    anima_qwen_image_vae_2d,
+    anima_compile,
+    anima_torch_compile,
+    anima_compile_backend,
+    anima_compile_mode,
+    anima_compile_dynamic,
+    anima_compile_fullgraph,
+    anima_compile_cache_size_limit,
+    anima_checkbox,
+    # Lumina Image 2.0
+    lumina_cache_text_encoder_outputs,
+    lumina_cache_text_encoder_outputs_to_disk,
+    lumina_gemma2,
+    lumina_ae,
+    lumina_discrete_flow_shift,
+    lumina_model_prediction_type,
+    lumina_timestep_sampling,
+    lumina_sigmoid_scale,
+    lumina_gemma2_max_token_length,
+    lumina_system_prompt,
+    lumina_use_flash_attn,
+    lumina_use_sage_attn,
+    lumina_checkbox,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -354,6 +412,7 @@ def open_configuration(
     model_list,
     cache_latents,
     cache_latents_to_disk,
+    train_inpainting,
     use_latent_files,
     keep_tokens,
     persistent_data_loader_workers,
@@ -457,8 +516,50 @@ def open_configuration(
     blocks_to_swap,
     single_blocks_to_swap,
     double_blocks_to_swap,
+    show_timesteps,
+    show_timesteps_resolution,
     mem_eff_save,
     apply_t5_attn_mask,
+    # Anima
+    anima_cache_text_encoder_outputs,
+    anima_cache_text_encoder_outputs_to_disk,
+    anima_qwen3,
+    anima_vae,
+    anima_llm_adapter_path,
+    anima_t5_tokenizer_path,
+    anima_discrete_flow_shift,
+    anima_timestep_sampling,
+    anima_sigmoid_scale,
+    anima_qwen3_max_token_length,
+    anima_t5_max_token_length,
+    anima_attn_mode,
+    anima_split_attn,
+    anima_vae_chunk_size,
+    anima_vae_disable_cache,
+    anima_unsloth_offload_checkpointing,
+    anima_qwen_image_vae_2d,
+    anima_compile,
+    anima_torch_compile,
+    anima_compile_backend,
+    anima_compile_mode,
+    anima_compile_dynamic,
+    anima_compile_fullgraph,
+    anima_compile_cache_size_limit,
+    anima_checkbox,
+    # Lumina Image 2.0
+    lumina_cache_text_encoder_outputs,
+    lumina_cache_text_encoder_outputs_to_disk,
+    lumina_gemma2,
+    lumina_ae,
+    lumina_discrete_flow_shift,
+    lumina_model_prediction_type,
+    lumina_timestep_sampling,
+    lumina_sigmoid_scale,
+    lumina_gemma2_max_token_length,
+    lumina_system_prompt,
+    lumina_use_flash_attn,
+    lumina_use_sage_attn,
+    lumina_checkbox,
     training_preset,
 ):
     # Get list of function parameters and values
@@ -576,6 +677,7 @@ def train_model(
     model_list,  # Keep this. Yes, it is unused here but required given the common list used
     cache_latents,
     cache_latents_to_disk,
+    train_inpainting,
     use_latent_files,
     keep_tokens,
     persistent_data_loader_workers,
@@ -679,8 +781,50 @@ def train_model(
     blocks_to_swap,
     single_blocks_to_swap,
     double_blocks_to_swap,
+    show_timesteps,
+    show_timesteps_resolution,
     mem_eff_save,
     apply_t5_attn_mask,
+    # Anima
+    anima_cache_text_encoder_outputs,
+    anima_cache_text_encoder_outputs_to_disk,
+    anima_qwen3,
+    anima_vae,
+    anima_llm_adapter_path,
+    anima_t5_tokenizer_path,
+    anima_discrete_flow_shift,
+    anima_timestep_sampling,
+    anima_sigmoid_scale,
+    anima_qwen3_max_token_length,
+    anima_t5_max_token_length,
+    anima_attn_mode,
+    anima_split_attn,
+    anima_vae_chunk_size,
+    anima_vae_disable_cache,
+    anima_unsloth_offload_checkpointing,
+    anima_qwen_image_vae_2d,
+    anima_compile,
+    anima_torch_compile,
+    anima_compile_backend,
+    anima_compile_mode,
+    anima_compile_dynamic,
+    anima_compile_fullgraph,
+    anima_compile_cache_size_limit,
+    anima_checkbox,
+    # Lumina Image 2.0
+    lumina_cache_text_encoder_outputs,
+    lumina_cache_text_encoder_outputs_to_disk,
+    lumina_gemma2,
+    lumina_ae,
+    lumina_discrete_flow_shift,
+    lumina_model_prediction_type,
+    lumina_timestep_sampling,
+    lumina_sigmoid_scale,
+    lumina_gemma2_max_token_length,
+    lumina_system_prompt,
+    lumina_use_flash_attn,
+    lumina_use_sage_attn,
+    lumina_checkbox,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -702,11 +846,20 @@ def train_model(
 
     log.info(f"Validating lr scheduler arguments...")
     if not validate_args_setting(lr_scheduler_args):
-        return
+        return TRAIN_BUTTON_VISIBLE
 
     log.info(f"Validating optimizer arguments...")
     if not validate_args_setting(optimizer_args):
-        return
+        return TRAIN_BUTTON_VISIBLE
+
+    # Backend mirrors this as a startup assertion (see anima_train.py);
+    # the GUI checkboxes already clear one another on change, but validate again
+    # here in case a saved/edited config re-enables both.
+    if anima_checkbox and anima_compile and anima_torch_compile:
+        log.error(
+            "Per-block Torch Compile and Legacy Torch Compile cannot both be enabled at the same time."
+        )
+        return TRAIN_BUTTON_VISIBLE
 
     if train_dir != "" and not os.path.exists(train_dir):
         os.mkdir(train_dir)
@@ -878,7 +1031,9 @@ def train_model(
     if lr_warmup_steps > 0:
         lr_warmup_steps = int(lr_warmup_steps)
         if lr_warmup > 0:
-            log.warning("Both lr_warmup and lr_warmup_steps are set. lr_warmup_steps will be used.")
+            log.warning(
+                "Both lr_warmup and lr_warmup_steps are set. lr_warmup_steps will be used."
+            )
     elif lr_warmup != 0:
         lr_warmup_steps = lr_warmup / 100
     else:
@@ -915,6 +1070,10 @@ def train_model(
         run_cmd.append(rf"{scriptdir}/sd-scripts/sd3_train.py")
     elif flux1_checkbox:
         run_cmd.append(rf"{scriptdir}/sd-scripts/flux_train.py")
+    elif anima_checkbox:
+        run_cmd.append(rf"{scriptdir}/sd-scripts/anima_train.py")
+    elif lumina_checkbox:
+        run_cmd.append(rf"{scriptdir}/sd-scripts/lumina_train.py")
     else:
         run_cmd.append(rf"{scriptdir}/sd-scripts/fine_tune.py")
 
@@ -927,11 +1086,37 @@ def train_model(
         (sdxl_checkbox and sdxl_cache_text_encoder_outputs)
         or (sd3_checkbox and sd3_cache_text_encoder_outputs)
         or (flux1_checkbox and flux1_cache_text_encoder_outputs)
+        or (anima_checkbox and anima_cache_text_encoder_outputs)
+        or (lumina_checkbox and lumina_cache_text_encoder_outputs)
     )
     cache_text_encoder_outputs_to_disk = (
-        sd3_checkbox and sd3_cache_text_encoder_outputs_to_disk
-    ) or (flux1_checkbox and flux1_cache_text_encoder_outputs_to_disk)
+        (sd3_checkbox and sd3_cache_text_encoder_outputs_to_disk)
+        or (flux1_checkbox and flux1_cache_text_encoder_outputs_to_disk)
+        or (anima_checkbox and anima_cache_text_encoder_outputs_to_disk)
+        or (lumina_checkbox and lumina_cache_text_encoder_outputs_to_disk)
+    )
     no_half_vae = sdxl_checkbox and sdxl_no_half_vae
+
+    # --train_inpainting is only supported by fine_tune.py/sdxl_train.py
+    train_inpainting = train_inpainting and not (
+        sd3_checkbox or flux1_checkbox or anima_checkbox or lumina_checkbox
+    )
+    if train_inpainting:
+        # Masks are generated randomly per training step from the source
+        # image, so latent caching cannot be used at the same time.
+        cache_latents = False
+        cache_latents_to_disk = False
+    # `parameters` was snapshotted from locals() before the overrides above;
+    # keep the saved JSON training config in sync with the corrected values.
+    parameters = [
+        (name, value)
+        for name, value in parameters
+        if name not in ("train_inpainting", "cache_latents", "cache_latents_to_disk")
+    ] + [
+        ("train_inpainting", train_inpainting),
+        ("cache_latents", cache_latents),
+        ("cache_latents_to_disk", cache_latents_to_disk),
+    ]
 
     if max_data_loader_n_workers in ("", None):
         max_data_loader_n_workers = 0
@@ -960,7 +1145,11 @@ def train_model(
         "caption_dropout_rate": caption_dropout_rate,
         "caption_extension": caption_extension,
         "clip_l": flux1_clip_l if flux1_checkbox else clip_l if sd3_checkbox else None,
-        "clip_skip": clip_skip if clip_skip != 0 else None,
+        "clip_skip": (
+            clip_skip
+            if clip_skip != 0 and not anima_checkbox and not lumina_checkbox
+            else None
+        ),
         "color_aug": color_aug,
         "dataset_config": dataset_config,
         "dataset_repeats": int(dataset_repeats),
@@ -972,7 +1161,11 @@ def train_model(
         "fp8_base": fp8_base,
         "full_bf16": full_bf16,
         "full_fp16": full_fp16,
-        "fused_backward_pass": sd3_fused_backward_pass if sd3_checkbox else flux_fused_backward_pass if flux1_checkbox else fused_backward_pass,
+        "fused_backward_pass": (
+            sd3_fused_backward_pass
+            if sd3_checkbox
+            else flux_fused_backward_pass if flux1_checkbox else fused_backward_pass
+        ),
         "fused_optimizer_groups": (
             int(fused_optimizer_groups) if fused_optimizer_groups > 0 else None
         ),
@@ -1012,7 +1205,11 @@ def train_model(
         "masked_loss": masked_loss,
         "max_bucket_reso": int(max_bucket_reso),
         "max_timestep": max_timestep if max_timestep != 0 else None,
-        "max_token_length": int(max_token_length),
+        "max_token_length": (
+            int(max_token_length)
+            if not anima_checkbox and not lumina_checkbox
+            else None
+        ),
         "max_train_epochs": (
             int(max_train_epochs) if int(max_train_epochs) != 0 else None
         ),
@@ -1078,11 +1275,13 @@ def train_model(
         "t5xxl": t5xxl if sd3_checkbox else flux1_t5xxl if flux1_checkbox else None,
         "train_batch_size": train_batch_size,
         "train_data_dir": image_folder,
+        "train_inpainting": train_inpainting,
         "train_text_encoder": train_text_encoder,
         "log_with": log_with,
         "v2": v2,
         "v_parameterization": v_parameterization,
         "v_pred_like_loss": v_pred_like_loss if v_pred_like_loss != 0 else None,
+        "vae": anima_vae if anima_checkbox else None,
         "vae_batch_size": vae_batch_size if vae_batch_size != 0 else None,
         "wandb_api_key": wandb_api_key,
         "wandb_run_name": wandb_run_name if wandb_run_name != "" else output_name,
@@ -1108,14 +1307,36 @@ def train_model(
         # Flux.1 specific parameters
         # "cache_text_encoder_outputs": see previous assignment above for code
         # "cache_text_encoder_outputs_to_disk": see previous assignment above for code
-        "ae": ae if flux1_checkbox else None,
+        "ae": (lumina_ae if lumina_checkbox else ae if flux1_checkbox else None),
         # "clip_l": see previous assignment above for code
         # "t5xxl": see previous assignment above for code
-        "discrete_flow_shift": discrete_flow_shift if flux1_checkbox else None,
-        "model_prediction_type": model_prediction_type if flux1_checkbox else None,
-        "timestep_sampling": timestep_sampling if flux1_checkbox else None,
-        "split_mode": split_mode if flux1_checkbox else None,
-        "train_blocks": train_blocks if flux1_checkbox else None,
+        "discrete_flow_shift": (
+            float(lumina_discrete_flow_shift)
+            if lumina_checkbox
+            else (
+                float(anima_discrete_flow_shift)
+                if anima_checkbox
+                else discrete_flow_shift if flux1_checkbox else None
+            )
+        ),
+        "model_prediction_type": (
+            lumina_model_prediction_type
+            if lumina_checkbox
+            else model_prediction_type if flux1_checkbox else None
+        ),
+        "timestep_sampling": (
+            lumina_timestep_sampling
+            if lumina_checkbox
+            else (
+                anima_timestep_sampling
+                if anima_checkbox
+                else timestep_sampling if flux1_checkbox else None
+            )
+        ),
+        # split_mode/train_blocks are LoRA-only (flux_train_network.py); this
+        # tab only ever targets flux_train.py, which does not accept them.
+        "split_mode": None,
+        "train_blocks": None,
         "t5xxl_max_token_length": t5xxl_max_token_length if flux1_checkbox else None,
         "guidance_scale": guidance_scale if flux1_checkbox else None,
         "blockwise_fused_optimizers": (
@@ -1124,19 +1345,108 @@ def train_model(
         "cpu_offload_checkpointing": (
             cpu_offload_checkpointing if flux1_checkbox else None
         ),
-        "blocks_to_swap": blocks_to_swap if flux1_checkbox else None,
+        "blocks_to_swap": (
+            blocks_to_swap
+            if flux1_checkbox or anima_checkbox or lumina_checkbox
+            else None
+        ),
         "single_blocks_to_swap": single_blocks_to_swap if flux1_checkbox else None,
         "double_blocks_to_swap": double_blocks_to_swap if flux1_checkbox else None,
+        "show_timesteps": (
+            show_timesteps
+            if (flux1_checkbox or sd3_checkbox or anima_checkbox or lumina_checkbox)
+            and show_timesteps
+            else None
+        ),
+        "show_timesteps_resolution": (
+            show_timesteps_resolution
+            if (flux1_checkbox or sd3_checkbox or anima_checkbox or lumina_checkbox)
+            and show_timesteps
+            else None
+        ),
         "mem_eff_save": mem_eff_save if flux1_checkbox else None,
         "apply_t5_attn_mask": apply_t5_attn_mask if flux1_checkbox else None,
+        # Anima / Lumina shared DiT-family parameter
+        "sigmoid_scale": (
+            float(lumina_sigmoid_scale)
+            if lumina_checkbox
+            else float(anima_sigmoid_scale) if anima_checkbox else None
+        ),
+        "attn_mode": (
+            anima_attn_mode if anima_checkbox and anima_attn_mode != "torch" else None
+        ),
+        "split_attn": anima_split_attn if anima_checkbox else None,
+        "vae_chunk_size": (
+            int(anima_vae_chunk_size)
+            if anima_checkbox and anima_vae_chunk_size
+            else None
+        ),
+        "qwen3": anima_qwen3 if anima_checkbox else None,
+        "llm_adapter_path": (
+            anima_llm_adapter_path
+            if anima_checkbox and anima_llm_adapter_path
+            else None
+        ),
+        "t5_tokenizer_path": (
+            anima_t5_tokenizer_path
+            if anima_checkbox and anima_t5_tokenizer_path
+            else None
+        ),
+        "qwen3_max_token_length": (
+            int(anima_qwen3_max_token_length) if anima_checkbox else None
+        ),
+        "t5_max_token_length": (
+            int(anima_t5_max_token_length) if anima_checkbox else None
+        ),
+        "vae_disable_cache": anima_vae_disable_cache if anima_checkbox else None,
+        "unsloth_offload_checkpointing": (
+            anima_unsloth_offload_checkpointing if anima_checkbox else None
+        ),
+        "qwen_image_vae_2d": (anima_qwen_image_vae_2d if anima_checkbox else None),
+        # `--compile` (per-block) and `--torch_compile` (accelerate dynamo) are
+        # mutually exclusive at the backend; the GUI already prevents both
+        # checkboxes from being enabled together (see class_anima.py).
+        "compile": anima_compile if anima_checkbox else None,
+        "torch_compile": anima_torch_compile if anima_checkbox else None,
+        "compile_backend": (
+            anima_compile_backend if anima_checkbox and anima_compile else None
+        ),
+        "compile_mode": (
+            anima_compile_mode if anima_checkbox and anima_compile else None
+        ),
+        "compile_dynamic": (
+            anima_compile_dynamic
+            if anima_checkbox and anima_compile and anima_compile_dynamic != "auto"
+            else None
+        ),
+        "compile_fullgraph": (
+            anima_compile_fullgraph if anima_checkbox and anima_compile else None
+        ),
+        "compile_cache_size_limit": (
+            int(anima_compile_cache_size_limit)
+            if anima_checkbox and anima_compile and anima_compile_cache_size_limit
+            else None
+        ),
+        # Lumina Image 2.0 specific parameters
+        "gemma2": lumina_gemma2 if lumina_checkbox else None,
+        "gemma2_max_token_length": (
+            int(lumina_gemma2_max_token_length)
+            if lumina_checkbox and lumina_gemma2_max_token_length
+            else None
+        ),
+        "system_prompt": (
+            lumina_system_prompt if lumina_checkbox and lumina_system_prompt else None
+        ),
+        "use_flash_attn": lumina_use_flash_attn if lumina_checkbox else None,
+        "use_sage_attn": lumina_use_sage_attn if lumina_checkbox else None,
     }
 
-    # Given dictionary `config_toml_data`
-    # Remove all values = ""
+    # Drop empty/absent values only. Use identity for False so numeric 0 / 0.0
+    # (e.g. sigmoid_scale=0.0) are kept — `0 == False` would otherwise omit them.
     config_toml_data = {
         key: value
         for key, value in config_toml_data.items()
-        if value not in ["", False, None]
+        if value not in ("", None) and value is not False
     }
 
     config_toml_data["max_data_loader_n_workers"] = int(max_data_loader_n_workers)
@@ -1322,6 +1632,19 @@ def finetune_tab(
                         train_text_encoder = gr.Checkbox(
                             label="Train text encoder", value=True
                         )
+                        train_inpainting = gr.Checkbox(
+                            label="Train inpainting model",
+                            value=config.get("basic.train_inpainting", False),
+                            info='Trains a 9-channel inpainting model with randomly generated masks. Incompatible with "Cache latents".',
+                        )
+                    train_inpainting.change(
+                        train_inpainting_changed,
+                        inputs=[train_inpainting],
+                        outputs=[
+                            basic_training.cache_latents,
+                            basic_training.cache_latents_to_disk,
+                        ],
+                    )
 
             # Add FLUX1 Parameters
             flux1_training = flux1Training(
@@ -1334,6 +1657,22 @@ def finetune_tab(
             # Add SD3 Parameters
             sd3_training = sd3Training(
                 headless=headless, config=config, sd3_checkbox=source_model.sd3_checkbox
+            )
+
+            # Add Anima Parameters
+            anima_training = animaTraining(
+                headless=headless,
+                config=config,
+                anima_checkbox=source_model.anima_checkbox,
+                finetuning=True,
+            )
+
+            # Add Lumina Image 2.0 Parameters
+            lumina_training = luminaTraining(
+                headless=headless,
+                config=config,
+                lumina_checkbox=source_model.lumina_checkbox,
+                finetuning=True,
             )
 
             with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
@@ -1378,220 +1717,441 @@ def finetune_tab(
 
         TensorboardManager(headless=headless, logging_dir=folders.logging_dir)
 
-        settings_list = [
-            source_model.pretrained_model_name_or_path,
-            source_model.v2,
-            source_model.v_parameterization,
-            source_model.sdxl_checkbox,
-            source_model.flux1_checkbox,
-            train_dir,
-            image_folder,
-            output_dir,
-            source_model.dataset_config,
-            logging_dir,
-            max_resolution,
-            min_bucket_reso,
-            max_bucket_reso,
-            batch_size,
-            advanced_training.flip_aug,
-            advanced_training.masked_loss,
-            caption_metadata_filename,
-            latent_metadata_filename,
-            full_path,
-            basic_training.learning_rate,
-            basic_training.lr_scheduler,
-            basic_training.lr_warmup,
-            basic_training.lr_warmup_steps,
-            dataset_repeats,
-            basic_training.train_batch_size,
-            basic_training.epoch,
-            basic_training.save_every_n_epochs,
-            accelerate_launch.mixed_precision,
-            source_model.save_precision,
-            basic_training.seed,
-            accelerate_launch.num_cpu_threads_per_process,
-            basic_training.learning_rate_te,
-            basic_training.learning_rate_te1,
-            basic_training.learning_rate_te2,
-            train_text_encoder,
-            advanced_training.full_bf16,
-            create_caption,
-            create_buckets,
-            source_model.save_model_as,
-            basic_training.caption_extension,
-            advanced_training.xformers,
-            advanced_training.clip_skip,
-            accelerate_launch.dynamo_backend,
-            accelerate_launch.dynamo_mode,
-            accelerate_launch.dynamo_use_fullgraph,
-            accelerate_launch.dynamo_use_dynamic,
-            accelerate_launch.extra_accelerate_launch_args,
-            accelerate_launch.num_processes,
-            accelerate_launch.num_machines,
-            accelerate_launch.multi_gpu,
-            accelerate_launch.gpu_ids,
-            accelerate_launch.main_process_port,
-            advanced_training.save_state,
-            advanced_training.save_state_on_train_end,
-            advanced_training.resume,
-            advanced_training.gradient_checkpointing,
-            advanced_training.fp8_base,
-            gradient_accumulation_steps,
-            block_lr,
-            advanced_training.mem_eff_attn,
-            advanced_training.shuffle_caption,
-            output_name,
-            advanced_training.max_token_length,
-            basic_training.max_train_epochs,
-            basic_training.max_train_steps,
-            advanced_training.max_data_loader_n_workers,
-            advanced_training.full_fp16,
-            advanced_training.color_aug,
-            source_model.model_list,
-            basic_training.cache_latents,
-            basic_training.cache_latents_to_disk,
-            use_latent_files,
-            advanced_training.keep_tokens,
-            advanced_training.persistent_data_loader_workers,
-            advanced_training.bucket_no_upscale,
-            advanced_training.random_crop,
-            advanced_training.bucket_reso_steps,
-            advanced_training.v_pred_like_loss,
-            advanced_training.caption_dropout_every_n_epochs,
-            advanced_training.caption_dropout_rate,
-            basic_training.optimizer,
-            basic_training.optimizer_args,
-            basic_training.lr_scheduler_args,
-            basic_training.lr_scheduler_type,
-            advanced_training.noise_offset_type,
-            advanced_training.noise_offset,
-            advanced_training.noise_offset_random_strength,
-            advanced_training.adaptive_noise_scale,
-            advanced_training.multires_noise_iterations,
-            advanced_training.multires_noise_discount,
-            advanced_training.ip_noise_gamma,
-            advanced_training.ip_noise_gamma_random_strength,
-            sample.sample_every_n_steps,
-            sample.sample_every_n_epochs,
-            sample.sample_sampler,
-            sample.sample_prompts,
-            advanced_training.additional_parameters,
-            advanced_training.loss_type,
-            advanced_training.huber_schedule,
-            advanced_training.huber_c,
-            advanced_training.huber_scale,
-            advanced_training.vae_batch_size,
-            advanced_training.min_snr_gamma,
-            weighted_captions,
-            advanced_training.save_every_n_steps,
-            advanced_training.save_last_n_steps,
-            advanced_training.save_last_n_steps_state,
-            advanced_training.save_last_n_epochs,
-            advanced_training.save_last_n_epochs_state,
-            advanced_training.skip_cache_check,
-            advanced_training.log_with,
-            advanced_training.wandb_api_key,
-            advanced_training.wandb_run_name,
-            advanced_training.log_tracker_name,
-            advanced_training.log_tracker_config,
-            advanced_training.log_config,
-            advanced_training.scale_v_pred_loss_like_noise_pred,
-            sdxl_params.disable_mmap_load_safetensors,
-            sdxl_params.fused_backward_pass,
-            sdxl_params.fused_optimizer_groups,
-            sdxl_params.sdxl_cache_text_encoder_outputs,
-            sdxl_params.sdxl_no_half_vae,
-            advanced_training.min_timestep,
-            advanced_training.max_timestep,
-            advanced_training.debiased_estimation_loss,
-            huggingface.huggingface_repo_id,
-            huggingface.huggingface_token,
-            huggingface.huggingface_repo_type,
-            huggingface.huggingface_repo_visibility,
-            huggingface.huggingface_path_in_repo,
-            huggingface.save_state_to_huggingface,
-            huggingface.resume_from_huggingface,
-            huggingface.async_upload,
-            metadata.metadata_author,
-            metadata.metadata_description,
-            metadata.metadata_license,
-            metadata.metadata_tags,
-            metadata.metadata_title,
-            # SD3 Parameters
-            sd3_training.sd3_cache_text_encoder_outputs,
-            sd3_training.sd3_cache_text_encoder_outputs_to_disk,
-            sd3_training.clip_g,
-            sd3_training.clip_l,
-            sd3_training.logit_mean,
-            sd3_training.logit_std,
-            sd3_training.mode_scale,
-            sd3_training.save_clip,
-            sd3_training.save_t5xxl,
-            sd3_training.t5xxl,
-            sd3_training.t5xxl_device,
-            sd3_training.t5xxl_dtype,
-            sd3_training.sd3_text_encoder_batch_size,
-            sd3_training.sd3_fused_backward_pass,
-            sd3_training.weighting_scheme,
-            source_model.sd3_checkbox,
-            # Flux1 parameters
-            flux1_training.flux1_cache_text_encoder_outputs,
-            flux1_training.flux1_cache_text_encoder_outputs_to_disk,
-            flux1_training.ae,
-            flux1_training.clip_l,
-            flux1_training.t5xxl,
-            flux1_training.discrete_flow_shift,
-            flux1_training.model_prediction_type,
-            flux1_training.timestep_sampling,
-            flux1_training.split_mode,
-            flux1_training.train_blocks,
-            flux1_training.t5xxl_max_token_length,
-            flux1_training.guidance_scale,
-            flux1_training.blockwise_fused_optimizers,
-            flux1_training.flux_fused_backward_pass,
-            flux1_training.cpu_offload_checkpointing,
-            advanced_training.blocks_to_swap,
-            flux1_training.single_blocks_to_swap,
-            flux1_training.double_blocks_to_swap,
-            flux1_training.mem_eff_save,
-            flux1_training.apply_t5_attn_mask,
+        FIELD_REGISTRY = [
+            (
+                "pretrained_model_name_or_path",
+                source_model.pretrained_model_name_or_path,
+            ),
+            ("v2", source_model.v2),
+            ("v_parameterization", source_model.v_parameterization),
+            ("sdxl_checkbox", source_model.sdxl_checkbox),
+            ("flux1_checkbox", source_model.flux1_checkbox),
+            ("train_dir", train_dir),
+            ("image_folder", image_folder),
+            ("output_dir", output_dir),
+            ("dataset_config", source_model.dataset_config),
+            ("logging_dir", logging_dir),
+            ("max_resolution", max_resolution),
+            ("min_bucket_reso", min_bucket_reso),
+            ("max_bucket_reso", max_bucket_reso),
+            ("batch_size", batch_size),
+            ("flip_aug", advanced_training.flip_aug),
+            ("masked_loss", advanced_training.masked_loss),
+            ("caption_metadata_filename", caption_metadata_filename),
+            ("latent_metadata_filename", latent_metadata_filename),
+            ("full_path", full_path),
+            ("learning_rate", basic_training.learning_rate),
+            ("lr_scheduler", basic_training.lr_scheduler),
+            ("lr_warmup", basic_training.lr_warmup),
+            ("lr_warmup_steps", basic_training.lr_warmup_steps),
+            ("dataset_repeats", dataset_repeats),
+            ("train_batch_size", basic_training.train_batch_size),
+            ("epoch", basic_training.epoch),
+            ("save_every_n_epochs", basic_training.save_every_n_epochs),
+            ("mixed_precision", accelerate_launch.mixed_precision),
+            ("save_precision", source_model.save_precision),
+            ("seed", basic_training.seed),
+            (
+                "num_cpu_threads_per_process",
+                accelerate_launch.num_cpu_threads_per_process,
+            ),
+            ("learning_rate_te", basic_training.learning_rate_te),
+            ("learning_rate_te1", basic_training.learning_rate_te1),
+            ("learning_rate_te2", basic_training.learning_rate_te2),
+            ("train_text_encoder", train_text_encoder),
+            ("full_bf16", advanced_training.full_bf16),
+            ("generate_caption_database", create_caption),
+            ("generate_image_buckets", create_buckets),
+            ("save_model_as", source_model.save_model_as),
+            ("caption_extension", basic_training.caption_extension),
+            ("xformers", advanced_training.xformers),
+            ("clip_skip", advanced_training.clip_skip),
+            ("dynamo_backend", accelerate_launch.dynamo_backend),
+            ("dynamo_mode", accelerate_launch.dynamo_mode),
+            ("dynamo_use_fullgraph", accelerate_launch.dynamo_use_fullgraph),
+            ("dynamo_use_dynamic", accelerate_launch.dynamo_use_dynamic),
+            (
+                "extra_accelerate_launch_args",
+                accelerate_launch.extra_accelerate_launch_args,
+            ),
+            ("num_processes", accelerate_launch.num_processes),
+            ("num_machines", accelerate_launch.num_machines),
+            ("multi_gpu", accelerate_launch.multi_gpu),
+            ("gpu_ids", accelerate_launch.gpu_ids),
+            ("main_process_port", accelerate_launch.main_process_port),
+            ("save_state", advanced_training.save_state),
+            ("save_state_on_train_end", advanced_training.save_state_on_train_end),
+            ("resume", advanced_training.resume),
+            ("gradient_checkpointing", advanced_training.gradient_checkpointing),
+            ("fp8_base", advanced_training.fp8_base),
+            ("gradient_accumulation_steps", gradient_accumulation_steps),
+            ("block_lr", block_lr),
+            ("mem_eff_attn", advanced_training.mem_eff_attn),
+            ("shuffle_caption", advanced_training.shuffle_caption),
+            ("output_name", output_name),
+            ("max_token_length", advanced_training.max_token_length),
+            ("max_train_epochs", basic_training.max_train_epochs),
+            ("max_train_steps", basic_training.max_train_steps),
+            ("max_data_loader_n_workers", advanced_training.max_data_loader_n_workers),
+            ("full_fp16", advanced_training.full_fp16),
+            ("color_aug", advanced_training.color_aug),
+            ("model_list", source_model.model_list),
+            ("cache_latents", basic_training.cache_latents),
+            ("cache_latents_to_disk", basic_training.cache_latents_to_disk),
+            ("train_inpainting", train_inpainting),
+            ("use_latent_files", use_latent_files),
+            ("keep_tokens", advanced_training.keep_tokens),
+            (
+                "persistent_data_loader_workers",
+                advanced_training.persistent_data_loader_workers,
+            ),
+            ("bucket_no_upscale", advanced_training.bucket_no_upscale),
+            ("random_crop", advanced_training.random_crop),
+            ("bucket_reso_steps", advanced_training.bucket_reso_steps),
+            ("v_pred_like_loss", advanced_training.v_pred_like_loss),
+            (
+                "caption_dropout_every_n_epochs",
+                advanced_training.caption_dropout_every_n_epochs,
+            ),
+            ("caption_dropout_rate", advanced_training.caption_dropout_rate),
+            ("optimizer", basic_training.optimizer),
+            ("optimizer_args", basic_training.optimizer_args),
+            ("lr_scheduler_args", basic_training.lr_scheduler_args),
+            ("lr_scheduler_type", basic_training.lr_scheduler_type),
+            ("noise_offset_type", advanced_training.noise_offset_type),
+            ("noise_offset", advanced_training.noise_offset),
+            (
+                "noise_offset_random_strength",
+                advanced_training.noise_offset_random_strength,
+            ),
+            ("adaptive_noise_scale", advanced_training.adaptive_noise_scale),
+            ("multires_noise_iterations", advanced_training.multires_noise_iterations),
+            ("multires_noise_discount", advanced_training.multires_noise_discount),
+            ("ip_noise_gamma", advanced_training.ip_noise_gamma),
+            (
+                "ip_noise_gamma_random_strength",
+                advanced_training.ip_noise_gamma_random_strength,
+            ),
+            ("sample_every_n_steps", sample.sample_every_n_steps),
+            ("sample_every_n_epochs", sample.sample_every_n_epochs),
+            ("sample_sampler", sample.sample_sampler),
+            ("sample_prompts", sample.sample_prompts),
+            ("additional_parameters", advanced_training.additional_parameters),
+            ("loss_type", advanced_training.loss_type),
+            ("huber_schedule", advanced_training.huber_schedule),
+            ("huber_c", advanced_training.huber_c),
+            ("huber_scale", advanced_training.huber_scale),
+            ("vae_batch_size", advanced_training.vae_batch_size),
+            ("min_snr_gamma", advanced_training.min_snr_gamma),
+            ("weighted_captions", weighted_captions),
+            ("save_every_n_steps", advanced_training.save_every_n_steps),
+            ("save_last_n_steps", advanced_training.save_last_n_steps),
+            ("save_last_n_steps_state", advanced_training.save_last_n_steps_state),
+            ("save_last_n_epochs", advanced_training.save_last_n_epochs),
+            ("save_last_n_epochs_state", advanced_training.save_last_n_epochs_state),
+            ("skip_cache_check", advanced_training.skip_cache_check),
+            ("log_with", advanced_training.log_with),
+            ("wandb_api_key", advanced_training.wandb_api_key),
+            ("wandb_run_name", advanced_training.wandb_run_name),
+            ("log_tracker_name", advanced_training.log_tracker_name),
+            ("log_tracker_config", advanced_training.log_tracker_config),
+            ("log_config", advanced_training.log_config),
+            (
+                "scale_v_pred_loss_like_noise_pred",
+                advanced_training.scale_v_pred_loss_like_noise_pred,
+            ),
+            (
+                "disable_mmap_load_safetensors",
+                sdxl_params.disable_mmap_load_safetensors,
+            ),
+            ("fused_backward_pass", sdxl_params.fused_backward_pass),
+            ("fused_optimizer_groups", sdxl_params.fused_optimizer_groups),
+            (
+                "sdxl_cache_text_encoder_outputs",
+                sdxl_params.sdxl_cache_text_encoder_outputs,
+            ),
+            ("sdxl_no_half_vae", sdxl_params.sdxl_no_half_vae),
+            ("min_timestep", advanced_training.min_timestep),
+            ("max_timestep", advanced_training.max_timestep),
+            ("debiased_estimation_loss", advanced_training.debiased_estimation_loss),
+            ("huggingface_repo_id", huggingface.huggingface_repo_id),
+            ("huggingface_token", huggingface.huggingface_token),
+            ("huggingface_repo_type", huggingface.huggingface_repo_type),
+            ("huggingface_repo_visibility", huggingface.huggingface_repo_visibility),
+            ("huggingface_path_in_repo", huggingface.huggingface_path_in_repo),
+            ("save_state_to_huggingface", huggingface.save_state_to_huggingface),
+            ("resume_from_huggingface", huggingface.resume_from_huggingface),
+            ("async_upload", huggingface.async_upload),
+            ("metadata_author", metadata.metadata_author),
+            ("metadata_description", metadata.metadata_description),
+            ("metadata_license", metadata.metadata_license),
+            ("metadata_tags", metadata.metadata_tags),
+            ("metadata_title", metadata.metadata_title),
+            (
+                "sd3_cache_text_encoder_outputs",
+                sd3_training.sd3_cache_text_encoder_outputs,
+            ),
+            (
+                "sd3_cache_text_encoder_outputs_to_disk",
+                sd3_training.sd3_cache_text_encoder_outputs_to_disk,
+            ),
+            # train_model lists sd3_fused_backward_pass immediately after the
+            # cache flags; the pre-registry settings_list had fused later (after
+            # batch size). Pair each name with its true widget so dict adapters
+            # do not re-create the old positional wiring bug.
+            ("sd3_fused_backward_pass", sd3_training.sd3_fused_backward_pass),
+            ("clip_g", sd3_training.clip_g),
+            ("clip_l", sd3_training.clip_l),
+            ("logit_mean", sd3_training.logit_mean),
+            ("logit_std", sd3_training.logit_std),
+            ("mode_scale", sd3_training.mode_scale),
+            ("save_clip", sd3_training.save_clip),
+            ("save_t5xxl", sd3_training.save_t5xxl),
+            ("t5xxl", sd3_training.t5xxl),
+            ("t5xxl_device", sd3_training.t5xxl_device),
+            ("t5xxl_dtype", sd3_training.t5xxl_dtype),
+            ("sd3_text_encoder_batch_size", sd3_training.sd3_text_encoder_batch_size),
+            ("weighting_scheme", sd3_training.weighting_scheme),
+            ("sd3_checkbox", source_model.sd3_checkbox),
+            (
+                "flux1_cache_text_encoder_outputs",
+                flux1_training.flux1_cache_text_encoder_outputs,
+            ),
+            (
+                "flux1_cache_text_encoder_outputs_to_disk",
+                flux1_training.flux1_cache_text_encoder_outputs_to_disk,
+            ),
+            ("ae", flux1_training.ae),
+            ("flux1_clip_l", flux1_training.clip_l),
+            ("flux1_t5xxl", flux1_training.t5xxl),
+            ("discrete_flow_shift", flux1_training.discrete_flow_shift),
+            ("model_prediction_type", flux1_training.model_prediction_type),
+            ("timestep_sampling", flux1_training.timestep_sampling),
+            ("split_mode", flux1_training.split_mode),
+            ("train_blocks", flux1_training.train_blocks),
+            ("t5xxl_max_token_length", flux1_training.t5xxl_max_token_length),
+            ("guidance_scale", flux1_training.guidance_scale),
+            ("blockwise_fused_optimizers", flux1_training.blockwise_fused_optimizers),
+            ("flux_fused_backward_pass", flux1_training.flux_fused_backward_pass),
+            ("cpu_offload_checkpointing", flux1_training.cpu_offload_checkpointing),
+            ("blocks_to_swap", advanced_training.blocks_to_swap),
+            ("single_blocks_to_swap", flux1_training.single_blocks_to_swap),
+            ("double_blocks_to_swap", flux1_training.double_blocks_to_swap),
+            ("show_timesteps", advanced_training.show_timesteps),
+            ("show_timesteps_resolution", advanced_training.show_timesteps_resolution),
+            ("mem_eff_save", flux1_training.mem_eff_save),
+            ("apply_t5_attn_mask", flux1_training.apply_t5_attn_mask),
+            (
+                "anima_cache_text_encoder_outputs",
+                anima_training.cache_text_encoder_outputs,
+            ),
+            (
+                "anima_cache_text_encoder_outputs_to_disk",
+                anima_training.cache_text_encoder_outputs_to_disk,
+            ),
+            ("anima_qwen3", anima_training.qwen3),
+            ("anima_vae", anima_training.vae),
+            ("anima_llm_adapter_path", anima_training.llm_adapter_path),
+            ("anima_t5_tokenizer_path", anima_training.t5_tokenizer_path),
+            ("anima_discrete_flow_shift", anima_training.discrete_flow_shift),
+            ("anima_timestep_sampling", anima_training.timestep_sampling),
+            ("anima_sigmoid_scale", anima_training.sigmoid_scale),
+            ("anima_qwen3_max_token_length", anima_training.qwen3_max_token_length),
+            ("anima_t5_max_token_length", anima_training.t5_max_token_length),
+            ("anima_attn_mode", anima_training.attn_mode),
+            ("anima_split_attn", anima_training.split_attn),
+            ("anima_vae_chunk_size", anima_training.vae_chunk_size),
+            ("anima_vae_disable_cache", anima_training.vae_disable_cache),
+            (
+                "anima_unsloth_offload_checkpointing",
+                anima_training.unsloth_offload_checkpointing,
+            ),
+            ("anima_qwen_image_vae_2d", anima_training.qwen_image_vae_2d),
+            ("anima_compile", anima_training.compile),
+            ("anima_torch_compile", anima_training.torch_compile),
+            ("anima_compile_backend", anima_training.compile_backend),
+            ("anima_compile_mode", anima_training.compile_mode),
+            ("anima_compile_dynamic", anima_training.compile_dynamic),
+            ("anima_compile_fullgraph", anima_training.compile_fullgraph),
+            (
+                "anima_compile_cache_size_limit",
+                anima_training.compile_cache_size_limit,
+            ),
+            ("anima_checkbox", source_model.anima_checkbox),
+            (
+                "lumina_cache_text_encoder_outputs",
+                lumina_training.cache_text_encoder_outputs,
+            ),
+            (
+                "lumina_cache_text_encoder_outputs_to_disk",
+                lumina_training.cache_text_encoder_outputs_to_disk,
+            ),
+            ("lumina_gemma2", lumina_training.gemma2),
+            ("lumina_ae", lumina_training.ae),
+            ("lumina_discrete_flow_shift", lumina_training.discrete_flow_shift),
+            (
+                "lumina_model_prediction_type",
+                lumina_training.model_prediction_type,
+            ),
+            ("lumina_timestep_sampling", lumina_training.timestep_sampling),
+            ("lumina_sigmoid_scale", lumina_training.sigmoid_scale),
+            (
+                "lumina_gemma2_max_token_length",
+                lumina_training.gemma2_max_token_length,
+            ),
+            ("lumina_system_prompt", lumina_training.system_prompt),
+            ("lumina_use_flash_attn", lumina_training.use_flash_attn),
+            ("lumina_use_sage_attn", lumina_training.use_sage_attn),
+            ("lumina_checkbox", source_model.lumina_checkbox),
         ]
+        settings_list = [comp for _, comp in FIELD_REGISTRY]
+
+        global last_built_field_registry
+        last_built_field_registry = FIELD_REGISTRY
+
+        # GH #3543 M3: adapters at the Gradio boundary look up each argument by
+        # component identity (via FIELD_REGISTRY) rather than by position, so a
+        # field added out of order can no longer silently shift every
+        # subsequent value into the wrong parameter. train_model's/
+        # save_configuration's/open_configuration's own signatures and bodies
+        # are untouched; only the .click()/.input() wiring below changes.
+        def _kwargs_from_registry(data: dict) -> dict:
+            return {name: data[comp] for name, comp in FIELD_REGISTRY}
+
+        # train_model uses generate_caption_database/generate_image_buckets;
+        # save/open keep create_caption/create_buckets for config JSON stability.
+        _TRAIN_TO_CONFIG_ALIASES = {
+            "generate_caption_database": "create_caption",
+            "generate_image_buckets": "create_buckets",
+        }
+
+        def _config_kwargs_from_registry(data: dict) -> dict:
+            raw = _kwargs_from_registry(data)
+            return {_TRAIN_TO_CONFIG_ALIASES.get(k, k): v for k, v in raw.items()}
+
+        def _make_open_configuration_entry(
+            ask_for_file_comp, apply_preset_comp, output_file_path_comp
+        ):
+            def _entry(data: dict):
+                output_components = (
+                    [output_file_path_comp] + settings_list + [training_preset]
+                )
+                result = open_configuration(
+                    ask_for_file=data[ask_for_file_comp],
+                    apply_preset=data[apply_preset_comp],
+                    file_path=data[configuration.config_file_name],
+                    training_preset=data[training_preset],
+                    **_config_kwargs_from_registry(data),
+                )
+                if result is None:
+                    return {comp: gr.update() for comp in output_components}
+                if len(result) != len(output_components):
+                    raise ValueError(
+                        f"open_configuration returned {len(result)} values, "
+                        f"expected {len(output_components)} "
+                        f"(FIELD_REGISTRY/signature drift?)"
+                    )
+                return dict(zip(output_components, result))
+
+            return _entry
+
+        def _save_configuration_entry(data: dict):
+            return save_configuration(
+                save_as_bool=data[dummy_db_false],
+                file_path=data[configuration.config_file_name],
+                **_config_kwargs_from_registry(data),
+            )
+
+        def _make_train_model_entry(print_only_comp):
+            def _entry(data: dict):
+                return train_model(
+                    headless=data[dummy_headless],
+                    print_only=data[print_only_comp],
+                    **_kwargs_from_registry(data),
+                )
+
+            return _entry
+
+        # Discarded on preset selection: the visible config_file_name field
+        # must not be overwritten just because a preset was applied.
+        preset_discard_output = gr.Textbox(visible=False)
+
+        open_config_entry = _make_open_configuration_entry(
+            dummy_db_true, dummy_db_false, configuration.config_file_name
+        )
+        load_config_entry = _make_open_configuration_entry(
+            dummy_db_false, dummy_db_false, configuration.config_file_name
+        )
+        preset_entry = _make_open_configuration_entry(
+            dummy_db_false, dummy_db_true, preset_discard_output
+        )
+        train_model_entry = _make_train_model_entry(dummy_db_false)
+        print_command_entry = _make_train_model_entry(dummy_db_true)
+
+        global last_built_gui_entries
+        last_built_gui_entries = {
+            "open_configuration": open_config_entry,
+            "load_configuration": load_config_entry,
+            "apply_preset": preset_entry,
+            "save_configuration": _save_configuration_entry,
+            "train_model": train_model_entry,
+            "print_command": print_command_entry,
+            "components": {
+                "dummy_headless": dummy_headless,
+                "dummy_db_true": dummy_db_true,
+                "dummy_db_false": dummy_db_false,
+                "config_file_name": configuration.config_file_name,
+                "training_preset": training_preset,
+            },
+        }
 
         configuration.button_open_config.click(
-            open_configuration,
-            inputs=[dummy_db_true, dummy_db_false, configuration.config_file_name]
-            + settings_list
-            + [training_preset],
-            outputs=[configuration.config_file_name]
-            + settings_list
-            + [training_preset],
+            open_config_entry,
+            inputs={
+                dummy_db_true,
+                dummy_db_false,
+                configuration.config_file_name,
+                *settings_list,
+                training_preset,
+            },
+            outputs={
+                configuration.config_file_name,
+                *settings_list,
+                training_preset,
+            },
             show_progress=False,
         )
 
-        # config.button_open_config.click(
-        #     open_configuration,
-        #     inputs=[dummy_db_true, dummy_db_false, config.config_file_name] + settings_list,
-        #     outputs=[config.config_file_name] + settings_list,
-        #     show_progress=False,
-        # )
-
         configuration.button_load_config.click(
-            open_configuration,
-            inputs=[dummy_db_false, dummy_db_false, configuration.config_file_name]
-            + settings_list
-            + [training_preset],
-            outputs=[configuration.config_file_name]
-            + settings_list
-            + [training_preset],
+            load_config_entry,
+            inputs={
+                dummy_db_false,
+                configuration.config_file_name,
+                *settings_list,
+                training_preset,
+            },
+            outputs={
+                configuration.config_file_name,
+                *settings_list,
+                training_preset,
+            },
             show_progress=False,
         )
 
         training_preset.input(
-            open_configuration,
-            inputs=[dummy_db_false, dummy_db_true, configuration.config_file_name]
-            + settings_list
-            + [training_preset],
-            outputs=[gr.Textbox(visible=False)] + settings_list + [training_preset],
+            preset_entry,
+            inputs={
+                dummy_db_false,
+                dummy_db_true,
+                configuration.config_file_name,
+                *settings_list,
+                training_preset,
+            },
+            outputs={
+                preset_discard_output,
+                *settings_list,
+                training_preset,
+            },
             show_progress=False,
         )
 
@@ -1603,8 +2163,8 @@ def finetune_tab(
         )
 
         executor.button_run.click(
-            train_model,
-            inputs=[dummy_headless] + [dummy_db_false] + settings_list,
+            train_model_entry,
+            inputs={dummy_headless, dummy_db_false, *settings_list},
             outputs=[executor.button_run, executor.button_stop_training, run_state],
             show_progress=False,
         )
@@ -1615,14 +2175,14 @@ def finetune_tab(
         )
 
         button_print.click(
-            train_model,
-            inputs=[dummy_headless] + [dummy_db_true] + settings_list,
+            print_command_entry,
+            inputs={dummy_headless, dummy_db_true, *settings_list},
             show_progress=False,
         )
 
         configuration.button_save_config.click(
-            save_configuration,
-            inputs=[dummy_db_false, configuration.config_file_name] + settings_list,
+            _save_configuration_entry,
+            inputs={dummy_db_false, configuration.config_file_name, *settings_list},
             outputs=[configuration.config_file_name],
             show_progress=False,
         )

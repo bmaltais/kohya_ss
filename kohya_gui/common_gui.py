@@ -23,7 +23,7 @@ log = setup_logging()
 folder_symbol = "\U0001f4c2"  # 📂
 refresh_symbol = "\U0001f504"  # 🔄
 save_style_symbol = "\U0001f4be"  # 💾
-document_symbol = "\U0001F4C4"  # 📄
+document_symbol = "\U0001f4c4"  # 📄
 
 scriptdir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
@@ -67,25 +67,38 @@ ENV_EXCLUSION = ["COLAB_GPU", "RUNPOD_POD_ID"]
 
 def get_executable_path(executable_name: str = None) -> str:
     """
-    Retrieve and sanitize the path to an executable in the system's PATH.
+    Resolve a console-script executable for the current environment.
+
+    Prefers ``PATH`` (``shutil.which``). When that fails — common when the
+    venv interpreter is invoked directly without activation, so
+    ``.venv/Scripts`` / ``.venv/bin`` is not on ``PATH`` — falls back to the
+    scripts directory of ``sys.prefix`` (the active interpreter's env).
 
     Args:
-    executable_name (str): The name of the executable to find.
+        executable_name: Bare name of the executable (e.g. ``"accelerate"``).
 
     Returns:
-    str: The full, sanitized path to the executable if found, otherwise an empty string.
+        Full path to the executable if found, otherwise an empty string.
     """
-    if executable_name:
-        executable_path = shutil.which(executable_name)
-        if executable_path:
-            # Replace backslashes with forward slashes on Windows
-            # if os.name == "nt":
-            #     executable_path = executable_path.replace("\\", "/")
-            return executable_path
-        else:
-            return ""  # Return empty string if the executable is not found
-    else:
-        return ""  # Return empty string if no executable name is provided
+    if not executable_name:
+        return ""
+
+    executable_path = shutil.which(executable_name)
+    if executable_path:
+        return executable_path
+
+    # Fallback: entry points installed into this interpreter's environment.
+    scripts_dir = os.path.join(sys.prefix, "Scripts" if os.name == "nt" else "bin")
+    candidates = [executable_name]
+    if os.name == "nt" and not os.path.splitext(executable_name)[1]:
+        candidates = [executable_name + ext for ext in (".exe", ".cmd", ".bat")]
+
+    for name in candidates:
+        candidate = os.path.join(scripts_dir, name)
+        if os.path.isfile(candidate):
+            return candidate
+
+    return ""
 
 
 def calculate_max_train_steps(
@@ -356,10 +369,7 @@ def update_my_data(my_data):
                 # Handle the case where the string is not a valid float
                 my_data[key] = int(1)
 
-    for key in [
-        "max_train_steps",
-        "caption_dropout_every_n_epochs"
-    ]:
+    for key in ["max_train_steps", "caption_dropout_every_n_epochs"]:
         value = my_data.get(key)
         if value is not None:
             try:
@@ -940,6 +950,33 @@ def color_aug_changed(color_aug):
         return gr.Checkbox(interactive=True)
 
 
+def train_inpainting_changed(train_inpainting):
+    """
+    Handles the change in the "Train inpainting model" checkbox.
+
+    Inpainting training generates masks randomly per training step from the
+    source image, so latent caching (which would freeze the latents) cannot
+    be used at the same time. When inpainting training is enabled, both
+    "Cache latents" and "Cache latents to disk" are forced off and disabled.
+
+    Args:
+        train_inpainting (bool): The new state of the "Train inpainting model" checkbox.
+
+    Returns:
+        Tuple[gr.Checkbox, gr.Checkbox]: New checkboxes for cache_latents and
+        cache_latents_to_disk with the appropriate value/interactive settings.
+    """
+    if train_inpainting:
+        msgbox(
+            'Disabling "Cache latents" and "Cache latents to disk" because "Train inpainting model" has been selected...'
+        )
+        return gr.Checkbox(value=False, interactive=False), gr.Checkbox(
+            value=False, interactive=False
+        )
+    else:
+        return gr.Checkbox(interactive=True), gr.Checkbox(interactive=True)
+
+
 def set_pretrained_model_name_or_path_input(
     pretrained_model_name_or_path, refresh_method=None
 ):
@@ -956,7 +993,8 @@ def set_pretrained_model_name_or_path_input(
 
     Returns:
         tuple: A tuple containing the Dropdown widget, v2 checkbox, v_parameterization checkbox,
-               and sdxl checkbox.
+               sdxl checkbox, sd3 checkbox, flux1 checkbox, hunyuan_image checkbox, anima
+               checkbox, and lumina checkbox.
     """
     # Check if the given pretrained_model_name_or_path is in the list of SDXL models
     if pretrained_model_name_or_path in SDXL_MODELS:
@@ -966,6 +1004,9 @@ def set_pretrained_model_name_or_path_input(
         sdxl = gr.Checkbox(value=True, visible=False)
         sd3 = gr.Checkbox(value=False, visible=False)
         flux1 = gr.Checkbox(value=False, visible=False)
+        hunyuan_image = gr.Checkbox(value=False, visible=False)
+        anima = gr.Checkbox(value=False, visible=False)
+        lumina = gr.Checkbox(value=False, visible=False)
         return (
             gr.Dropdown(),
             v2,
@@ -973,6 +1014,9 @@ def set_pretrained_model_name_or_path_input(
             sdxl,
             sd3,
             flux1,
+            hunyuan_image,
+            anima,
+            lumina,
         )
 
     # Check if the given pretrained_model_name_or_path is in the list of V2 base models
@@ -983,6 +1027,9 @@ def set_pretrained_model_name_or_path_input(
         sdxl = gr.Checkbox(value=False, visible=False)
         sd3 = gr.Checkbox(value=False, visible=False)
         flux1 = gr.Checkbox(value=False, visible=False)
+        hunyuan_image = gr.Checkbox(value=False, visible=False)
+        anima = gr.Checkbox(value=False, visible=False)
+        lumina = gr.Checkbox(value=False, visible=False)
         return (
             gr.Dropdown(),
             v2,
@@ -990,6 +1037,9 @@ def set_pretrained_model_name_or_path_input(
             sdxl,
             sd3,
             flux1,
+            hunyuan_image,
+            anima,
+            lumina,
         )
 
     # Check if the given pretrained_model_name_or_path is in the list of V parameterization models
@@ -1002,6 +1052,9 @@ def set_pretrained_model_name_or_path_input(
         sdxl = gr.Checkbox(value=False, visible=False)
         sd3 = gr.Checkbox(value=False, visible=False)
         flux1 = gr.Checkbox(value=False, visible=False)
+        hunyuan_image = gr.Checkbox(value=False, visible=False)
+        anima = gr.Checkbox(value=False, visible=False)
+        lumina = gr.Checkbox(value=False, visible=False)
         return (
             gr.Dropdown(),
             v2,
@@ -1009,6 +1062,9 @@ def set_pretrained_model_name_or_path_input(
             sdxl,
             sd3,
             flux1,
+            hunyuan_image,
+            anima,
+            lumina,
         )
 
     # Check if the given pretrained_model_name_or_path is in the list of V1 models
@@ -1019,6 +1075,9 @@ def set_pretrained_model_name_or_path_input(
         sdxl = gr.Checkbox(value=False, visible=False)
         sd3 = gr.Checkbox(value=False, visible=False)
         flux1 = gr.Checkbox(value=False, visible=False)
+        hunyuan_image = gr.Checkbox(value=False, visible=False)
+        anima = gr.Checkbox(value=False, visible=False)
+        lumina = gr.Checkbox(value=False, visible=False)
         return (
             gr.Dropdown(),
             v2,
@@ -1026,6 +1085,9 @@ def set_pretrained_model_name_or_path_input(
             sdxl,
             sd3,
             flux1,
+            hunyuan_image,
+            anima,
+            lumina,
         )
 
     # Check if the model_list is set to 'custom'
@@ -1034,6 +1096,9 @@ def set_pretrained_model_name_or_path_input(
     sdxl = gr.Checkbox(visible=True)
     sd3 = gr.Checkbox(visible=True)
     flux1 = gr.Checkbox(visible=True)
+    hunyuan_image = gr.Checkbox(visible=True)
+    anima = gr.Checkbox(visible=True)
+    lumina = gr.Checkbox(visible=True)
 
     # Auto-detect model type if safetensors file path is given
     if pretrained_model_name_or_path.lower().endswith(".safetensors"):
@@ -1042,7 +1107,7 @@ def set_pretrained_model_name_or_path_input(
         sdxl = gr.Checkbox(value=detect.Is_SDXL(), visible=True)
         sd3 = gr.Checkbox(value=detect.Is_SD3(), visible=True)
         flux1 = gr.Checkbox(value=detect.Is_FLUX1(), visible=True)
-        #TODO: v_parameterization
+        # TODO: v_parameterization
 
     # If a refresh method is provided, use it to update the choices for the Dropdown widget
     if refresh_method is not None:
@@ -1058,6 +1123,9 @@ def set_pretrained_model_name_or_path_input(
         sdxl,
         sd3,
         flux1,
+        hunyuan_image,
+        anima,
+        lumina,
     )
 
 

@@ -19,8 +19,11 @@ from .common_gui import (
     SaveConfigFile,
     scriptdir,
     update_my_data,
-    validate_file_path, validate_folder_path, validate_model_path,
-    validate_args_setting, setup_environment,
+    validate_file_path,
+    validate_folder_path,
+    validate_model_path,
+    validate_args_setting,
+    setup_environment,
 )
 from .class_accelerate_launch import AccelerateLaunch
 from .class_configuration_file import ConfigurationFile
@@ -52,6 +55,17 @@ executor = None
 huggingface = None
 use_shell = False
 train_state_value = time.time()
+
+# Populated by the tab builder with the (param_name, component) pairs backing
+# settings_list, in the same order as train_model's/save_configuration's/
+# open_configuration's shared keyword-argument order. Exposed at module level
+# so tests can assert it stays in sync without rebuilding the whole GUI.
+last_built_field_registry = None
+
+# Populated by the tab builder with the dict-keyed adapter callables wired to
+# the train/save/load buttons (GH #3543 M3). Exposed at module level so tests
+# can invoke the real .click()-bound callables directly.
+last_built_gui_entries = None
 
 
 def save_configuration(
@@ -517,13 +531,13 @@ def train_model(
     # Get list of function parameters and values
     parameters = list(locals().items())
     global train_state_value
-    
+
     TRAIN_BUTTON_VISIBLE = [
         gr.Button(visible=True),
         gr.Button(visible=False or headless),
         gr.Textbox(value=train_state_value),
     ]
-    
+
     if executor.is_running():
         log.error("Training is already running. Can't start another training session.")
         return TRAIN_BUTTON_VISIBLE
@@ -533,42 +547,46 @@ def train_model(
     log.info(f"Validating lr scheduler arguments...")
     if not validate_args_setting(lr_scheduler_args):
         return
-    
+
     log.info(f"Validating optimizer arguments...")
     if not validate_args_setting(optimizer_args):
         return
 
     #
     # Validate paths
-    # 
-    
+    #
+
     if not validate_file_path(dataset_config):
         return TRAIN_BUTTON_VISIBLE
-    
+
     if not validate_file_path(log_tracker_config):
         return TRAIN_BUTTON_VISIBLE
-    
-    if not validate_folder_path(logging_dir, can_be_written_to=True, create_if_not_exists=True):
+
+    if not validate_folder_path(
+        logging_dir, can_be_written_to=True, create_if_not_exists=True
+    ):
         return TRAIN_BUTTON_VISIBLE
-    
-    if not validate_folder_path(output_dir, can_be_written_to=True, create_if_not_exists=True):
+
+    if not validate_folder_path(
+        output_dir, can_be_written_to=True, create_if_not_exists=True
+    ):
         return TRAIN_BUTTON_VISIBLE
-    
+
     if not validate_model_path(pretrained_model_name_or_path):
         return TRAIN_BUTTON_VISIBLE
-    
+
     if not validate_folder_path(reg_data_dir):
         return TRAIN_BUTTON_VISIBLE
-    
+
     if not validate_folder_path(resume):
         return TRAIN_BUTTON_VISIBLE
-    
+
     if not validate_folder_path(train_data_dir):
         return TRAIN_BUTTON_VISIBLE
-    
+
     if not validate_model_path(vae):
         return TRAIN_BUTTON_VISIBLE
-    
+
     #
     # End of path validation
     #
@@ -590,16 +608,7 @@ def train_model(
         log.info(
             "Dataset config toml file used, skipping total_steps, train_batch_size, gradient_accumulation_steps, epoch, reg_factor, max_train_steps calculations..."
         )
-        if max_train_steps > 0:
-            # calculate stop encoder training
-            if stop_text_encoder_training_pct == 0:
-                stop_text_encoder_training = 0
-            else:
-                stop_text_encoder_training = math.ceil(
-                    float(max_train_steps) / 100 * int(stop_text_encoder_training_pct)
-                )
-        else:
-            stop_text_encoder_training = 0
+        if max_train_steps == 0:
             lr_warmup_steps = 0
 
         if max_train_steps == 0:
@@ -684,21 +693,15 @@ def train_model(
             else:
                 max_train_steps_info = f"Max train steps: {max_train_steps}"
 
-        # calculate stop encoder training
-        if stop_text_encoder_training_pct == 0:
-            stop_text_encoder_training = 0
-        else:
-            stop_text_encoder_training = math.ceil(
-                float(max_train_steps) / 100 * int(stop_text_encoder_training_pct)
-            )
-
         log.info(f"Total steps: {total_steps}")
 
     # Calculate lr_warmup_steps
     if lr_warmup_steps > 0:
         lr_warmup_steps = int(lr_warmup_steps)
         if lr_warmup > 0:
-            log.warning("Both lr_warmup and lr_warmup_steps are set. lr_warmup_steps will be used.")
+            log.warning(
+                "Both lr_warmup and lr_warmup_steps are set. lr_warmup_steps will be used."
+            )
     elif lr_warmup != 0:
         lr_warmup_steps = lr_warmup / 100
     else:
@@ -708,7 +711,10 @@ def train_model(
     log.info(f"Gradient accumulation steps: {gradient_accumulation_steps}")
     log.info(f"Epoch: {epoch}")
     log.info(max_train_steps_info)
-    log.info(f"stop_text_encoder_training = {stop_text_encoder_training}")
+    # stop_text_encoder_training_pct is not forwarded to the training config
+    # (train_textual_inversion.py / sdxl_train_textual_inversion.py don't
+    # accept it — see the config_toml_data comment below), so it's not
+    # calculated or logged here either.
     log.info(f"lr_warmup_steps = {lr_warmup_steps}")
 
     accelerate_path = get_executable_path("accelerate")
@@ -716,7 +722,7 @@ def train_model(
         log.error("accelerate not found")
         return TRAIN_BUTTON_VISIBLE
 
-    run_cmd = [rf'{accelerate_path}', "launch"]
+    run_cmd = [rf"{accelerate_path}", "launch"]
 
     run_cmd = AccelerateLaunch.run_cmd(
         run_cmd=run_cmd,
@@ -794,7 +800,9 @@ def train_model(
         "lr_scheduler": lr_scheduler,
         "lr_scheduler_args": str(lr_scheduler_args).replace('"', "").split(),
         "lr_scheduler_num_cycles": (
-            int(lr_scheduler_num_cycles) if lr_scheduler_num_cycles != "" else int(epoch)
+            int(lr_scheduler_num_cycles)
+            if lr_scheduler_num_cycles != ""
+            else int(epoch)
         ),
         "lr_scheduler_power": lr_scheduler_power,
         "lr_scheduler_type": lr_scheduler_type if lr_scheduler_type != "" else None,
@@ -802,7 +810,9 @@ def train_model(
         "max_bucket_reso": max_bucket_reso,
         "max_timestep": max_timestep if max_timestep != 0 else None,
         "max_token_length": int(max_token_length),
-        "max_train_epochs": int(max_train_epochs) if int(max_train_epochs) != 0 else None,
+        "max_train_epochs": (
+            int(max_train_epochs) if int(max_train_epochs) != 0 else None
+        ),
         "max_train_steps": int(max_train_steps) if int(max_train_steps) != 0 else None,
         "mem_eff_attn": mem_eff_attn,
         "metadata_author": metadata_author,
@@ -866,9 +876,8 @@ def train_model(
         "seed": int(seed) if int(seed) != 0 else None,
         "shuffle_caption": shuffle_caption,
         "skip_cache_check": skip_cache_check,
-        "stop_text_encoder_training": (
-            stop_text_encoder_training if stop_text_encoder_training != 0 else None
-        ),
+        # stop_text_encoder_training is only defined by train_db.py; neither
+        # train_textual_inversion.py nor sdxl_train_textual_inversion.py accept it.
         "token_string": token_string,
         "train_batch_size": train_batch_size,
         "train_data_dir": train_data_dir,
@@ -893,16 +902,16 @@ def train_model(
         for key, value in config_toml_data.items()
         if value not in ["", False, None]
     }
-    
+
     config_toml_data["max_data_loader_n_workers"] = int(max_data_loader_n_workers)
-    
+
     # Sort the dictionary by keys
     config_toml_data = dict(sorted(config_toml_data.items()))
 
     current_datetime = datetime.now()
     formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
-    tmpfilename = fr"{output_dir}/config_textual_inversion-{formatted_datetime}.toml"
-    
+    tmpfilename = rf"{output_dir}/config_textual_inversion-{formatted_datetime}.toml"
+
     # Save the updated TOML data back to the file
     with open(tmpfilename, "w", encoding="utf-8") as toml_file:
         toml.dump(config_toml_data, toml_file)
@@ -943,7 +952,7 @@ def train_model(
         # Run the command
 
         executor.execute_command(run_cmd=run_cmd, env=env)
-        
+
         train_state_value = time.time()
 
         return (
@@ -1125,7 +1134,7 @@ def ti_tab(
 
         global executor
         executor = CommandExecutor(headless=headless)
-        
+
         with gr.Column(), gr.Group():
             with gr.Row():
                 button_print = gr.Button("Print training command")
@@ -1133,179 +1142,296 @@ def ti_tab(
         # Setup gradio tensorboard buttons
         TensorboardManager(headless=headless, logging_dir=folders.logging_dir)
 
-        settings_list = [
-            source_model.pretrained_model_name_or_path,
-            source_model.v2,
-            source_model.v_parameterization,
-            source_model.sdxl_checkbox,
-            folders.logging_dir,
-            source_model.train_data_dir,
-            folders.reg_data_dir,
-            folders.output_dir,
-            source_model.dataset_config,
-            basic_training.max_resolution,
-            basic_training.learning_rate,
-            basic_training.lr_scheduler,
-            basic_training.lr_warmup,
-            basic_training.lr_warmup_steps,
-            basic_training.train_batch_size,
-            basic_training.epoch,
-            basic_training.save_every_n_epochs,
-            accelerate_launch.mixed_precision,
-            source_model.save_precision,
-            basic_training.seed,
-            accelerate_launch.num_cpu_threads_per_process,
-            basic_training.cache_latents,
-            basic_training.cache_latents_to_disk,
-            basic_training.caption_extension,
-            basic_training.enable_bucket,
-            advanced_training.gradient_checkpointing,
-            advanced_training.full_fp16,
-            advanced_training.no_token_padding,
-            basic_training.stop_text_encoder_training,
-            basic_training.min_bucket_reso,
-            basic_training.max_bucket_reso,
-            advanced_training.xformers,
-            source_model.save_model_as,
-            advanced_training.shuffle_caption,
-            advanced_training.save_state,
-            advanced_training.save_state_on_train_end,
-            advanced_training.resume,
-            advanced_training.prior_loss_weight,
-            advanced_training.color_aug,
-            advanced_training.flip_aug,
-            advanced_training.clip_skip,
-            accelerate_launch.num_processes,
-            accelerate_launch.num_machines,
-            accelerate_launch.multi_gpu,
-            accelerate_launch.gpu_ids,
-            accelerate_launch.main_process_port,
-            advanced_training.vae,
-            accelerate_launch.dynamo_backend,
-            accelerate_launch.dynamo_mode,
-            accelerate_launch.dynamo_use_fullgraph,
-            accelerate_launch.dynamo_use_dynamic,
-            accelerate_launch.extra_accelerate_launch_args,
-            source_model.output_name,
-            advanced_training.max_token_length,
-            basic_training.max_train_epochs,
-            advanced_training.max_data_loader_n_workers,
-            advanced_training.mem_eff_attn,
-            advanced_training.gradient_accumulation_steps,
-            source_model.model_list,
-            token_string,
-            init_word,
-            num_vectors_per_token,
-            basic_training.max_train_steps,
-            weights,
-            template,
-            advanced_training.keep_tokens,
-            basic_training.lr_scheduler_num_cycles,
-            basic_training.lr_scheduler_power,
-            advanced_training.persistent_data_loader_workers,
-            advanced_training.bucket_no_upscale,
-            advanced_training.random_crop,
-            advanced_training.bucket_reso_steps,
-            advanced_training.v_pred_like_loss,
-            advanced_training.caption_dropout_every_n_epochs,
-            advanced_training.caption_dropout_rate,
-            basic_training.optimizer,
-            basic_training.optimizer_args,
-            basic_training.lr_scheduler_args,
-            basic_training.lr_scheduler_type,
-            advanced_training.noise_offset_type,
-            advanced_training.noise_offset,
-            advanced_training.noise_offset_random_strength,
-            advanced_training.adaptive_noise_scale,
-            advanced_training.multires_noise_iterations,
-            advanced_training.multires_noise_discount,
-            advanced_training.ip_noise_gamma,
-            advanced_training.ip_noise_gamma_random_strength,
-            sample.sample_every_n_steps,
-            sample.sample_every_n_epochs,
-            sample.sample_sampler,
-            sample.sample_prompts,
-            advanced_training.additional_parameters,
-            advanced_training.loss_type,
-            advanced_training.huber_schedule,
-            advanced_training.huber_c,
-            advanced_training.huber_scale,
-            advanced_training.vae_batch_size,
-            advanced_training.min_snr_gamma,
-            advanced_training.save_every_n_steps,
-            advanced_training.save_last_n_steps,
-            advanced_training.save_last_n_steps_state,
-            advanced_training.save_last_n_epochs,
-            advanced_training.save_last_n_epochs_state,
-            advanced_training.skip_cache_check,
-            advanced_training.log_with,
-            advanced_training.wandb_api_key,
-            advanced_training.wandb_run_name,
-            advanced_training.log_tracker_name,
-            advanced_training.log_tracker_config,
-            advanced_training.log_config,
-            advanced_training.scale_v_pred_loss_like_noise_pred,
-            sdxl_params.disable_mmap_load_safetensors,
-            advanced_training.min_timestep,
-            advanced_training.max_timestep,
-            sdxl_params.sdxl_no_half_vae,
-            huggingface.huggingface_repo_id,
-            huggingface.huggingface_token,
-            huggingface.huggingface_repo_type,
-            huggingface.huggingface_repo_visibility,
-            huggingface.huggingface_path_in_repo,
-            huggingface.save_state_to_huggingface,
-            huggingface.resume_from_huggingface,
-            huggingface.async_upload,
-            metadata.metadata_author,
-            metadata.metadata_description,
-            metadata.metadata_license,
-            metadata.metadata_tags,
-            metadata.metadata_title,
+        FIELD_REGISTRY = [
+            (
+                "pretrained_model_name_or_path",
+                source_model.pretrained_model_name_or_path,
+            ),
+            ("v2", source_model.v2),
+            ("v_parameterization", source_model.v_parameterization),
+            ("sdxl", source_model.sdxl_checkbox),
+            ("logging_dir", folders.logging_dir),
+            ("train_data_dir", source_model.train_data_dir),
+            ("reg_data_dir", folders.reg_data_dir),
+            ("output_dir", folders.output_dir),
+            ("dataset_config", source_model.dataset_config),
+            ("max_resolution", basic_training.max_resolution),
+            ("learning_rate", basic_training.learning_rate),
+            ("lr_scheduler", basic_training.lr_scheduler),
+            ("lr_warmup", basic_training.lr_warmup),
+            ("lr_warmup_steps", basic_training.lr_warmup_steps),
+            ("train_batch_size", basic_training.train_batch_size),
+            ("epoch", basic_training.epoch),
+            ("save_every_n_epochs", basic_training.save_every_n_epochs),
+            ("mixed_precision", accelerate_launch.mixed_precision),
+            ("save_precision", source_model.save_precision),
+            ("seed", basic_training.seed),
+            (
+                "num_cpu_threads_per_process",
+                accelerate_launch.num_cpu_threads_per_process,
+            ),
+            ("cache_latents", basic_training.cache_latents),
+            ("cache_latents_to_disk", basic_training.cache_latents_to_disk),
+            ("caption_extension", basic_training.caption_extension),
+            ("enable_bucket", basic_training.enable_bucket),
+            ("gradient_checkpointing", advanced_training.gradient_checkpointing),
+            ("full_fp16", advanced_training.full_fp16),
+            ("no_token_padding", advanced_training.no_token_padding),
+            (
+                "stop_text_encoder_training_pct",
+                basic_training.stop_text_encoder_training,
+            ),
+            ("min_bucket_reso", basic_training.min_bucket_reso),
+            ("max_bucket_reso", basic_training.max_bucket_reso),
+            ("xformers", advanced_training.xformers),
+            ("save_model_as", source_model.save_model_as),
+            ("shuffle_caption", advanced_training.shuffle_caption),
+            ("save_state", advanced_training.save_state),
+            ("save_state_on_train_end", advanced_training.save_state_on_train_end),
+            ("resume", advanced_training.resume),
+            ("prior_loss_weight", advanced_training.prior_loss_weight),
+            ("color_aug", advanced_training.color_aug),
+            ("flip_aug", advanced_training.flip_aug),
+            ("clip_skip", advanced_training.clip_skip),
+            ("num_processes", accelerate_launch.num_processes),
+            ("num_machines", accelerate_launch.num_machines),
+            ("multi_gpu", accelerate_launch.multi_gpu),
+            ("gpu_ids", accelerate_launch.gpu_ids),
+            ("main_process_port", accelerate_launch.main_process_port),
+            ("vae", advanced_training.vae),
+            ("dynamo_backend", accelerate_launch.dynamo_backend),
+            ("dynamo_mode", accelerate_launch.dynamo_mode),
+            ("dynamo_use_fullgraph", accelerate_launch.dynamo_use_fullgraph),
+            ("dynamo_use_dynamic", accelerate_launch.dynamo_use_dynamic),
+            (
+                "extra_accelerate_launch_args",
+                accelerate_launch.extra_accelerate_launch_args,
+            ),
+            ("output_name", source_model.output_name),
+            ("max_token_length", advanced_training.max_token_length),
+            ("max_train_epochs", basic_training.max_train_epochs),
+            ("max_data_loader_n_workers", advanced_training.max_data_loader_n_workers),
+            ("mem_eff_attn", advanced_training.mem_eff_attn),
+            (
+                "gradient_accumulation_steps",
+                advanced_training.gradient_accumulation_steps,
+            ),
+            ("model_list", source_model.model_list),
+            ("token_string", token_string),
+            ("init_word", init_word),
+            ("num_vectors_per_token", num_vectors_per_token),
+            ("max_train_steps", basic_training.max_train_steps),
+            ("weights", weights),
+            ("template", template),
+            ("keep_tokens", advanced_training.keep_tokens),
+            ("lr_scheduler_num_cycles", basic_training.lr_scheduler_num_cycles),
+            ("lr_scheduler_power", basic_training.lr_scheduler_power),
+            (
+                "persistent_data_loader_workers",
+                advanced_training.persistent_data_loader_workers,
+            ),
+            ("bucket_no_upscale", advanced_training.bucket_no_upscale),
+            ("random_crop", advanced_training.random_crop),
+            ("bucket_reso_steps", advanced_training.bucket_reso_steps),
+            ("v_pred_like_loss", advanced_training.v_pred_like_loss),
+            (
+                "caption_dropout_every_n_epochs",
+                advanced_training.caption_dropout_every_n_epochs,
+            ),
+            ("caption_dropout_rate", advanced_training.caption_dropout_rate),
+            ("optimizer", basic_training.optimizer),
+            ("optimizer_args", basic_training.optimizer_args),
+            ("lr_scheduler_args", basic_training.lr_scheduler_args),
+            ("lr_scheduler_type", basic_training.lr_scheduler_type),
+            ("noise_offset_type", advanced_training.noise_offset_type),
+            ("noise_offset", advanced_training.noise_offset),
+            (
+                "noise_offset_random_strength",
+                advanced_training.noise_offset_random_strength,
+            ),
+            ("adaptive_noise_scale", advanced_training.adaptive_noise_scale),
+            ("multires_noise_iterations", advanced_training.multires_noise_iterations),
+            ("multires_noise_discount", advanced_training.multires_noise_discount),
+            ("ip_noise_gamma", advanced_training.ip_noise_gamma),
+            (
+                "ip_noise_gamma_random_strength",
+                advanced_training.ip_noise_gamma_random_strength,
+            ),
+            ("sample_every_n_steps", sample.sample_every_n_steps),
+            ("sample_every_n_epochs", sample.sample_every_n_epochs),
+            ("sample_sampler", sample.sample_sampler),
+            ("sample_prompts", sample.sample_prompts),
+            ("additional_parameters", advanced_training.additional_parameters),
+            ("loss_type", advanced_training.loss_type),
+            ("huber_schedule", advanced_training.huber_schedule),
+            ("huber_c", advanced_training.huber_c),
+            ("huber_scale", advanced_training.huber_scale),
+            ("vae_batch_size", advanced_training.vae_batch_size),
+            ("min_snr_gamma", advanced_training.min_snr_gamma),
+            ("save_every_n_steps", advanced_training.save_every_n_steps),
+            ("save_last_n_steps", advanced_training.save_last_n_steps),
+            ("save_last_n_steps_state", advanced_training.save_last_n_steps_state),
+            ("save_last_n_epochs", advanced_training.save_last_n_epochs),
+            ("save_last_n_epochs_state", advanced_training.save_last_n_epochs_state),
+            ("skip_cache_check", advanced_training.skip_cache_check),
+            ("log_with", advanced_training.log_with),
+            ("wandb_api_key", advanced_training.wandb_api_key),
+            ("wandb_run_name", advanced_training.wandb_run_name),
+            ("log_tracker_name", advanced_training.log_tracker_name),
+            ("log_tracker_config", advanced_training.log_tracker_config),
+            ("log_config", advanced_training.log_config),
+            (
+                "scale_v_pred_loss_like_noise_pred",
+                advanced_training.scale_v_pred_loss_like_noise_pred,
+            ),
+            (
+                "disable_mmap_load_safetensors",
+                sdxl_params.disable_mmap_load_safetensors,
+            ),
+            ("min_timestep", advanced_training.min_timestep),
+            ("max_timestep", advanced_training.max_timestep),
+            ("sdxl_no_half_vae", sdxl_params.sdxl_no_half_vae),
+            ("huggingface_repo_id", huggingface.huggingface_repo_id),
+            ("huggingface_token", huggingface.huggingface_token),
+            ("huggingface_repo_type", huggingface.huggingface_repo_type),
+            ("huggingface_repo_visibility", huggingface.huggingface_repo_visibility),
+            ("huggingface_path_in_repo", huggingface.huggingface_path_in_repo),
+            ("save_state_to_huggingface", huggingface.save_state_to_huggingface),
+            ("resume_from_huggingface", huggingface.resume_from_huggingface),
+            ("async_upload", huggingface.async_upload),
+            ("metadata_author", metadata.metadata_author),
+            ("metadata_description", metadata.metadata_description),
+            ("metadata_license", metadata.metadata_license),
+            ("metadata_tags", metadata.metadata_tags),
+            ("metadata_title", metadata.metadata_title),
         ]
+        settings_list = [comp for _, comp in FIELD_REGISTRY]
+
+        global last_built_field_registry
+        last_built_field_registry = FIELD_REGISTRY
+
+        # GH #3543 M3: adapters at the Gradio boundary look up each argument by
+        # component identity (via FIELD_REGISTRY) rather than by position, so a
+        # field added out of order can no longer silently shift every
+        # subsequent value into the wrong parameter. train_model's/
+        # save_configuration's/open_configuration's own signatures and bodies
+        # are untouched; only the .click() wiring below changes.
+        def _kwargs_from_registry(data: dict) -> dict:
+            return {name: data[comp] for name, comp in FIELD_REGISTRY}
+
+        # train_model param names differ from save/open for a few historical
+        # aliases; remap only at the save/open boundary so config JSON keys
+        # stay stable while FIELD_REGISTRY tracks train_model.
+        _TRAIN_TO_CONFIG_ALIASES = {
+            "stop_text_encoder_training_pct": "stop_text_encoder_training",
+        }
+
+        def _config_kwargs_from_registry(data: dict) -> dict:
+            raw = _kwargs_from_registry(data)
+            return {_TRAIN_TO_CONFIG_ALIASES.get(k, k): v for k, v in raw.items()}
+
+        def _make_open_configuration_entry(ask_for_file_comp):
+            def _entry(data: dict):
+                output_components = [configuration.config_file_name] + settings_list
+                result = open_configuration(
+                    ask_for_file=data[ask_for_file_comp],
+                    file_path=data[configuration.config_file_name],
+                    **_config_kwargs_from_registry(data),
+                )
+                # Missing config file returns None — emit no-op updates so every
+                # wired output is accounted for (partial {} is not guaranteed).
+                if result is None:
+                    return {comp: gr.update() for comp in output_components}
+                if len(result) != len(output_components):
+                    raise ValueError(
+                        f"open_configuration returned {len(result)} values, "
+                        f"expected {len(output_components)} "
+                        f"(FIELD_REGISTRY/signature drift?)"
+                    )
+                return dict(zip(output_components, result))
+
+            return _entry
+
+        def _save_configuration_entry(data: dict):
+            return save_configuration(
+                save_as_bool=data[dummy_db_false],
+                file_path=data[configuration.config_file_name],
+                **_config_kwargs_from_registry(data),
+            )
+
+        def _make_train_model_entry(print_only_comp):
+            def _entry(data: dict):
+                return train_model(
+                    headless=data[dummy_headless],
+                    print_only=data[print_only_comp],
+                    **_kwargs_from_registry(data),
+                )
+
+            return _entry
+
+        open_config_entry = _make_open_configuration_entry(dummy_db_true)
+        load_config_entry = _make_open_configuration_entry(dummy_db_false)
+        train_model_entry = _make_train_model_entry(dummy_db_false)
+        print_command_entry = _make_train_model_entry(dummy_db_true)
+
+        global last_built_gui_entries
+        last_built_gui_entries = {
+            "open_configuration": open_config_entry,
+            "load_configuration": load_config_entry,
+            "save_configuration": _save_configuration_entry,
+            "train_model": train_model_entry,
+            "print_command": print_command_entry,
+            "components": {
+                "dummy_headless": dummy_headless,
+                "dummy_db_true": dummy_db_true,
+                "dummy_db_false": dummy_db_false,
+                "config_file_name": configuration.config_file_name,
+            },
+        }
 
         configuration.button_open_config.click(
-            open_configuration,
-            inputs=[dummy_db_true, configuration.config_file_name] + settings_list,
-            outputs=[configuration.config_file_name] + settings_list,
+            open_config_entry,
+            inputs={dummy_db_true, configuration.config_file_name, *settings_list},
+            outputs={configuration.config_file_name, *settings_list},
             show_progress=False,
         )
 
         configuration.button_load_config.click(
-            open_configuration,
-            inputs=[dummy_db_false, configuration.config_file_name] + settings_list,
-            outputs=[configuration.config_file_name] + settings_list,
+            load_config_entry,
+            inputs={dummy_db_false, configuration.config_file_name, *settings_list},
+            outputs={configuration.config_file_name, *settings_list},
             show_progress=False,
         )
 
         configuration.button_save_config.click(
-            save_configuration,
-            inputs=[dummy_db_false, configuration.config_file_name] + settings_list,
+            _save_configuration_entry,
+            inputs={dummy_db_false, configuration.config_file_name, *settings_list},
             outputs=[configuration.config_file_name],
             show_progress=False,
         )
-        
+
         run_state = gr.Textbox(value=train_state_value, visible=False)
-            
+
         run_state.change(
             fn=executor.wait_for_training_to_end,
             outputs=[executor.button_run, executor.button_stop_training],
         )
 
         executor.button_run.click(
-            train_model,
-            inputs=[dummy_headless] + [dummy_db_false] + settings_list,
+            train_model_entry,
+            inputs={dummy_headless, dummy_db_false, *settings_list},
             outputs=[executor.button_run, executor.button_stop_training, run_state],
             show_progress=False,
         )
 
         executor.button_stop_training.click(
-            executor.kill_command, outputs=[executor.button_run, executor.button_stop_training]
+            executor.kill_command,
+            outputs=[executor.button_run, executor.button_stop_training],
         )
 
         button_print.click(
-            train_model,
-            inputs=[dummy_headless] + [dummy_db_true] + settings_list,
+            print_command_entry,
+            inputs={dummy_headless, dummy_db_true, *settings_list},
             show_progress=False,
         )
 

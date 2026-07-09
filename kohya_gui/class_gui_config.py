@@ -16,6 +16,7 @@ class KohyaSSGUIConfig:
         Initialize the KohyaSSGUIConfig class.
         """
         self.config = self.load_config(config_file_path=config_file_path)
+        self.allowed_paths = self.get_allowed_paths()
 
     def load_config(self, config_file_path: str = "./config.toml") -> dict:
         """
@@ -80,6 +81,12 @@ class KohyaSSGUIConfig:
         # Return the final value
         log.debug(f"Returned {data}")
         return data
+
+    def get_allowed_paths(self) -> list:
+        """
+        Retrieves the list of allowed paths from the [server] section of the config file.
+        """
+        return self.get("server.allowed_paths", [])
 
     def is_config_loaded(self) -> bool:
         """
