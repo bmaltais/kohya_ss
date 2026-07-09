@@ -200,6 +200,27 @@ class TestFinetuneGuiFieldRegistry(unittest.TestCase):
         # open: ask_for_file, apply_preset, file_path, ...fields..., training_preset
         self.assertEqual(registry_names, open_config_params[3:-1])
 
+    def test_sd3_registry_names_map_to_matching_widget_labels(self):
+        # Regression for the finetune SD3 mis-association: the old settings_list
+        # ordered clip_g before sd3_fused_backward_pass while train_model's
+        # signature has fused first. Pairing by index then labeled fused as
+        # "CLIP-G Path". Assert labels match the intended widgets.
+        by_name = dict(self.field_registry)
+        expected_label_substrings = {
+            "sd3_fused_backward_pass": "Fused Backward Pass",
+            "clip_g": "CLIP-G",
+            "clip_l": "CLIP-L",
+            "sd3_text_encoder_batch_size": "Text Encoder Batch Size",
+            "weighting_scheme": "Weighting Scheme",
+        }
+        for name, needle in expected_label_substrings.items():
+            label = getattr(by_name[name], "label", "") or ""
+            self.assertIn(
+                needle,
+                label,
+                msg=f"{name} mapped to unexpected widget label {label!r}",
+            )
+
 
 class TestFinetuneGuiDictAdapterWiring(unittest.TestCase):
     """GH #3543 M3: train/save/load buttons resolve args by component identity."""
