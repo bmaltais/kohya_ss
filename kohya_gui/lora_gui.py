@@ -2132,7 +2132,7 @@ def train_model(
         "training_comment": training_comment,
         "unet_lr": unet_lr_float if unet_lr_float != 0.0 else None,
         "log_with": log_with,
-        "v2": v2,
+        "v2": v2 if not hunyuan_image_checkbox else None,
         "v_parameterization": v_parameterization,
         "v_pred_like_loss": v_pred_like_loss if v_pred_like_loss != 0 else None,
         "vae": vae_value,
@@ -2256,11 +2256,7 @@ def train_model(
         "attn_mode": (
             anima_attn_mode
             if anima_checkbox and anima_attn_mode != "torch"
-            else (
-                hunyuan_attn_mode
-                if hunyuan_image_checkbox and hunyuan_attn_mode != "torch"
-                else None
-            )
+            else (hunyuan_attn_mode if hunyuan_image_checkbox else None)
         ),
         "split_attn": (
             anima_split_attn
@@ -3728,11 +3724,11 @@ def lora_tab(
             ("sd3_checkbox", source_model.sd3_checkbox),
             (
                 "hunyuan_image_cache_text_encoder_outputs",
-                hunyuan_image_training.hunyuan_image_cache_text_encoder_outputs,
+                hunyuan_image_training.cache_text_encoder_outputs,
             ),
             (
                 "hunyuan_image_cache_text_encoder_outputs_to_disk",
-                hunyuan_image_training.hunyuan_image_cache_text_encoder_outputs_to_disk,
+                hunyuan_image_training.cache_text_encoder_outputs_to_disk,
             ),
             ("hunyuan_text_encoder", hunyuan_image_training.text_encoder),
             ("hunyuan_byt5", hunyuan_image_training.byt5),

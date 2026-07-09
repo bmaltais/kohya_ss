@@ -160,7 +160,7 @@ class hunyuanImageTraining:
                         step=1,
                         interactive=True,
                     )
-                    self.hunyuan_image_cache_text_encoder_outputs = gr.Checkbox(
+                    self.cache_text_encoder_outputs = gr.Checkbox(
                         label="Cache Text Encoder Outputs",
                         value=self.config.get(
                             "hunyuan_image.cache_text_encoder_outputs", False
@@ -168,7 +168,7 @@ class hunyuanImageTraining:
                         info="Cache Qwen2.5-VL and byT5 text encoder outputs to reduce memory usage",
                         interactive=True,
                     )
-                    self.hunyuan_image_cache_text_encoder_outputs_to_disk = gr.Checkbox(
+                    self.cache_text_encoder_outputs_to_disk = gr.Checkbox(
                         label="Cache Text Encoder Outputs to Disk",
                         value=self.config.get(
                             "hunyuan_image.cache_text_encoder_outputs_to_disk", False
