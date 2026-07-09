@@ -121,12 +121,19 @@ def install_kohya_ss_torch2(headless: bool = False):
     # setup_common.install_requirements(
     #     "requirements_windows_torch2.txt", check_no_verify_flag=False
     # )
-    
-    setup_common.install_requirements_inbulk(
-        "requirements_pytorch_windows.txt", show_stdout=True, 
+
+    install_ok = setup_common.install_requirements_inbulk(
+        "requirements_pytorch_windows.txt",
+        show_stdout=True,
         # optional_parm="--index-url https://download.pytorch.org/whl/cu124"
     )
-    
+    if not install_ok:
+        log.error(
+            "Python dependency installation failed. Setup cannot continue. "
+            "Fix the pip error above and re-run setup."
+        )
+        exit(1)
+
     # setup_common.install_requirements_inbulk(
     #     "requirements_windows.txt", show_stdout=True, upgrade=True
     # )
@@ -189,7 +196,9 @@ def main_menu(headless: bool = False):
             print(
                 "2. (Optional) Install CuDNN files (to use the latest supported CuDNN version)"
             )
-            print("3. (DANGER) Install Triton 2.1.0 for Windows... only do it if you know you need it... might break training...")
+            print(
+                "3. (DANGER) Install Triton 2.1.0 for Windows... only do it if you know you need it... might break training..."
+            )
             print("4. (Optional) Install specific version of bitsandbytes")
             print("5. (Optional) Manually configure Accelerate")
             print("6. (Optional) Launch Kohya_ss GUI in browser")

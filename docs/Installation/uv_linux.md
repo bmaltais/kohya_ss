@@ -80,7 +80,7 @@ To launch the GUI service, run `./gui-uv.sh` or run the `kohya_gui.py` script di
   --share               Share the gradio UI
   --headless            Is the server headless
   --language LANGUAGE   Set custom language
-  --use-ipex            Use IPEX environment
+  --use-ipex            Use native PyTorch XPU for Intel Arc GPUs (legacy flag name)
   --use-rocm            Use ROCm environment
   --do_not_use_shell    Enforce not to use shell=True when running external commands
   --do_not_share        Do not share the gradio UI

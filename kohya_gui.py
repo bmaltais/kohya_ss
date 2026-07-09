@@ -207,7 +207,11 @@ def initialize_arg_parser():
     parser.add_argument(
         "--language", type=str, default=None, help="Set custom language"
     )
-    parser.add_argument("--use-ipex", action="store_true", help="Use IPEX environment")
+    parser.add_argument(
+        "--use-ipex",
+        action="store_true",
+        help="Use native PyTorch XPU environment for Intel Arc GPUs (legacy flag name)",
+    )
     parser.add_argument("--use-rocm", action="store_true", help="Use ROCm environment")
     parser.add_argument(
         "--do_not_use_shell",
