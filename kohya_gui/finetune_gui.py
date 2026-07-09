@@ -1441,12 +1441,12 @@ def train_model(
         "use_sage_attn": lumina_use_sage_attn if lumina_checkbox else None,
     }
 
-    # Given dictionary `config_toml_data`
-    # Remove all values = ""
+    # Drop empty/absent values only. Use identity for False so numeric 0 / 0.0
+    # (e.g. sigmoid_scale=0.0) are kept — `0 == False` would otherwise omit them.
     config_toml_data = {
         key: value
         for key, value in config_toml_data.items()
-        if value not in ["", False, None]
+        if value not in ("", None) and value is not False
     }
 
     config_toml_data["max_data_loader_n_workers"] = int(max_data_loader_n_workers)

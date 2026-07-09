@@ -170,6 +170,12 @@ class TestLuminaFinetuneConfigOutput(unittest.TestCase):
         config = self._run_and_load_toml({"blocks_to_swap": 8})
         self.assertEqual(config.get("blocks_to_swap"), 8)
 
+    def test_zero_sigmoid_scale_is_preserved(self):
+        """TOML cleanup must not drop 0.0 via `0.0 == False` identity trap."""
+        config = self._run_and_load_toml({"lumina_sigmoid_scale": 0.0})
+        self.assertIn("sigmoid_scale", config)
+        self.assertEqual(config.get("sigmoid_scale"), 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()
