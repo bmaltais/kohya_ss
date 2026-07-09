@@ -15,6 +15,7 @@ import json
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import gradio as gr
 import toml
@@ -321,30 +322,33 @@ class TestLoraGuiDictAdapterWiring(unittest.TestCase):
     PATH_DEPENDENT_KEYS = ("output_dir", "sample_prompts")
 
     def test_print_command_entry_matches_direct_train_model_call(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            kwargs = self._field_kwargs(
-                {"output_dir": tmpdir, "output_name": "wiring_test"}
-            )
-            data = self._field_data(kwargs)
-            data[self.components["dummy_headless"]] = True
-            data[self.components["dummy_db_true"]] = True
+        # Isolate from host PATH / accelerate install (same pattern as
+        # finetune/dreambooth dict-adapter wiring tests).
+        with patch.object(lora_gui, "get_executable_path", return_value="accelerate"):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                kwargs = self._field_kwargs(
+                    {"output_dir": tmpdir, "output_name": "wiring_test"}
+                )
+                data = self._field_data(kwargs)
+                data[self.components["dummy_headless"]] = True
+                data[self.components["dummy_db_true"]] = True
 
-            mock_executor(lora_gui)
-            self.entries["print_command"](data)
-            toml_files = [f for f in os.listdir(tmpdir) if f.endswith(".toml")]
-            self.assertEqual(len(toml_files), 1)
-            with open(os.path.join(tmpdir, toml_files[0]), encoding="utf-8") as f:
-                via_wiring = toml.load(f)
+                mock_executor(lora_gui)
+                self.entries["print_command"](data)
+                toml_files = [f for f in os.listdir(tmpdir) if f.endswith(".toml")]
+                self.assertEqual(len(toml_files), 1)
+                with open(os.path.join(tmpdir, toml_files[0]), encoding="utf-8") as f:
+                    via_wiring = toml.load(f)
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            kwargs = self._field_kwargs(
-                {"output_dir": tmpdir, "output_name": "wiring_test"}
-            )
-            mock_executor(lora_gui)
-            lora_gui.train_model(headless=True, print_only=True, **kwargs)
-            toml_files = [f for f in os.listdir(tmpdir) if f.endswith(".toml")]
-            with open(os.path.join(tmpdir, toml_files[0]), encoding="utf-8") as f:
-                via_direct_call = toml.load(f)
+            with tempfile.TemporaryDirectory() as tmpdir:
+                kwargs = self._field_kwargs(
+                    {"output_dir": tmpdir, "output_name": "wiring_test"}
+                )
+                mock_executor(lora_gui)
+                lora_gui.train_model(headless=True, print_only=True, **kwargs)
+                toml_files = [f for f in os.listdir(tmpdir) if f.endswith(".toml")]
+                with open(os.path.join(tmpdir, toml_files[0]), encoding="utf-8") as f:
+                    via_direct_call = toml.load(f)
 
         for key in self.PATH_DEPENDENT_KEYS:
             via_wiring.pop(key, None)

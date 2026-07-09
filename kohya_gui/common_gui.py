@@ -23,7 +23,7 @@ log = setup_logging()
 folder_symbol = "\U0001f4c2"  # 📂
 refresh_symbol = "\U0001f504"  # 🔄
 save_style_symbol = "\U0001f4be"  # 💾
-document_symbol = "\U0001F4C4"  # 📄
+document_symbol = "\U0001f4c4"  # 📄
 
 scriptdir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
@@ -67,25 +67,38 @@ ENV_EXCLUSION = ["COLAB_GPU", "RUNPOD_POD_ID"]
 
 def get_executable_path(executable_name: str = None) -> str:
     """
-    Retrieve and sanitize the path to an executable in the system's PATH.
+    Resolve a console-script executable for the current environment.
+
+    Prefers ``PATH`` (``shutil.which``). When that fails — common when the
+    venv interpreter is invoked directly without activation, so
+    ``.venv/Scripts`` / ``.venv/bin`` is not on ``PATH`` — falls back to the
+    scripts directory of ``sys.prefix`` (the active interpreter's env).
 
     Args:
-    executable_name (str): The name of the executable to find.
+        executable_name: Bare name of the executable (e.g. ``"accelerate"``).
 
     Returns:
-    str: The full, sanitized path to the executable if found, otherwise an empty string.
+        Full path to the executable if found, otherwise an empty string.
     """
-    if executable_name:
-        executable_path = shutil.which(executable_name)
-        if executable_path:
-            # Replace backslashes with forward slashes on Windows
-            # if os.name == "nt":
-            #     executable_path = executable_path.replace("\\", "/")
-            return executable_path
-        else:
-            return ""  # Return empty string if the executable is not found
-    else:
-        return ""  # Return empty string if no executable name is provided
+    if not executable_name:
+        return ""
+
+    executable_path = shutil.which(executable_name)
+    if executable_path:
+        return executable_path
+
+    # Fallback: entry points installed into this interpreter's environment.
+    scripts_dir = os.path.join(sys.prefix, "Scripts" if os.name == "nt" else "bin")
+    candidates = [executable_name]
+    if os.name == "nt" and not os.path.splitext(executable_name)[1]:
+        candidates = [executable_name + ext for ext in (".exe", ".cmd", ".bat")]
+
+    for name in candidates:
+        candidate = os.path.join(scripts_dir, name)
+        if os.path.isfile(candidate):
+            return candidate
+
+    return ""
 
 
 def calculate_max_train_steps(
@@ -356,10 +369,7 @@ def update_my_data(my_data):
                 # Handle the case where the string is not a valid float
                 my_data[key] = int(1)
 
-    for key in [
-        "max_train_steps",
-        "caption_dropout_every_n_epochs"
-    ]:
+    for key in ["max_train_steps", "caption_dropout_every_n_epochs"]:
         value = my_data.get(key)
         if value is not None:
             try:
@@ -1088,7 +1098,7 @@ def set_pretrained_model_name_or_path_input(
         sdxl = gr.Checkbox(value=detect.Is_SDXL(), visible=True)
         sd3 = gr.Checkbox(value=detect.Is_SD3(), visible=True)
         flux1 = gr.Checkbox(value=detect.Is_FLUX1(), visible=True)
-        #TODO: v_parameterization
+        # TODO: v_parameterization
 
     # If a refresh method is provided, use it to update the choices for the Dropdown widget
     if refresh_method is not None:
