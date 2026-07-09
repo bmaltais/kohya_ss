@@ -179,6 +179,12 @@ class animaTraining:
                         info="Disable internal VAE caching mechanism to reduce memory usage (faster, but differs from official behavior)",
                         interactive=True,
                     )
+                    self.qwen_image_vae_2d = gr.Checkbox(
+                        label="Qwen-Image VAE 2D",
+                        value=self.config.get("anima.qwen_image_vae_2d", False),
+                        info="Use the image-only 2D Qwen-Image VAE (official weights are converted on load). ~2x faster encode/decode and ~1/3 peak VRAM for single-image latent pre-caching; numerically equivalent to the 3D VAE for single images. VAE Disable Cache has no effect with this option, since the 2D VAE has no temporal cache.",
+                        interactive=True,
+                    )
 
                 with gr.Row():
                     self.cache_text_encoder_outputs = gr.Checkbox(
@@ -205,6 +211,78 @@ class animaTraining:
                         info="Offload activations to CPU RAM using async non-blocking transfers (faster than CPU Offload Checkpointing). Cannot be combined with CPU Offload Checkpointing or Blocks to swap.",
                         interactive=True,
                     )
+
+                with gr.Row():
+                    self.compile = gr.Checkbox(
+                        label="Per-block Torch Compile",
+                        value=self.config.get("anima.compile", False),
+                        info="Enable per-block torch.compile for the DiT (requires Triton). ~20% speedup. Mutually exclusive with Legacy Torch Compile below.",
+                        interactive=True,
+                    )
+                    self.torch_compile = gr.Checkbox(
+                        label="Legacy Torch Compile (accelerate dynamo)",
+                        value=self.config.get("anima.torch_compile", False),
+                        info="Use the legacy accelerate-dynamo torch.compile path instead of the per-block one. Mutually exclusive with Per-block Torch Compile above.",
+                        interactive=True,
+                    )
+
+                with gr.Row():
+                    self.compile_backend = gr.Textbox(
+                        label="Compile Backend",
+                        value=self.config.get("anima.compile_backend", "inductor"),
+                        info="torch.compile backend for Per-block Torch Compile",
+                        interactive=True,
+                    )
+                    self.compile_mode = gr.Dropdown(
+                        label="Compile Mode",
+                        choices=[
+                            "default",
+                            "reduce-overhead",
+                            "max-autotune",
+                            "max-autotune-no-cudagraphs",
+                        ],
+                        value=self.config.get("anima.compile_mode", "default"),
+                        info="torch.compile mode for Per-block Torch Compile (default recommended for training)",
+                        interactive=True,
+                    )
+                    self.compile_dynamic = gr.Dropdown(
+                        label="Compile Dynamic Shapes",
+                        choices=["auto", "true", "false"],
+                        value=self.config.get("anima.compile_dynamic", "auto"),
+                        info="Dynamic shapes mode for Per-block Torch Compile. On Windows, 'true' requires the Visual Studio 2022 C++ compiler.",
+                        interactive=True,
+                    )
+
+                with gr.Row():
+                    self.compile_fullgraph = gr.Checkbox(
+                        label="Compile Fullgraph",
+                        value=self.config.get("anima.compile_fullgraph", False),
+                        info="Enable fullgraph mode for Per-block Torch Compile. Cannot be used with Split Attention.",
+                        interactive=True,
+                    )
+                    self.compile_cache_size_limit = gr.Number(
+                        label="Compile Cache Size Limit",
+                        value=self.config.get("anima.compile_cache_size_limit", 0),
+                        info="torch._dynamo.config.cache_size_limit for Per-block Torch Compile. 0 uses the PyTorch default; 32 is recommended for multi-resolution datasets.",
+                        minimum=0,
+                        maximum=1024,
+                        step=1,
+                        interactive=True,
+                    )
+
+                # `--compile` (per-block) and `--torch_compile` (accelerate dynamo) are
+                # mutually exclusive at the backend (see anima_train_network.py's own
+                # assertion); mirror that here so the GUI can't emit a rejected command.
+                self.compile.change(
+                    lambda enabled: gr.update(value=False) if enabled else gr.update(),
+                    inputs=[self.compile],
+                    outputs=[self.torch_compile],
+                )
+                self.torch_compile.change(
+                    lambda enabled: gr.update(value=False) if enabled else gr.update(),
+                    inputs=[self.torch_compile],
+                    outputs=[self.compile],
+                )
 
                 self.anima_checkbox.change(
                     lambda anima_checkbox: gr.Accordion(visible=anima_checkbox),
