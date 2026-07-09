@@ -1,10 +1,19 @@
 """Regression tests for GH issue #3520: kohya_gui emitting args that
 sd-scripts v0.11.1 silently ignores (LoRA+ ratios, stale `lowvram`).
+
+Also covers GH issue #3543 Milestone 1: `FIELD_REGISTRY` must stay in
+identical relative order with train_model's/save_configuration's/
+open_configuration's shared keyword-argument order (see
+TestLoraGuiFieldRegistry below).
 """
 
+import inspect
 import unittest
 
+import gradio as gr
+
 from kohya_gui import lora_gui
+from kohya_gui.class_gui_config import KohyaSSGUIConfig
 from conftest import (
     build_train_model_kwargs,
     run_train_model_and_load_saved_json,
@@ -204,6 +213,54 @@ class TestLoraTrainInpainting(unittest.TestCase):
         self.assertTrue(config.get("train_inpainting"))
         self.assertFalse(config.get("cache_latents"))
         self.assertFalse(config.get("cache_latents_to_disk"))
+
+
+class TestLoraGuiFieldRegistry(unittest.TestCase):
+    """GH issue #3543 Milestone 1: `FIELD_REGISTRY` (the source `settings_list`
+    is now derived from) must declare its field names in the exact same
+    relative order as train_model's/save_configuration's/open_configuration's
+    shared keyword-argument order, since a positional-order mismatch there
+    silently shifts every subsequent value into the wrong parameter.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        with gr.Blocks():
+            lora_gui.lora_tab(headless=True, config=KohyaSSGUIConfig())
+        cls.field_registry = lora_gui.last_built_field_registry
+
+    def test_field_registry_was_built(self):
+        self.assertIsNotNone(self.field_registry)
+        self.assertGreater(len(self.field_registry), 0)
+
+    def test_field_registry_names_are_unique(self):
+        names = [name for name, _ in self.field_registry]
+        self.assertEqual(len(names), len(set(names)))
+
+    def test_field_registry_matches_train_model_signature(self):
+        registry_names = [name for name, _ in self.field_registry]
+        train_model_params = list(inspect.signature(lora_gui.train_model).parameters)
+        # train_model's first two params (headless, print_only) are supplied
+        # separately by the .click() wiring, not via settings_list.
+        self.assertEqual(registry_names, train_model_params[2:])
+
+    def test_field_registry_matches_save_configuration_signature(self):
+        registry_names = [name for name, _ in self.field_registry]
+        save_config_params = list(
+            inspect.signature(lora_gui.save_configuration).parameters
+        )
+        # save_configuration's first two params (save_as_bool, file_path) are
+        # supplied separately, not via settings_list.
+        self.assertEqual(registry_names, save_config_params[2:])
+
+    def test_field_registry_matches_open_configuration_signature(self):
+        registry_names = [name for name, _ in self.field_registry]
+        open_config_params = list(
+            inspect.signature(lora_gui.open_configuration).parameters
+        )
+        # open_configuration's first three params (ask_for_file, apply_preset,
+        # file_path) and trailing training_preset are supplied separately.
+        self.assertEqual(registry_names, open_config_params[3:-1])
 
 
 if __name__ == "__main__":
