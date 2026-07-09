@@ -9,6 +9,20 @@
 }
 
 /*
+ * gr.Group() wraps each field-group in a `.styler` element whose default
+ * background (--background-fill-secondary) is a shade lighter than an
+ * individual field's own `.block` background (--block-background-fill).
+ * Text fields mask this because their `.block` is opaque, but the
+ * tool-button row (📂/🔄/💾/📄) has no such opaque wrapper, so bottom-
+ * aligning those buttons (see #open_folder_small below) exposed a visibly
+ * lighter strip of the group background above them. Matching .styler to
+ * the block color removes the two-tone seam everywhere groups are used.
+ */
+.styler {
+    background: var(--block-background-fill);
+}
+
+/*
  * Hover-reveal for auto-generated `info=` hint text (Gradio 5.34.2).
  * Gradio wraps info text in a div carrying its Info.svelte scope class
  * (currently svelte-j9uq24) with a `.prose`-classed span inside; this

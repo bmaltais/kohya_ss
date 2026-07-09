@@ -43,11 +43,11 @@ def initialize_ui_interface(
     # live-updates window.KOHYA_INFO_TOOLTIP_ENABLED via its own js= handler.
     enable_info_tooltip = config.get("settings.enable_info_tooltip", True)
     info_tooltip_js = read_file_content("./assets/js/info_tooltip.js")
+    icon_button_titles_js = read_file_content("./assets/js/icon_button_titles.js")
     head = (
         f'<script type="text/javascript">window.KOHYA_INFO_TOOLTIP_ENABLED = {str(enable_info_tooltip).lower()};</script>'
         f'<script type="text/javascript">{info_tooltip_js}</script>'
-        if info_tooltip_js
-        else None
+        f'<script type="text/javascript">{icon_button_titles_js}</script>'
     )
 
     # Create the main Gradio Blocks interface
