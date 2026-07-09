@@ -42,7 +42,9 @@ def _get_tag_checkbox_updates(caption, quick_tags, quick_tags_set):
     already included in the caption
     """
     caption_tags_have = [c.strip() for c in caption.split(",") if c.strip()]
-    caption_tags_unique = [t for t in caption_tags_have if t.lower() not in quick_tags_set]
+    caption_tags_unique = [
+        t for t in caption_tags_have if t.lower() not in quick_tags_set
+    ]
     caption_tags_all = quick_tags + caption_tags_unique
     return gr.CheckboxGroup(choices=caption_tags_all, value=caption_tags_have)
 
@@ -115,7 +117,9 @@ def import_tags_from_captions(
     images_dir, caption_ext, quick_tags_text, ignore_load_tags_word_count
 ):
     if not images_dir or not os.path.exists(images_dir):
-        gr.Warning("Image folder is not set or does not exist. Please load images first.")
+        gr.Warning(
+            "Image folder is not set or does not exist. Please load images first."
+        )
         return gr.update()
 
     if not caption_ext:
@@ -123,7 +127,10 @@ def import_tags_from_captions(
         return gr.update()
 
     if quick_tags_text:
-        if not boolbox("Are you sure you wish to overwrite the current quick tags?", choices=("Yes", "No")):
+        if not boolbox(
+            "Are you sure you wish to overwrite the current quick tags?",
+            choices=("Yes", "No"),
+        ):
             return gr.update()
 
     tags = []
@@ -158,7 +165,9 @@ def load_images(images_dir, caption_ext):
     if not caption_ext:
         return error_message("Please provide an extension for the caption files.")
 
-    image_files = sorted([f for f in os.listdir(images_dir) if f.lower().endswith(IMAGE_EXTENSIONS)])
+    image_files = sorted(
+        [f for f in os.listdir(images_dir) if f.lower().endswith(IMAGE_EXTENSIONS)]
+    )
 
     if not image_files:
         return error_message("No images found in the folder.")
@@ -212,7 +221,9 @@ def update_images(
         files_update.append(image_file)
         paths_update.append(image_path)
         captions.append(caption)
-        tags_checks.append(_get_tag_checkbox_updates(caption, quick_tags, quick_tags_set))
+        tags_checks.append(
+            _get_tag_checkbox_updates(caption, quick_tags, quick_tags_set)
+        )
 
     outputs.extend(rows_update)
     outputs.extend(files_update)
@@ -235,11 +246,25 @@ def gradio_manual_caption_gui_tab(headless=False, default_images_dir=None):
 
     def render_pagination_with_logic(page, max_page):
         with gr.Row(visible=False) as pagination_row:
-            gr.Button("◀ Prev").click(paginate, inputs=[page, max_page, gr.Number(-1, visible=False)], outputs=[page])
-            page_count = gr.Text("Page 1 / 1", show_label=False, interactive=False, text_align="center")
-            page_goto_text = gr.Textbox(show_label=False, placeholder="Go to page...", container=False, scale=1)
-            gr.Button("Next ▶").click(paginate, inputs=[page, max_page, gr.Number(1, visible=False)], outputs=[page])
-            page_goto_text.submit(paginate_go, inputs=[page_goto_text, max_page], outputs=[page])
+            gr.Button("◀ Prev").click(
+                paginate,
+                inputs=[page, max_page, gr.Number(-1, visible=False)],
+                outputs=[page],
+            )
+            page_count = gr.Text(
+                "Page 1 / 1", show_label=False, interactive=False, text_align="center"
+            )
+            page_goto_text = gr.Textbox(
+                show_label=False, placeholder="Go to page...", container=False, scale=1
+            )
+            gr.Button("Next ▶").click(
+                paginate,
+                inputs=[page, max_page, gr.Number(1, visible=False)],
+                outputs=[page],
+            )
+            page_goto_text.submit(
+                paginate_go, inputs=[page_goto_text, max_page], outputs=[page]
+            )
         return pagination_row, page_count
 
     with gr.Tab("Manual Captioning"):
@@ -254,39 +279,94 @@ def gradio_manual_caption_gui_tab(headless=False, default_images_dir=None):
 
         with gr.Group():
             with gr.Row():
-                images_dir = gr.Dropdown(label="Image folder to caption", choices=[""] + list(list_dirs(default_images_dir)), value="", interactive=True, allow_custom_value=True)
-                create_refresh_button(images_dir, lambda: None, lambda: {"choices": list(list_dirs(images_dir.value or default_images_dir))}, "open_folder_small")
-                gr.Button("📂", elem_id="open_folder_small", elem_classes=["tool"], visible=not headless).click(get_folder_path, outputs=images_dir, show_progress=False)
-
+                images_dir = gr.Dropdown(
+                    label="Image folder to caption",
+                    choices=[""] + list(list_dirs(default_images_dir)),
+                    value="",
+                    interactive=True,
+                    allow_custom_value=True,
+                )
+                create_refresh_button(
+                    images_dir,
+                    lambda: None,
+                    lambda: {
+                        "choices": list(
+                            list_dirs(images_dir.value or default_images_dir)
+                        )
+                    },
+                    "open_folder_small",
+                )
+                gr.Button(
+                    "📂",
+                    elem_id="open_folder_small",
+                    elem_classes=["tool"],
+                    visible=not headless,
+                ).click(get_folder_path, outputs=images_dir, show_progress=False)
 
             with gr.Row():
-                caption_ext = gr.Dropdown(label="Caption file extension", choices=[".cap", ".caption", ".txt"], value=".txt", interactive=True, allow_custom_value=True)
+                caption_ext = gr.Dropdown(
+                    label="Caption file extension",
+                    choices=[".cap", ".caption", ".txt"],
+                    value=".txt",
+                    interactive=True,
+                    allow_custom_value=True,
+                )
                 auto_save = gr.Checkbox(label="Autosave", value=True, interactive=True)
-                
+
             with gr.Row():
                 load_images_button = gr.Button("Load Images", variant="primary")
 
-            images_dir.change(update_dir_list, inputs=images_dir, outputs=images_dir, show_progress=False)
+            images_dir.change(
+                update_dir_list,
+                inputs=images_dir,
+                outputs=images_dir,
+                show_progress=False,
+            )
 
         with gr.Group():
-            quick_tags_text = gr.Textbox(label="Quick Tags", placeholder="Comma separated list of tags", interactive=True)
+            quick_tags_text = gr.Textbox(
+                label="Quick Tags",
+                placeholder="Comma separated list of tags",
+                interactive=True,
+            )
             with gr.Row():
-                ignore_load_tags_word_count = gr.Slider(minimum=1, maximum=100, value=10, step=1, label="Ignore Imported Tags Above Word Count", interactive=True, scale=2)
-            
+                ignore_load_tags_word_count = gr.Slider(
+                    minimum=1,
+                    maximum=100,
+                    value=10,
+                    step=1,
+                    label="Ignore Imported Tags Above Word Count",
+                    interactive=True,
+                    scale=2,
+                )
+
             with gr.Row():
                 import_tags_button = gr.Button("Import tags from captions", scale=1)
 
         pagination_row1, page_count1 = render_pagination_with_logic(page, max_page)
 
-        image_rows, image_files, image_images, image_caption_texts, image_tag_checks, save_buttons = [], [], [], [], [], []
+        (
+            image_rows,
+            image_files,
+            image_images,
+            image_caption_texts,
+            image_tag_checks,
+            save_buttons,
+        ) = ([], [], [], [], [], [])
         for i in range(IMAGES_TO_SHOW):
             with gr.Row(visible=False) as row:
                 image_file = gr.Text(visible=False)
                 with gr.Column():
                     image_image = gr.Image(type="filepath", label=f"Image {i+1}")
                 with gr.Column(scale=2):
-                    image_caption_text = gr.TextArea(label="Captions", placeholder="Input captions for image", interactive=True)
-                    tag_checkboxes = gr.CheckboxGroup([], label="Tags", interactive=True)
+                    image_caption_text = gr.TextArea(
+                        label="Captions",
+                        placeholder="Input captions for image",
+                        interactive=True,
+                    )
+                    tag_checkboxes = gr.CheckboxGroup(
+                        [], label="Tags", interactive=True
+                    )
                 with gr.Column(min_width=40):
                     save_button = gr.Button("💾", elem_id="save_button", visible=False)
 
@@ -297,28 +377,119 @@ def gradio_manual_caption_gui_tab(headless=False, default_images_dir=None):
                 image_tag_checks.append(tag_checkboxes)
                 save_buttons.append(save_button)
 
-                image_caption_text.input(update_image_caption, inputs=[quick_tags_text, image_caption_text, image_file, loaded_images_dir, caption_ext, auto_save], outputs=tag_checkboxes)
-                tag_checkboxes.input(update_image_tags, inputs=[quick_tags_text, tag_checkboxes, image_file, loaded_images_dir, caption_ext, auto_save], outputs=[image_caption_text])
-                save_button.click(save_caption, inputs=[image_caption_text, caption_ext, image_file, loaded_images_dir], outputs=info_box)
+                image_caption_text.input(
+                    update_image_caption,
+                    inputs=[
+                        quick_tags_text,
+                        image_caption_text,
+                        image_file,
+                        loaded_images_dir,
+                        caption_ext,
+                        auto_save,
+                    ],
+                    outputs=tag_checkboxes,
+                )
+                tag_checkboxes.input(
+                    update_image_tags,
+                    inputs=[
+                        quick_tags_text,
+                        tag_checkboxes,
+                        image_file,
+                        loaded_images_dir,
+                        caption_ext,
+                        auto_save,
+                    ],
+                    outputs=[image_caption_text],
+                )
+                save_button.click(
+                    save_caption,
+                    inputs=[
+                        image_caption_text,
+                        caption_ext,
+                        image_file,
+                        loaded_images_dir,
+                    ],
+                    outputs=info_box,
+                )
 
         pagination_row2, page_count2 = render_pagination_with_logic(page, max_page)
 
-        quick_tags_text.change(update_quick_tags, inputs=[quick_tags_text] + image_caption_texts, outputs=image_tag_checks)
-        import_tags_button.click(import_tags_from_captions, inputs=[loaded_images_dir, caption_ext, quick_tags_text, ignore_load_tags_word_count], outputs=quick_tags_text)
-
-        load_images_outputs = [image_files_state, loaded_images_dir, page, max_page, info_box]
-        load_images_button.click(load_images, inputs=[images_dir, caption_ext], outputs=load_images_outputs)
-
-        update_trigger_inputs = [image_files_state, loaded_images_dir, caption_ext, quick_tags_text, page]
-        update_outputs = (
-            image_rows + image_files + image_images +
-            image_caption_texts + image_tag_checks + [pagination_row1, pagination_row2]
+        quick_tags_text.change(
+            update_quick_tags,
+            inputs=[quick_tags_text] + image_caption_texts,
+            outputs=image_tag_checks,
+        )
+        import_tags_button.click(
+            import_tags_from_captions,
+            inputs=[
+                loaded_images_dir,
+                caption_ext,
+                quick_tags_text,
+                ignore_load_tags_word_count,
+            ],
+            outputs=quick_tags_text,
         )
 
-        page.change(update_images, inputs=update_trigger_inputs, outputs=update_outputs, show_progress=False)
-        image_files_state.change(update_images, inputs=update_trigger_inputs, outputs=update_outputs, show_progress=False)
+        load_images_outputs = [
+            image_files_state,
+            loaded_images_dir,
+            page,
+            max_page,
+            info_box,
+        ]
+        load_images_button.click(
+            load_images, inputs=[images_dir, caption_ext], outputs=load_images_outputs
+        )
 
-        auto_save.change(lambda is_auto_save: [gr.Button(visible=not is_auto_save)] * IMAGES_TO_SHOW, inputs=auto_save, outputs=save_buttons)
-        page.change(lambda p, m: (f"Page {int(p)} / {int(m)}", f"Page {int(p)} / {int(m)}"), inputs=[page, max_page], outputs=[page_count1, page_count2], show_progress=False)
-        image_files_state.change(lambda p, m: (f"Page {int(p)} / {int(m)}", f"Page {int(p)} / {int(m)}"), inputs=[page, max_page], outputs=[page_count1, page_count2], show_progress=False)
-        max_page.change(lambda p, m: (f"Page {int(p)} / {int(m)}", f"Page {int(p)} / {int(m)}"), inputs=[page, max_page], outputs=[page_count1, page_count2], show_progress=False)
+        update_trigger_inputs = [
+            image_files_state,
+            loaded_images_dir,
+            caption_ext,
+            quick_tags_text,
+            page,
+        ]
+        update_outputs = (
+            image_rows
+            + image_files
+            + image_images
+            + image_caption_texts
+            + image_tag_checks
+            + [pagination_row1, pagination_row2]
+        )
+
+        page.change(
+            update_images,
+            inputs=update_trigger_inputs,
+            outputs=update_outputs,
+            show_progress=False,
+        )
+        image_files_state.change(
+            update_images,
+            inputs=update_trigger_inputs,
+            outputs=update_outputs,
+            show_progress=False,
+        )
+
+        auto_save.change(
+            lambda is_auto_save: [gr.Button(visible=not is_auto_save)] * IMAGES_TO_SHOW,
+            inputs=auto_save,
+            outputs=save_buttons,
+        )
+        page.change(
+            lambda p, m: (f"Page {int(p)} / {int(m)}", f"Page {int(p)} / {int(m)}"),
+            inputs=[page, max_page],
+            outputs=[page_count1, page_count2],
+            show_progress=False,
+        )
+        image_files_state.change(
+            lambda p, m: (f"Page {int(p)} / {int(m)}", f"Page {int(p)} / {int(m)}"),
+            inputs=[page, max_page],
+            outputs=[page_count1, page_count2],
+            show_progress=False,
+        )
+        max_page.change(
+            lambda p, m: (f"Page {int(p)} / {int(m)}", f"Page {int(p)} / {int(m)}"),
+            inputs=[page, max_page],
+            outputs=[page_count1, page_count2],
+            show_progress=False,
+        )
