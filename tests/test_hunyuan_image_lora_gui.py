@@ -148,6 +148,25 @@ class TestHunyuanImageLoraConfigOutput(unittest.TestCase):
         self.assertNotIn("max_token_length", config)
         self.assertNotIn("clip_skip", config)
 
+    def test_v2_is_excluded_even_when_true(self):
+        """#3538: --v2 is incompatible with HunyuanImage-2.1; exclude it the
+        same way as clip_skip / max_token_length, even if a caller forces v2=True
+        (the UI toggle group normally prevents this combination).
+        """
+        config = self._run_and_load_toml({"v2": True})
+        self.assertNotIn("v2", config)
+
+    def test_attn_mode_torch_is_forwarded_verbatim(self):
+        """#3538: explicit 'torch' selection is written through, not collapsed
+        to None (backend default). Matches other HunyuanImage dropdowns.
+        """
+        config = self._run_and_load_toml({"hunyuan_attn_mode": "torch"})
+        self.assertEqual(config.get("attn_mode"), "torch")
+
+    def test_attn_mode_non_default_is_forwarded(self):
+        config = self._run_and_load_toml({"hunyuan_attn_mode": "xformers"})
+        self.assertEqual(config.get("attn_mode"), "xformers")
+
     def test_script_selection_invokes_hunyuan_image_train_network(self):
         with patch.object(lora_gui, "print_command_and_toml") as mocked:
             kwargs = build_train_model_kwargs(
@@ -167,6 +186,27 @@ class TestHunyuanImageLoraConfigOutput(unittest.TestCase):
             self.assertTrue(
                 any("hunyuan_image_train_network.py" in part for part in run_cmd)
             )
+
+
+class TestHunyuanImageClassAttributeNames(unittest.TestCase):
+    """#3538: cache-text-encoder attrs should match the unprefixed style of
+    the other fields on hunyuanImageTraining (text_encoder, byt5, vae, …).
+    """
+
+    def test_cache_text_encoder_attrs_are_unprefixed(self):
+        import gradio as gr
+        from kohya_gui.class_hunyuan_image import hunyuanImageTraining
+
+        with gr.Blocks():
+            checkbox = gr.Checkbox(value=False)
+            training = hunyuanImageTraining(hunyuan_image_checkbox=checkbox)
+
+        self.assertTrue(hasattr(training, "cache_text_encoder_outputs"))
+        self.assertTrue(hasattr(training, "cache_text_encoder_outputs_to_disk"))
+        self.assertFalse(hasattr(training, "hunyuan_image_cache_text_encoder_outputs"))
+        self.assertFalse(
+            hasattr(training, "hunyuan_image_cache_text_encoder_outputs_to_disk")
+        )
 
 
 if __name__ == "__main__":
