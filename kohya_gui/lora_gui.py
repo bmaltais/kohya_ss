@@ -45,6 +45,7 @@ from .class_gui_config import KohyaSSGUIConfig
 from .class_flux1 import flux1Training
 from .class_hunyuan_image import hunyuanImageTraining
 from .class_anima import animaTraining
+from .class_lumina import luminaTraining
 
 from .dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -381,6 +382,20 @@ def save_configuration(
     anima_compile_fullgraph,
     anima_compile_cache_size_limit,
     anima_checkbox,
+    # Lumina Image 2.0 parameters
+    lumina_cache_text_encoder_outputs,
+    lumina_cache_text_encoder_outputs_to_disk,
+    lumina_gemma2,
+    lumina_ae,
+    lumina_discrete_flow_shift,
+    lumina_model_prediction_type,
+    lumina_timestep_sampling,
+    lumina_sigmoid_scale,
+    lumina_gemma2_max_token_length,
+    lumina_system_prompt,
+    lumina_use_flash_attn,
+    lumina_use_sage_attn,
+    lumina_checkbox,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -713,6 +728,20 @@ def open_configuration(
     anima_compile_fullgraph,
     anima_compile_cache_size_limit,
     anima_checkbox,
+    # Lumina Image 2.0 parameters
+    lumina_cache_text_encoder_outputs,
+    lumina_cache_text_encoder_outputs_to_disk,
+    lumina_gemma2,
+    lumina_ae,
+    lumina_discrete_flow_shift,
+    lumina_model_prediction_type,
+    lumina_timestep_sampling,
+    lumina_sigmoid_scale,
+    lumina_gemma2_max_token_length,
+    lumina_system_prompt,
+    lumina_use_flash_attn,
+    lumina_use_sage_attn,
+    lumina_checkbox,
     ##
     training_preset,
 ):
@@ -1209,6 +1238,20 @@ def train_model(
     anima_compile_fullgraph,
     anima_compile_cache_size_limit,
     anima_checkbox,
+    # Lumina Image 2.0 parameters
+    lumina_cache_text_encoder_outputs,
+    lumina_cache_text_encoder_outputs_to_disk,
+    lumina_gemma2,
+    lumina_ae,
+    lumina_discrete_flow_shift,
+    lumina_model_prediction_type,
+    lumina_timestep_sampling,
+    lumina_sigmoid_scale,
+    lumina_gemma2_max_token_length,
+    lumina_system_prompt,
+    lumina_use_flash_attn,
+    lumina_use_sage_attn,
+    lumina_checkbox,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -1264,6 +1307,18 @@ def train_model(
         )
         return TRAIN_BUTTON_VISIBLE
 
+    if lumina_checkbox and LoRA_type != "Lumina":
+        log.error(
+            "LoRA type must be set to 'Lumina' if the Lumina model checkbox is checked."
+        )
+        return TRAIN_BUTTON_VISIBLE
+
+    if LoRA_type == "Lumina" and not lumina_checkbox:
+        log.error(
+            "The Lumina model checkbox must be checked when LoRA type is set to 'Lumina'."
+        )
+        return TRAIN_BUTTON_VISIBLE
+
     # Native LoHa/LoKr only support SDXL and Anima (see sd-scripts/docs/loha_lokr.md).
     if LoRA_type in KOHYA_LOHA_LOKR_TYPES:
         if not (sdxl or anima_checkbox):
@@ -1273,9 +1328,9 @@ def train_model(
                 "auto-detect those architectures)."
             )
             return TRAIN_BUTTON_VISIBLE
-        if flux1_checkbox or sd3_checkbox or hunyuan_image_checkbox:
+        if flux1_checkbox or sd3_checkbox or hunyuan_image_checkbox or lumina_checkbox:
             log.error(
-                f"{LoRA_type} is not supported with Flux1, SD3, or HunyuanImage-2.1."
+                f"{LoRA_type} is not supported with Flux1, SD3, HunyuanImage-2.1, or Lumina."
             )
             return TRAIN_BUTTON_VISIBLE
 
@@ -1538,12 +1593,18 @@ def train_model(
         run_cmd.append(rf"{scriptdir}/sd-scripts/hunyuan_image_train_network.py")
     elif anima_checkbox:
         run_cmd.append(rf"{scriptdir}/sd-scripts/anima_train_network.py")
+    elif lumina_checkbox:
+        run_cmd.append(rf"{scriptdir}/sd-scripts/lumina_train_network.py")
     else:
         run_cmd.append(rf"{scriptdir}/sd-scripts/train_network.py")
 
     # --train_inpainting is only supported by train_network.py/sdxl_train_network.py
     train_inpainting = train_inpainting and not (
-        flux1_checkbox or sd3_checkbox or hunyuan_image_checkbox or anima_checkbox
+        flux1_checkbox
+        or sd3_checkbox
+        or hunyuan_image_checkbox
+        or anima_checkbox
+        or lumina_checkbox
     )
     if train_inpainting:
         # Masks are generated randomly per training step from the source
@@ -1674,6 +1735,9 @@ def train_model(
 
     if LoRA_type == "Anima":
         network_module = "networks.lora_anima"
+
+    if LoRA_type == "Lumina":
+        network_module = "networks.lora_lumina"
 
     # Native sd-scripts LoHa/LoKr (not lycoris.kohya). Targets/excludes are
     # auto-detected from the loaded model; optional conv/factor args only.
@@ -1884,6 +1948,7 @@ def train_model(
             or (sd3_checkbox and sd3_cache_text_encoder_outputs)
             or (hunyuan_image_checkbox and hunyuan_image_cache_text_encoder_outputs)
             or (anima_checkbox and anima_cache_text_encoder_outputs)
+            or (lumina_checkbox and lumina_cache_text_encoder_outputs)
             else None
         ),
         "cache_text_encoder_outputs_to_disk": (
@@ -1896,6 +1961,8 @@ def train_model(
             and hunyuan_image_cache_text_encoder_outputs_to_disk
             or anima_checkbox
             and anima_cache_text_encoder_outputs_to_disk
+            or lumina_checkbox
+            and lumina_cache_text_encoder_outputs_to_disk
             else None
         ),
         "caption_dropout_every_n_epochs": int(caption_dropout_every_n_epochs),
@@ -1904,7 +1971,10 @@ def train_model(
         "clip_l": clip_l_value,
         "clip_skip": (
             clip_skip
-            if clip_skip != 0 and not hunyuan_image_checkbox and not anima_checkbox
+            if clip_skip != 0
+            and not hunyuan_image_checkbox
+            and not anima_checkbox
+            and not lumina_checkbox
             else None
         ),
         "color_aug": color_aug,
@@ -1959,7 +2029,10 @@ def train_model(
         "max_timestep": max_timestep if max_timestep != 0 else None,
         "max_token_length": (
             int(max_token_length)
-            if not flux1_checkbox and not hunyuan_image_checkbox and not anima_checkbox
+            if not flux1_checkbox
+            and not hunyuan_image_checkbox
+            and not anima_checkbox
+            and not lumina_checkbox
             else None
         ),
         "max_train_epochs": (
@@ -2095,11 +2168,11 @@ def train_model(
         # Flux.1 specific parameters
         # "cache_text_encoder_outputs": see previous assignment above for code
         # "cache_text_encoder_outputs_to_disk": see previous assignment above for code
-        "ae": ae if flux1_checkbox else None,
+        "ae": (lumina_ae if lumina_checkbox else ae if flux1_checkbox else None),
         # "clip_l": see previous assignment above for code
         "t5xxl": t5xxl_value,
         # "discrete_flow_shift", "model_prediction_type", "timestep_sampling":
-        # see consolidated HunyuanImage-2.1/Flux1 assignment below
+        # see consolidated DiT family assignment below
         "split_mode": split_mode if flux1_checkbox else None,
         "t5xxl_max_token_length": (
             int(t5xxl_max_token_length) if flux1_checkbox else None
@@ -2116,50 +2189,69 @@ def train_model(
             or sd3_checkbox
             or hunyuan_image_checkbox
             or anima_checkbox
+            or lumina_checkbox
             else None
         ),
         "single_blocks_to_swap": single_blocks_to_swap if flux1_checkbox else None,
         "double_blocks_to_swap": double_blocks_to_swap if flux1_checkbox else None,
         "show_timesteps": (
             show_timesteps
-            if (flux1_checkbox or sd3_checkbox or anima_checkbox) and show_timesteps
+            if (flux1_checkbox or sd3_checkbox or anima_checkbox or lumina_checkbox)
+            and show_timesteps
             else None
         ),
         "show_timesteps_resolution": (
             show_timesteps_resolution
-            if (flux1_checkbox or sd3_checkbox or anima_checkbox) and show_timesteps
+            if (flux1_checkbox or sd3_checkbox or anima_checkbox or lumina_checkbox)
+            and show_timesteps
             else None
         ),
         # HunyuanImage-2.1 specific parameters
         "text_encoder": hunyuan_text_encoder if hunyuan_image_checkbox else None,
         "byt5": hunyuan_byt5 if hunyuan_image_checkbox else None,
         "discrete_flow_shift": (
-            float(anima_discrete_flow_shift)
-            if anima_checkbox
+            float(lumina_discrete_flow_shift)
+            if lumina_checkbox
             else (
-                float(hunyuan_discrete_flow_shift)
-                if hunyuan_image_checkbox
-                else float(discrete_flow_shift) if flux1_checkbox else None
+                float(anima_discrete_flow_shift)
+                if anima_checkbox
+                else (
+                    float(hunyuan_discrete_flow_shift)
+                    if hunyuan_image_checkbox
+                    else float(discrete_flow_shift) if flux1_checkbox else None
+                )
             )
         ),
         "model_prediction_type": (
-            hunyuan_model_prediction_type
-            if hunyuan_image_checkbox
-            else model_prediction_type if flux1_checkbox else None
+            lumina_model_prediction_type
+            if lumina_checkbox
+            else (
+                hunyuan_model_prediction_type
+                if hunyuan_image_checkbox
+                else model_prediction_type if flux1_checkbox else None
+            )
         ),
         "timestep_sampling": (
-            anima_timestep_sampling
-            if anima_checkbox
+            lumina_timestep_sampling
+            if lumina_checkbox
             else (
-                hunyuan_timestep_sampling
-                if hunyuan_image_checkbox
-                else timestep_sampling if flux1_checkbox else None
+                anima_timestep_sampling
+                if anima_checkbox
+                else (
+                    hunyuan_timestep_sampling
+                    if hunyuan_image_checkbox
+                    else timestep_sampling if flux1_checkbox else None
+                )
             )
         ),
         "sigmoid_scale": (
-            float(anima_sigmoid_scale)
-            if anima_checkbox
-            else float(hunyuan_sigmoid_scale) if hunyuan_image_checkbox else None
+            float(lumina_sigmoid_scale)
+            if lumina_checkbox
+            else (
+                float(anima_sigmoid_scale)
+                if anima_checkbox
+                else float(hunyuan_sigmoid_scale) if hunyuan_image_checkbox else None
+            )
         ),
         "attn_mode": (
             anima_attn_mode
@@ -2189,6 +2281,18 @@ def train_model(
                 else None
             )
         ),
+        # Lumina Image 2.0 specific parameters
+        "gemma2": lumina_gemma2 if lumina_checkbox else None,
+        "gemma2_max_token_length": (
+            int(lumina_gemma2_max_token_length)
+            if lumina_checkbox and lumina_gemma2_max_token_length
+            else None
+        ),
+        "system_prompt": (
+            lumina_system_prompt if lumina_checkbox and lumina_system_prompt else None
+        ),
+        "use_flash_attn": lumina_use_flash_attn if lumina_checkbox else None,
+        "use_sage_attn": lumina_use_sage_attn if lumina_checkbox else None,
         # Anima specific parameters
         "qwen3": anima_qwen3 if anima_checkbox else None,
         "llm_adapter_path": (
@@ -2407,6 +2511,7 @@ def lora_tab(
                             "Kohya LoHa",
                             "Kohya LoKr",
                             "LoRA-FA",
+                            "Lumina",
                             "LyCORIS/iA3",
                             "LyCORIS/BOFT",
                             "LyCORIS/Diag-OFT",
@@ -3218,6 +3323,13 @@ def lora_tab(
                 anima_checkbox=source_model.anima_checkbox,
             )
 
+            # Add Lumina Image 2.0 Parameters
+            lumina_training = luminaTraining(
+                headless=headless,
+                config=config,
+                lumina_checkbox=source_model.lumina_checkbox,
+            )
+
             with gr.Accordion(
                 "Advanced", open=False, elem_classes="advanced_background"
             ):
@@ -3673,6 +3785,31 @@ def lora_tab(
             ("anima_compile_fullgraph", anima_training.compile_fullgraph),
             ("anima_compile_cache_size_limit", anima_training.compile_cache_size_limit),
             ("anima_checkbox", source_model.anima_checkbox),
+            (
+                "lumina_cache_text_encoder_outputs",
+                lumina_training.cache_text_encoder_outputs,
+            ),
+            (
+                "lumina_cache_text_encoder_outputs_to_disk",
+                lumina_training.cache_text_encoder_outputs_to_disk,
+            ),
+            ("lumina_gemma2", lumina_training.gemma2),
+            ("lumina_ae", lumina_training.ae),
+            ("lumina_discrete_flow_shift", lumina_training.discrete_flow_shift),
+            (
+                "lumina_model_prediction_type",
+                lumina_training.model_prediction_type,
+            ),
+            ("lumina_timestep_sampling", lumina_training.timestep_sampling),
+            ("lumina_sigmoid_scale", lumina_training.sigmoid_scale),
+            (
+                "lumina_gemma2_max_token_length",
+                lumina_training.gemma2_max_token_length,
+            ),
+            ("lumina_system_prompt", lumina_training.system_prompt),
+            ("lumina_use_flash_attn", lumina_training.use_flash_attn),
+            ("lumina_use_sage_attn", lumina_training.use_sage_attn),
+            ("lumina_checkbox", source_model.lumina_checkbox),
         ]
         settings_list = [comp for _, comp in FIELD_REGISTRY]
 
