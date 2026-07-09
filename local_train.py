@@ -2,16 +2,20 @@ import os
 import shlex
 import subprocess
 
+
 def run_command(command):
     """Runs a command and prints its output."""
     print(f"Running command: {command}")
     args = shlex.split(command, posix=(os.name != "nt"))
-    process = subprocess.Popen(args, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    process = subprocess.Popen(
+        args, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+    )
     for line in process.stdout:
         print(line, end="")
     process.wait()
     if process.returncode != 0:
         raise subprocess.CalledProcessError(process.returncode, command)
+
 
 def main():
     print("Starting local training setup...")
@@ -48,9 +52,11 @@ def main():
     # It's better if bitsandbytes is installed as a pip package if possible.
     print("Building and installing bitsandbytes...")
     os.chdir("bitsandbytes")
-    run_command("make cuda11x") # This assumes CUDA 11.8 development toolkit is available
+    run_command(
+        "make cuda11x"
+    )  # This assumes CUDA 11.8 development toolkit is available
     run_command("python setup.py install")
-    os.chdir("..") # Back to base_dir
+    os.chdir("..")  # Back to base_dir
 
     # 4. Clone kohya_ss
     if not os.path.exists("kohya_ss"):
@@ -61,7 +67,6 @@ def main():
         # os.chdir("kohya_ss")
         # run_command("git pull")
         # os.chdir("..")
-
 
     # 5. Launch Kohya GUI
     print("Launching Kohya GUI...")
@@ -75,9 +80,12 @@ def main():
         run_command("python kohya_gui.py --headless")
     except Exception as e:
         print(f"Error launching Kohya GUI: {e}")
-        print("Please ensure all dependencies, including CUDA and xformers, are correctly installed.")
+        print(
+            "Please ensure all dependencies, including CUDA and xformers, are correctly installed."
+        )
     finally:
-        os.chdir(original_dir) # Change back to the original directory
+        os.chdir(original_dir)  # Change back to the original directory
+
 
 if __name__ == "__main__":
     main()
