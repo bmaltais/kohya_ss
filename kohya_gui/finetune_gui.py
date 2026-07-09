@@ -40,6 +40,7 @@ from .class_huggingface import HuggingFace
 from .class_metadata import MetaData
 from .class_gui_config import KohyaSSGUIConfig
 from .class_flux1 import flux1Training
+from .class_anima import animaTraining
 
 from .custom_logging import setup_logging
 
@@ -259,6 +260,32 @@ def save_configuration(
     show_timesteps_resolution,
     mem_eff_save,
     apply_t5_attn_mask,
+    # Anima
+    anima_cache_text_encoder_outputs,
+    anima_cache_text_encoder_outputs_to_disk,
+    anima_qwen3,
+    anima_vae,
+    anima_llm_adapter_path,
+    anima_t5_tokenizer_path,
+    anima_discrete_flow_shift,
+    anima_timestep_sampling,
+    anima_sigmoid_scale,
+    anima_qwen3_max_token_length,
+    anima_t5_max_token_length,
+    anima_attn_mode,
+    anima_split_attn,
+    anima_vae_chunk_size,
+    anima_vae_disable_cache,
+    anima_unsloth_offload_checkpointing,
+    anima_qwen_image_vae_2d,
+    anima_compile,
+    anima_torch_compile,
+    anima_compile_backend,
+    anima_compile_mode,
+    anima_compile_dynamic,
+    anima_compile_fullgraph,
+    anima_compile_cache_size_limit,
+    anima_checkbox,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -478,6 +505,32 @@ def open_configuration(
     show_timesteps_resolution,
     mem_eff_save,
     apply_t5_attn_mask,
+    # Anima
+    anima_cache_text_encoder_outputs,
+    anima_cache_text_encoder_outputs_to_disk,
+    anima_qwen3,
+    anima_vae,
+    anima_llm_adapter_path,
+    anima_t5_tokenizer_path,
+    anima_discrete_flow_shift,
+    anima_timestep_sampling,
+    anima_sigmoid_scale,
+    anima_qwen3_max_token_length,
+    anima_t5_max_token_length,
+    anima_attn_mode,
+    anima_split_attn,
+    anima_vae_chunk_size,
+    anima_vae_disable_cache,
+    anima_unsloth_offload_checkpointing,
+    anima_qwen_image_vae_2d,
+    anima_compile,
+    anima_torch_compile,
+    anima_compile_backend,
+    anima_compile_mode,
+    anima_compile_dynamic,
+    anima_compile_fullgraph,
+    anima_compile_cache_size_limit,
+    anima_checkbox,
     training_preset,
 ):
     # Get list of function parameters and values
@@ -703,6 +756,32 @@ def train_model(
     show_timesteps_resolution,
     mem_eff_save,
     apply_t5_attn_mask,
+    # Anima
+    anima_cache_text_encoder_outputs,
+    anima_cache_text_encoder_outputs_to_disk,
+    anima_qwen3,
+    anima_vae,
+    anima_llm_adapter_path,
+    anima_t5_tokenizer_path,
+    anima_discrete_flow_shift,
+    anima_timestep_sampling,
+    anima_sigmoid_scale,
+    anima_qwen3_max_token_length,
+    anima_t5_max_token_length,
+    anima_attn_mode,
+    anima_split_attn,
+    anima_vae_chunk_size,
+    anima_vae_disable_cache,
+    anima_unsloth_offload_checkpointing,
+    anima_qwen_image_vae_2d,
+    anima_compile,
+    anima_torch_compile,
+    anima_compile_backend,
+    anima_compile_mode,
+    anima_compile_dynamic,
+    anima_compile_fullgraph,
+    anima_compile_cache_size_limit,
+    anima_checkbox,
 ):
     # Get list of function parameters and values
     parameters = list(locals().items())
@@ -724,11 +803,20 @@ def train_model(
 
     log.info(f"Validating lr scheduler arguments...")
     if not validate_args_setting(lr_scheduler_args):
-        return
+        return TRAIN_BUTTON_VISIBLE
 
     log.info(f"Validating optimizer arguments...")
     if not validate_args_setting(optimizer_args):
-        return
+        return TRAIN_BUTTON_VISIBLE
+
+    # Backend mirrors this as a startup assertion (see anima_train.py);
+    # the GUI checkboxes already clear one another on change, but validate again
+    # here in case a saved/edited config re-enables both.
+    if anima_checkbox and anima_compile and anima_torch_compile:
+        log.error(
+            "Per-block Torch Compile and Legacy Torch Compile cannot both be enabled at the same time."
+        )
+        return TRAIN_BUTTON_VISIBLE
 
     if train_dir != "" and not os.path.exists(train_dir):
         os.mkdir(train_dir)
@@ -939,6 +1027,8 @@ def train_model(
         run_cmd.append(rf"{scriptdir}/sd-scripts/sd3_train.py")
     elif flux1_checkbox:
         run_cmd.append(rf"{scriptdir}/sd-scripts/flux_train.py")
+    elif anima_checkbox:
+        run_cmd.append(rf"{scriptdir}/sd-scripts/anima_train.py")
     else:
         run_cmd.append(rf"{scriptdir}/sd-scripts/fine_tune.py")
 
@@ -951,14 +1041,19 @@ def train_model(
         (sdxl_checkbox and sdxl_cache_text_encoder_outputs)
         or (sd3_checkbox and sd3_cache_text_encoder_outputs)
         or (flux1_checkbox and flux1_cache_text_encoder_outputs)
+        or (anima_checkbox and anima_cache_text_encoder_outputs)
     )
     cache_text_encoder_outputs_to_disk = (
-        sd3_checkbox and sd3_cache_text_encoder_outputs_to_disk
-    ) or (flux1_checkbox and flux1_cache_text_encoder_outputs_to_disk)
+        (sd3_checkbox and sd3_cache_text_encoder_outputs_to_disk)
+        or (flux1_checkbox and flux1_cache_text_encoder_outputs_to_disk)
+        or (anima_checkbox and anima_cache_text_encoder_outputs_to_disk)
+    )
     no_half_vae = sdxl_checkbox and sdxl_no_half_vae
 
     # --train_inpainting is only supported by fine_tune.py/sdxl_train.py
-    train_inpainting = train_inpainting and not (sd3_checkbox or flux1_checkbox)
+    train_inpainting = train_inpainting and not (
+        sd3_checkbox or flux1_checkbox or anima_checkbox
+    )
     if train_inpainting:
         # Masks are generated randomly per training step from the source
         # image, so latent caching cannot be used at the same time.
@@ -1003,7 +1098,7 @@ def train_model(
         "caption_dropout_rate": caption_dropout_rate,
         "caption_extension": caption_extension,
         "clip_l": flux1_clip_l if flux1_checkbox else clip_l if sd3_checkbox else None,
-        "clip_skip": clip_skip if clip_skip != 0 else None,
+        "clip_skip": (clip_skip if clip_skip != 0 and not anima_checkbox else None),
         "color_aug": color_aug,
         "dataset_config": dataset_config,
         "dataset_repeats": int(dataset_repeats),
@@ -1059,7 +1154,7 @@ def train_model(
         "masked_loss": masked_loss,
         "max_bucket_reso": int(max_bucket_reso),
         "max_timestep": max_timestep if max_timestep != 0 else None,
-        "max_token_length": int(max_token_length),
+        "max_token_length": (int(max_token_length) if not anima_checkbox else None),
         "max_train_epochs": (
             int(max_train_epochs) if int(max_train_epochs) != 0 else None
         ),
@@ -1131,6 +1226,7 @@ def train_model(
         "v2": v2,
         "v_parameterization": v_parameterization,
         "v_pred_like_loss": v_pred_like_loss if v_pred_like_loss != 0 else None,
+        "vae": anima_vae if anima_checkbox else None,
         "vae_batch_size": vae_batch_size if vae_batch_size != 0 else None,
         "wandb_api_key": wandb_api_key,
         "wandb_run_name": wandb_run_name if wandb_run_name != "" else output_name,
@@ -1159,9 +1255,17 @@ def train_model(
         "ae": ae if flux1_checkbox else None,
         # "clip_l": see previous assignment above for code
         # "t5xxl": see previous assignment above for code
-        "discrete_flow_shift": discrete_flow_shift if flux1_checkbox else None,
+        "discrete_flow_shift": (
+            float(anima_discrete_flow_shift)
+            if anima_checkbox
+            else discrete_flow_shift if flux1_checkbox else None
+        ),
         "model_prediction_type": model_prediction_type if flux1_checkbox else None,
-        "timestep_sampling": timestep_sampling if flux1_checkbox else None,
+        "timestep_sampling": (
+            anima_timestep_sampling
+            if anima_checkbox
+            else timestep_sampling if flux1_checkbox else None
+        ),
         # split_mode/train_blocks are LoRA-only (flux_train_network.py); this
         # tab only ever targets flux_train.py, which does not accept them.
         "split_mode": None,
@@ -1174,21 +1278,80 @@ def train_model(
         "cpu_offload_checkpointing": (
             cpu_offload_checkpointing if flux1_checkbox else None
         ),
-        "blocks_to_swap": blocks_to_swap if flux1_checkbox else None,
+        "blocks_to_swap": (
+            blocks_to_swap if flux1_checkbox or anima_checkbox else None
+        ),
         "single_blocks_to_swap": single_blocks_to_swap if flux1_checkbox else None,
         "double_blocks_to_swap": double_blocks_to_swap if flux1_checkbox else None,
         "show_timesteps": (
             show_timesteps
-            if (flux1_checkbox or sd3_checkbox) and show_timesteps
+            if (flux1_checkbox or sd3_checkbox or anima_checkbox) and show_timesteps
             else None
         ),
         "show_timesteps_resolution": (
             show_timesteps_resolution
-            if (flux1_checkbox or sd3_checkbox) and show_timesteps
+            if (flux1_checkbox or sd3_checkbox or anima_checkbox) and show_timesteps
             else None
         ),
         "mem_eff_save": mem_eff_save if flux1_checkbox else None,
         "apply_t5_attn_mask": apply_t5_attn_mask if flux1_checkbox else None,
+        # Anima specific parameters
+        "sigmoid_scale": (float(anima_sigmoid_scale) if anima_checkbox else None),
+        "attn_mode": (
+            anima_attn_mode if anima_checkbox and anima_attn_mode != "torch" else None
+        ),
+        "split_attn": anima_split_attn if anima_checkbox else None,
+        "vae_chunk_size": (
+            int(anima_vae_chunk_size)
+            if anima_checkbox and anima_vae_chunk_size
+            else None
+        ),
+        "qwen3": anima_qwen3 if anima_checkbox else None,
+        "llm_adapter_path": (
+            anima_llm_adapter_path
+            if anima_checkbox and anima_llm_adapter_path
+            else None
+        ),
+        "t5_tokenizer_path": (
+            anima_t5_tokenizer_path
+            if anima_checkbox and anima_t5_tokenizer_path
+            else None
+        ),
+        "qwen3_max_token_length": (
+            int(anima_qwen3_max_token_length) if anima_checkbox else None
+        ),
+        "t5_max_token_length": (
+            int(anima_t5_max_token_length) if anima_checkbox else None
+        ),
+        "vae_disable_cache": anima_vae_disable_cache if anima_checkbox else None,
+        "unsloth_offload_checkpointing": (
+            anima_unsloth_offload_checkpointing if anima_checkbox else None
+        ),
+        "qwen_image_vae_2d": (anima_qwen_image_vae_2d if anima_checkbox else None),
+        # `--compile` (per-block) and `--torch_compile` (accelerate dynamo) are
+        # mutually exclusive at the backend; the GUI already prevents both
+        # checkboxes from being enabled together (see class_anima.py).
+        "compile": anima_compile if anima_checkbox else None,
+        "torch_compile": anima_torch_compile if anima_checkbox else None,
+        "compile_backend": (
+            anima_compile_backend if anima_checkbox and anima_compile else None
+        ),
+        "compile_mode": (
+            anima_compile_mode if anima_checkbox and anima_compile else None
+        ),
+        "compile_dynamic": (
+            anima_compile_dynamic
+            if anima_checkbox and anima_compile and anima_compile_dynamic != "auto"
+            else None
+        ),
+        "compile_fullgraph": (
+            anima_compile_fullgraph if anima_checkbox and anima_compile else None
+        ),
+        "compile_cache_size_limit": (
+            int(anima_compile_cache_size_limit)
+            if anima_checkbox and anima_compile and anima_compile_cache_size_limit
+            else None
+        ),
     }
 
     # Given dictionary `config_toml_data`
@@ -1407,6 +1570,14 @@ def finetune_tab(
             # Add SD3 Parameters
             sd3_training = sd3Training(
                 headless=headless, config=config, sd3_checkbox=source_model.sd3_checkbox
+            )
+
+            # Add Anima Parameters
+            anima_training = animaTraining(
+                headless=headless,
+                config=config,
+                anima_checkbox=source_model.anima_checkbox,
+                finetuning=True,
             )
 
             with gr.Accordion("Advanced", open=False, elem_id="advanced_tab"):
@@ -1675,6 +1846,43 @@ def finetune_tab(
             ("show_timesteps_resolution", advanced_training.show_timesteps_resolution),
             ("mem_eff_save", flux1_training.mem_eff_save),
             ("apply_t5_attn_mask", flux1_training.apply_t5_attn_mask),
+            (
+                "anima_cache_text_encoder_outputs",
+                anima_training.cache_text_encoder_outputs,
+            ),
+            (
+                "anima_cache_text_encoder_outputs_to_disk",
+                anima_training.cache_text_encoder_outputs_to_disk,
+            ),
+            ("anima_qwen3", anima_training.qwen3),
+            ("anima_vae", anima_training.vae),
+            ("anima_llm_adapter_path", anima_training.llm_adapter_path),
+            ("anima_t5_tokenizer_path", anima_training.t5_tokenizer_path),
+            ("anima_discrete_flow_shift", anima_training.discrete_flow_shift),
+            ("anima_timestep_sampling", anima_training.timestep_sampling),
+            ("anima_sigmoid_scale", anima_training.sigmoid_scale),
+            ("anima_qwen3_max_token_length", anima_training.qwen3_max_token_length),
+            ("anima_t5_max_token_length", anima_training.t5_max_token_length),
+            ("anima_attn_mode", anima_training.attn_mode),
+            ("anima_split_attn", anima_training.split_attn),
+            ("anima_vae_chunk_size", anima_training.vae_chunk_size),
+            ("anima_vae_disable_cache", anima_training.vae_disable_cache),
+            (
+                "anima_unsloth_offload_checkpointing",
+                anima_training.unsloth_offload_checkpointing,
+            ),
+            ("anima_qwen_image_vae_2d", anima_training.qwen_image_vae_2d),
+            ("anima_compile", anima_training.compile),
+            ("anima_torch_compile", anima_training.torch_compile),
+            ("anima_compile_backend", anima_training.compile_backend),
+            ("anima_compile_mode", anima_training.compile_mode),
+            ("anima_compile_dynamic", anima_training.compile_dynamic),
+            ("anima_compile_fullgraph", anima_training.compile_fullgraph),
+            (
+                "anima_compile_cache_size_limit",
+                anima_training.compile_cache_size_limit,
+            ),
+            ("anima_checkbox", source_model.anima_checkbox),
         ]
         settings_list = [comp for _, comp in FIELD_REGISTRY]
 
