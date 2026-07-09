@@ -355,23 +355,31 @@ class TestLoraGuiDictAdapterWiring(unittest.TestCase):
         kwargs = self._field_kwargs()
         data = self._field_data(kwargs)
 
-        with tempfile.NamedTemporaryFile(
-            suffix=".json", delete=False
-        ) as via_wiring_file:
+        # Close the handle before reopening: Windows locks NamedTemporaryFile
+        # while the with-block holds it open, which fails save_configuration/open.
+        via_wiring_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
+        via_wiring_path = via_wiring_file.name
+        via_wiring_file.close()
+        try:
             data[self.components["dummy_db_false"]] = False
-            data[self.components["config_file_name"]] = via_wiring_file.name
+            data[self.components["config_file_name"]] = via_wiring_path
             self.entries["save_configuration"](data)
-            with open(via_wiring_file.name, encoding="utf-8") as f:
+            with open(via_wiring_path, encoding="utf-8") as f:
                 via_wiring = json.load(f)
-        os.unlink(via_wiring_file.name)
+        finally:
+            os.unlink(via_wiring_path)
 
-        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as direct_file:
+        direct_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
+        direct_path = direct_file.name
+        direct_file.close()
+        try:
             lora_gui.save_configuration(
-                save_as_bool=False, file_path=direct_file.name, **kwargs
+                save_as_bool=False, file_path=direct_path, **kwargs
             )
-            with open(direct_file.name, encoding="utf-8") as f:
+            with open(direct_path, encoding="utf-8") as f:
                 via_direct_call = json.load(f)
-        os.unlink(direct_file.name)
+        finally:
+            os.unlink(direct_path)
 
         self.assertEqual(via_wiring, via_direct_call)
 
