@@ -3580,6 +3580,11 @@ def lora_tab(
             ask_for_file_comp, apply_preset_comp, output_file_path_comp
         ):
             def _entry(data: dict):
+                output_components = (
+                    [output_file_path_comp]
+                    + settings_list
+                    + [training_preset, convolution_row]
+                )
                 result = open_configuration(
                     ask_for_file=data[ask_for_file_comp],
                     apply_preset=data[apply_preset_comp],
@@ -3587,13 +3592,16 @@ def lora_tab(
                     training_preset=data[training_preset],
                     **_kwargs_from_registry(data),
                 )
+                # Missing config file returns None — emit no-op updates so every
+                # wired output is accounted for (partial {} is not guaranteed).
                 if result is None:
-                    return {}
-                output_components = (
-                    [output_file_path_comp]
-                    + settings_list
-                    + [training_preset, convolution_row]
-                )
+                    return {comp: gr.update() for comp in output_components}
+                if len(result) != len(output_components):
+                    raise ValueError(
+                        f"open_configuration returned {len(result)} values, "
+                        f"expected {len(output_components)} "
+                        f"(FIELD_REGISTRY/signature drift?)"
+                    )
                 return dict(zip(output_components, result))
 
             return _entry
