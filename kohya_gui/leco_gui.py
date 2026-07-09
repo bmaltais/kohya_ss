@@ -42,6 +42,19 @@ executor = None
 use_shell = False
 train_state_value = time.time()
 
+# Populated by leco_tab() with the (param_name, component) pairs backing
+# settings_list, in the same order as train_model's/save_configuration's/
+# open_configuration's shared keyword-argument order. Exposed at module level
+# so tests can assert it stays in sync without rebuilding the whole GUI.
+last_built_field_registry = None
+
+# Populated by leco_tab() with the dict-keyed adapter callables wired to the
+# train/save/load buttons (GH #3543 M3). Exposed at module level so tests can
+# invoke the real .click()-bound callables directly instead of calling
+# train_model/save_configuration/open_configuration themselves, exercising the
+# same component-identity lookup the Gradio wiring uses.
+last_built_gui_entries = None
+
 document_symbol = "\U0001f4c4"  # 📄
 folder_symbol = "\U0001f4c2"  # 📂
 
@@ -572,6 +585,7 @@ def leco_tab(
     global use_shell, executor
     use_shell = use_shell_flag
 
+    dummy_db_true = gr.Checkbox(value=True, visible=False)
     dummy_db_false = gr.Checkbox(value=False, visible=False)
     dummy_headless = gr.Checkbox(value=headless, visible=False)
 
@@ -1107,93 +1121,179 @@ def leco_tab(
 
         button_print = gr.Button("Print training command")
 
-        settings_list = [
-            pretrained_model_name_or_path,
-            v2,
-            v_parameterization,
-            sdxl,
-            output_dir,
-            output_name,
-            save_model_as,
-            save_precision,
-            training_comment,
-            no_metadata,
-            prompts_file,
-            network_module,
-            network_dim,
-            network_alpha,
-            network_dropout,
-            network_args,
-            network_weights,
-            dim_from_weights,
-            learning_rate,
-            unet_lr,
-            optimizer,
-            optimizer_args,
-            lr_scheduler,
-            lr_scheduler_args,
-            lr_warmup_steps,
-            lr_scheduler_num_cycles,
-            lr_scheduler_power,
-            max_train_steps,
-            max_grad_norm,
-            max_denoising_steps,
-            leco_denoise_guidance_scale,
-            seed,
-            gradient_accumulation_steps,
-            accelerate_launch.mixed_precision,
-            accelerate_launch.num_cpu_threads_per_process,
-            accelerate_launch.num_processes,
-            accelerate_launch.num_machines,
-            accelerate_launch.multi_gpu,
-            accelerate_launch.gpu_ids,
-            accelerate_launch.main_process_port,
-            accelerate_launch.dynamo_backend,
-            accelerate_launch.dynamo_mode,
-            accelerate_launch.dynamo_use_fullgraph,
-            accelerate_launch.dynamo_use_dynamic,
-            accelerate_launch.extra_accelerate_launch_args,
-            gradient_checkpointing,
-            full_fp16,
-            full_bf16,
-            xformers,
-            mem_eff_attn,
-            clip_skip,
-            noise_offset,
-            zero_terminal_snr,
-            min_snr_gamma,
-            save_every_n_steps,
-            save_last_n_steps,
-            save_last_n_steps_state,
-            save_state,
-            save_state_on_train_end,
-            resume,
-            logging_dir,
-            log_with,
-            log_tracker_name,
-            log_tracker_config,
-            log_config,
-            wandb_api_key,
-            wandb_run_name,
+        FIELD_REGISTRY = [
+            ("pretrained_model_name_or_path", pretrained_model_name_or_path),
+            ("v2", v2),
+            ("v_parameterization", v_parameterization),
+            ("sdxl", sdxl),
+            ("output_dir", output_dir),
+            ("output_name", output_name),
+            ("save_model_as", save_model_as),
+            ("save_precision", save_precision),
+            ("training_comment", training_comment),
+            ("no_metadata", no_metadata),
+            ("prompts_file", prompts_file),
+            ("network_module", network_module),
+            ("network_dim", network_dim),
+            ("network_alpha", network_alpha),
+            ("network_dropout", network_dropout),
+            ("network_args", network_args),
+            ("network_weights", network_weights),
+            ("dim_from_weights", dim_from_weights),
+            ("learning_rate", learning_rate),
+            ("unet_lr", unet_lr),
+            ("optimizer", optimizer),
+            ("optimizer_args", optimizer_args),
+            ("lr_scheduler", lr_scheduler),
+            ("lr_scheduler_args", lr_scheduler_args),
+            ("lr_warmup_steps", lr_warmup_steps),
+            ("lr_scheduler_num_cycles", lr_scheduler_num_cycles),
+            ("lr_scheduler_power", lr_scheduler_power),
+            ("max_train_steps", max_train_steps),
+            ("max_grad_norm", max_grad_norm),
+            ("max_denoising_steps", max_denoising_steps),
+            ("leco_denoise_guidance_scale", leco_denoise_guidance_scale),
+            ("seed", seed),
+            ("gradient_accumulation_steps", gradient_accumulation_steps),
+            ("mixed_precision", accelerate_launch.mixed_precision),
+            (
+                "num_cpu_threads_per_process",
+                accelerate_launch.num_cpu_threads_per_process,
+            ),
+            ("num_processes", accelerate_launch.num_processes),
+            ("num_machines", accelerate_launch.num_machines),
+            ("multi_gpu", accelerate_launch.multi_gpu),
+            ("gpu_ids", accelerate_launch.gpu_ids),
+            ("main_process_port", accelerate_launch.main_process_port),
+            ("dynamo_backend", accelerate_launch.dynamo_backend),
+            ("dynamo_mode", accelerate_launch.dynamo_mode),
+            ("dynamo_use_fullgraph", accelerate_launch.dynamo_use_fullgraph),
+            ("dynamo_use_dynamic", accelerate_launch.dynamo_use_dynamic),
+            (
+                "extra_accelerate_launch_args",
+                accelerate_launch.extra_accelerate_launch_args,
+            ),
+            ("gradient_checkpointing", gradient_checkpointing),
+            ("full_fp16", full_fp16),
+            ("full_bf16", full_bf16),
+            ("xformers", xformers),
+            ("mem_eff_attn", mem_eff_attn),
+            ("clip_skip", clip_skip),
+            ("noise_offset", noise_offset),
+            ("zero_terminal_snr", zero_terminal_snr),
+            ("min_snr_gamma", min_snr_gamma),
+            ("save_every_n_steps", save_every_n_steps),
+            ("save_last_n_steps", save_last_n_steps),
+            ("save_last_n_steps_state", save_last_n_steps_state),
+            ("save_state", save_state),
+            ("save_state_on_train_end", save_state_on_train_end),
+            ("resume", resume),
+            ("logging_dir", logging_dir),
+            ("log_with", log_with),
+            ("log_tracker_name", log_tracker_name),
+            ("log_tracker_config", log_tracker_config),
+            ("log_config", log_config),
+            ("wandb_api_key", wandb_api_key),
+            ("wandb_run_name", wandb_run_name),
         ]
+        settings_list = [comp for _, comp in FIELD_REGISTRY]
+
+        global last_built_field_registry
+        last_built_field_registry = FIELD_REGISTRY
+
+        # GH #3543 M3: adapters at the Gradio boundary look up each argument by
+        # component identity (via FIELD_REGISTRY) rather than by position, so a
+        # field added out of order can no longer silently shift every
+        # subsequent value into the wrong parameter. train_model's/
+        # save_configuration's/open_configuration's own signatures and bodies
+        # are untouched; only the .click() wiring below changes.
+        def _kwargs_from_registry(data: dict) -> dict:
+            return {name: data[comp] for name, comp in FIELD_REGISTRY}
+
+        def _make_open_configuration_entry(ask_for_file_comp):
+            def _entry(data: dict):
+                output_components = [configuration.config_file_name] + settings_list
+                result = open_configuration(
+                    ask_for_file=data[ask_for_file_comp],
+                    file_path=data[configuration.config_file_name],
+                    **_kwargs_from_registry(data),
+                )
+                # Missing config file returns None — emit no-op updates so every
+                # wired output is accounted for (partial {} is not guaranteed).
+                if result is None:
+                    return {comp: gr.update() for comp in output_components}
+                if len(result) != len(output_components):
+                    raise ValueError(
+                        f"open_configuration returned {len(result)} values, "
+                        f"expected {len(output_components)} "
+                        f"(FIELD_REGISTRY/signature drift?)"
+                    )
+                return dict(zip(output_components, result))
+
+            return _entry
+
+        def _save_configuration_entry(data: dict):
+            return save_configuration(
+                save_as_bool=data[dummy_db_false],
+                file_path=data[configuration.config_file_name],
+                **_kwargs_from_registry(data),
+            )
+
+        def _make_train_model_entry(print_only_comp):
+            def _entry(data: dict):
+                return train_model(
+                    headless=data[dummy_headless],
+                    print_only=data[print_only_comp],
+                    **_kwargs_from_registry(data),
+                )
+
+            return _entry
+
+        # Open asks for a file (True); Load re-reads the path already in the
+        # config_file_name field (False). Pre-adapter wiring incorrectly used
+        # False for both, so the Open button never opened a file dialog —
+        # align with lora/dreambooth/finetune/TI while converting to adapters.
+        open_config_entry = _make_open_configuration_entry(dummy_db_true)
+        load_config_entry = _make_open_configuration_entry(dummy_db_false)
+        train_model_entry = _make_train_model_entry(dummy_db_false)
+        print_command_entry = _make_train_model_entry(dummy_db_true)
+
+        global last_built_gui_entries
+        last_built_gui_entries = {
+            "open_configuration": open_config_entry,
+            "load_configuration": load_config_entry,
+            "save_configuration": _save_configuration_entry,
+            "train_model": train_model_entry,
+            "print_command": print_command_entry,
+            "components": {
+                "dummy_headless": dummy_headless,
+                "dummy_db_true": dummy_db_true,
+                "dummy_db_false": dummy_db_false,
+                "config_file_name": configuration.config_file_name,
+            },
+        }
 
         configuration.button_open_config.click(
-            open_configuration,
-            inputs=[dummy_db_false, configuration.config_file_name] + settings_list,
-            outputs=[configuration.config_file_name] + settings_list,
+            open_config_entry,
+            inputs=set([dummy_db_true, configuration.config_file_name] + settings_list),
+            outputs=set([configuration.config_file_name] + settings_list),
             show_progress=False,
         )
 
         configuration.button_load_config.click(
-            open_configuration,
-            inputs=[dummy_db_false, configuration.config_file_name] + settings_list,
-            outputs=[configuration.config_file_name] + settings_list,
+            load_config_entry,
+            inputs=set(
+                [dummy_db_false, configuration.config_file_name] + settings_list
+            ),
+            outputs=set([configuration.config_file_name] + settings_list),
             show_progress=False,
         )
 
         configuration.button_save_config.click(
-            save_configuration,
-            inputs=[dummy_db_false, configuration.config_file_name] + settings_list,
+            _save_configuration_entry,
+            inputs=set(
+                [dummy_db_false, configuration.config_file_name] + settings_list
+            ),
             outputs=[configuration.config_file_name],
             show_progress=False,
         )
@@ -1206,8 +1306,8 @@ def leco_tab(
         )
 
         executor.button_run.click(
-            train_model,
-            inputs=[dummy_headless] + [dummy_db_false] + settings_list,
+            train_model_entry,
+            inputs=set([dummy_headless, dummy_db_false] + settings_list),
             outputs=[executor.button_run, executor.button_stop_training, run_state],
             show_progress=False,
         )
@@ -1218,9 +1318,7 @@ def leco_tab(
         )
 
         button_print.click(
-            train_model,
-            inputs=[dummy_headless]
-            + [gr.Checkbox(value=True, visible=False)]
-            + settings_list,
+            print_command_entry,
+            inputs=set([dummy_headless, dummy_db_true] + settings_list),
             show_progress=False,
         )
