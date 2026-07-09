@@ -14,17 +14,21 @@ class animaTraining:
         training_type: str = "",
         config: dict = {},
         anima_checkbox: gr.Checkbox = False,
+        always_visible: bool = False,
+        show_unsloth_offload_checkpointing: bool = True,
     ) -> None:
         self.headless = headless
         self.finetuning = finetuning
         self.training_type = training_type
         self.config = config
         self.anima_checkbox = anima_checkbox
+        self.always_visible = always_visible
+        self.show_unsloth_offload_checkpointing = show_unsloth_offload_checkpointing
 
         with gr.Accordion(
             "Anima",
             open=True,
-            visible=False,
+            visible=always_visible,
             elem_classes=["anima_background"],
         ) as anima_accordion:
             with gr.Group():
@@ -203,6 +207,8 @@ class animaTraining:
                         info="Cache text encoder outputs to disk. Automatically enables Cache Text Encoder Outputs.",
                         interactive=True,
                     )
+                    # Anima ControlNet-LLLite asserts if this is set (MVP); hide
+                    # it when the caller is a dedicated LLLite tab.
                     self.unsloth_offload_checkpointing = gr.Checkbox(
                         label="Unsloth Offload Checkpointing",
                         value=self.config.get(
@@ -210,6 +216,7 @@ class animaTraining:
                         ),
                         info="Offload activations to CPU RAM using async non-blocking transfers (faster than CPU Offload Checkpointing). Cannot be combined with CPU Offload Checkpointing or Blocks to swap.",
                         interactive=True,
+                        visible=show_unsloth_offload_checkpointing,
                     )
 
                 with gr.Row():
@@ -284,8 +291,9 @@ class animaTraining:
                     outputs=[self.compile],
                 )
 
-                self.anima_checkbox.change(
-                    lambda anima_checkbox: gr.Accordion(visible=anima_checkbox),
-                    inputs=[self.anima_checkbox],
-                    outputs=[anima_accordion],
-                )
+                if not always_visible:
+                    self.anima_checkbox.change(
+                        lambda anima_checkbox: gr.Accordion(visible=anima_checkbox),
+                        inputs=[self.anima_checkbox],
+                        outputs=[anima_accordion],
+                    )
