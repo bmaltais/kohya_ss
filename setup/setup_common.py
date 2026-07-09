@@ -13,7 +13,20 @@ log = logging.getLogger("sd")
 MIN_PYTHON_VERSION = (3, 10, 9)
 MAX_PYTHON_VERSION = (3, 13, 0)
 LOG_DIR = "../logs/setup/"
-LOG_LEVEL = "INFO" # Set to "INFO" or "WARNING" for less verbose logging
+LOG_LEVEL = "INFO"  # Set to "INFO" or "WARNING" for less verbose logging
+
+# Native PyTorch XPU wheels (pytorch.org). Used by --use-ipex after IPEX EOL (#3499).
+LINUX_INTEL_GPU_REQUIREMENTS_FILE = "requirements_ipex_xpu.txt"
+
+
+def get_linux_intel_gpu_requirements_file() -> str:
+    """Return the requirements file for Intel Arc / XPU Linux installs.
+
+    Historically selected via ``--use-ipex``. Intel archived IPEX and stopped
+    publishing official extension wheels; installs must use native PyTorch XPU
+    from download.pytorch.org instead of intel-extension-for-pytorch.
+    """
+    return LINUX_INTEL_GPU_REQUIREMENTS_FILE
 
 
 def check_python_version():
@@ -36,7 +49,9 @@ def check_python_version():
         return True
     except Exception as e:
         log.error(f"An unexpected error occurred while verifying Python version: {e}")
-        log.error("This might indicate a problem with your Python installation or environment configuration.")
+        log.error(
+            "This might indicate a problem with your Python installation or environment configuration."
+        )
         return False
 
 
@@ -53,14 +68,20 @@ def update_submodule(quiet=True):
         subprocess.run(git_command, check=True, capture_output=True, text=True)
         log.info("Submodule initialized and updated.")
     except subprocess.CalledProcessError as e:
-        log.error(f"Error updating submodule. Git command: '{' '.join(git_command)}' failed with exit code {e.returncode}.")
+        log.error(
+            f"Error updating submodule. Git command: '{' '.join(git_command)}' failed with exit code {e.returncode}."
+        )
         if e.stdout:
             log.error(f"Git stdout: {e.stdout.strip()}")
         if e.stderr:
             log.error(f"Git stderr: {e.stderr.strip()}")
-        log.error("Please ensure Git is installed and accessible in your PATH. Also, check your internet connection and repository permissions.")
+        log.error(
+            "Please ensure Git is installed and accessible in your PATH. Also, check your internet connection and repository permissions."
+        )
     except FileNotFoundError:
-        log.error(f"Error updating submodule: Git command not found. Please ensure Git is installed and accessible in your PATH.")
+        log.error(
+            f"Error updating submodule: Git command not found. Please ensure Git is installed and accessible in your PATH."
+        )
 
 
 def clone_or_checkout(repo_url, branch_or_tag, directory_name):
@@ -112,14 +133,20 @@ def clone_or_checkout(repo_url, branch_or_tag, directory_name):
             else:
                 log.info(f"Already at required branch/tag: {branch_or_tag}")
     except subprocess.CalledProcessError as e:
-        log.error(f"Error during Git operation. Command: '{' '.join(e.cmd)}' failed with exit code {e.returncode}.")
+        log.error(
+            f"Error during Git operation. Command: '{' '.join(e.cmd)}' failed with exit code {e.returncode}."
+        )
         if e.stdout:
             log.error(f"Git stdout: {e.stdout.strip()}")
         if e.stderr:
             log.error(f"Git stderr: {e.stderr.strip()}")
-        log.error(f"Failed to clone or checkout {repo_url} ({branch_or_tag}). Please check the repository URL, branch/tag name, your internet connection, and Git installation.")
+        log.error(
+            f"Failed to clone or checkout {repo_url} ({branch_or_tag}). Please check the repository URL, branch/tag name, your internet connection, and Git installation."
+        )
     except FileNotFoundError:
-        log.error(f"Error during Git operation: Git command not found. Please ensure Git is installed and accessible in your PATH.")
+        log.error(
+            f"Error during Git operation: Git command not found. Please ensure Git is installed and accessible in your PATH."
+        )
     finally:
         os.chdir(original_dir)
 
@@ -165,11 +192,16 @@ def setup_logging():
 
 def install_requirements_inbulk(
     requirements_file, show_stdout=True, optional_parm="", upgrade=False
-):
+) -> bool:
+    """Install packages from a requirements file.
+
+    Returns:
+        True on success, False if the requirements file is missing or pip fails.
+    """
     log.debug(f"Installing requirements in bulk from: {requirements_file}")
     if not os.path.exists(requirements_file):
         log.error(f"Could not find the requirements file in {requirements_file}.")
-        return
+        return False
 
     log.info(f"Installing/Validating requirements from {requirements_file}...")
 
@@ -188,10 +220,7 @@ def install_requirements_inbulk(
     try:
         # Run the command and filter output in real-time
         process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True
         )
 
         for line in process.stdout:
@@ -204,25 +233,45 @@ def install_requirements_inbulk(
         # Capture and log any errors
         stdout, stderr = process.communicate()
         if process.returncode != 0:
-            log.error(f"Failed to install requirements from {requirements_file}. Pip command: '{' '.join(cmd)}'. Exit code: {process.returncode}")
+            log.error(
+                f"Failed to install requirements from {requirements_file}. Pip command: '{' '.join(cmd)}'. Exit code: {process.returncode}"
+            )
             if stdout:
                 log.error(f"Pip stdout: {stdout.strip()}")
             if stderr:
                 log.error(f"Pip stderr: {stderr.strip()}")
-            log.error("Please check the requirements file path, your internet connection, and ensure pip is functioning correctly.")
-        else:
-            if stdout and show_stdout and not installed("uv"): # uv already prints its output
-                for line in stdout.splitlines():
-                    if "Requirement already satisfied" not in line:
-                        log.info(line.strip())
-            if stderr: # Always log stderr if present, even on success
-                log.warning(f"Pip stderr (even on success): {stderr.strip()}")
+                if "403" in stderr or "Forbidden" in stderr:
+                    log.error(
+                        "HTTP 403/Forbidden from a package index usually means the "
+                        "wheel was removed or the index no longer serves that pin "
+                        "(e.g. EOL IPEX). Prefer native PyTorch XPU requirements "
+                        f"({get_linux_intel_gpu_requirements_file()}) for Intel GPUs."
+                    )
+            log.error(
+                "Please check the requirements file path, your internet connection, and ensure pip is functioning correctly."
+            )
+            return False
 
+        if (
+            stdout and show_stdout and not installed("uv")
+        ):  # uv already prints its output
+            for line in stdout.splitlines():
+                if "Requirement already satisfied" not in line:
+                    log.info(line.strip())
+        if stderr:  # Always log stderr if present, even on success
+            log.warning(f"Pip stderr (even on success): {stderr.strip()}")
+        return True
 
     except FileNotFoundError:
-        log.error(f"Error installing requirements: '{cmd[0]}' command not found. Please ensure it is installed and in your PATH.")
+        log.error(
+            f"Error installing requirements: '{cmd[0]}' command not found. Please ensure it is installed and in your PATH."
+        )
+        return False
     except Exception as e:
-        log.error(f"An unexpected error occurred while installing requirements from {requirements_file}: {e}")
+        log.error(
+            f"An unexpected error occurred while installing requirements from {requirements_file}: {e}"
+        )
+        return False
 
 
 def configure_accelerate(run_accelerate=False):
@@ -335,20 +384,24 @@ def check_torch():
 
         log.debug("Torch module imported successfully.")
         try:
-            # Import IPEX / XPU support
-            import intel_extension_for_pytorch as ipex
+            # IPEX is optional/legacy after PyTorch 2.5; native XPU does not need it (#3499)
+            import intel_extension_for_pytorch as ipex  # noqa: F401
 
             log.debug("Intel extension for PyTorch imported successfully.")
         except Exception as e:
-            log.warning(f"Failed to import intel_extension_for_pytorch: {e}")
+            log.debug(f"intel_extension_for_pytorch not available (optional): {e}")
         log.info(f"Torch {torch.__version__}")
 
         _log_gpu_info(torch)
 
         return int(torch.__version__[0])
     except ImportError as e:
-        log.error(f"Failed to import Torch: {e}. Please ensure PyTorch is installed correctly for your system.")
-        log.error("You might need to install or reinstall PyTorch. Check https://pytorch.org/get-started/locally/ for instructions.")
+        log.error(
+            f"Failed to import Torch: {e}. Please ensure PyTorch is installed correctly for your system."
+        )
+        log.error(
+            "You might need to install or reinstall PyTorch. Check https://pytorch.org/get-started/locally/ for instructions."
+        )
         return 0
     except Exception as e:
         log.error(f"An unexpected error occurred while checking Torch: {e}")
@@ -371,9 +424,7 @@ def _check_nvidia_toolkit():
 
 def _check_amd_toolkit():
     """Checks for AMD toolkit."""
-    if shutil.which("rocminfo") is not None or os.path.exists(
-        "/opt/rocm/bin/rocminfo"
-    ):
+    if shutil.which("rocminfo") is not None or os.path.exists("/opt/rocm/bin/rocminfo"):
         log.info("AMD toolkit detected")
         return True
     return False
@@ -424,13 +475,15 @@ def _log_gpu_info(torch_module):
             )
     # Check if XPU is available
     elif hasattr(torch_module, "xpu") and torch_module.xpu.is_available():
-        # Log Intel IPEX version
-        # Ensure ipex is imported before accessing __version__
+        # Prefer native PyTorch XPU; IPEX is optional/legacy after PyTorch 2.5 (#3499)
         try:
             import intel_extension_for_pytorch as ipex
+
             log.info(f"Torch backend: Intel IPEX {ipex.__version__}")
         except ImportError:
-            log.warning("Intel IPEX version not available.")
+            log.info(
+                "Torch backend: native PyTorch XPU (intel_extension_for_pytorch not installed)"
+            )
 
         for i in range(torch_module.xpu.device_count()):
             device = torch_module.xpu.device(i)
@@ -500,11 +553,19 @@ def git(arg: str, folder: str = None, ignore: bool = False):
     if result.returncode != 0 and not ignore:
         # global errors # This variable is not defined in this file. Assuming it's a remnant from an older version or a different context.
         # errors += 1
-        log.error(f"Error running git command 'git {arg}' in folder '{folder or '.'}'. Exit code: {result.returncode}")
+        log.error(
+            f"Error running git command 'git {arg}' in folder '{folder or '.'}'. Exit code: {result.returncode}"
+        )
         if "or stash them" in txt:
-            log.error(f"Local changes detected. Please commit or stash them before running this command again. Full git output below.")
-        log.error(f"Git output: {txt}") # Changed from log.debug to log.error for better visibility of error details
-        log.error("Please ensure Git is installed, the repository exists, you have the necessary permissions, and there are no conflicts or uncommitted changes.")
+            log.error(
+                f"Local changes detected. Please commit or stash them before running this command again. Full git output below."
+            )
+        log.error(
+            f"Git output: {txt}"
+        )  # Changed from log.debug to log.error for better visibility of error details
+        log.error(
+            "Please ensure Git is installed, the repository exists, you have the necessary permissions, and there are no conflicts or uncommitted changes."
+        )
 
 
 def pip(arg: str, ignore: bool = False, quiet: bool = False, show_stdout: bool = False):
@@ -558,9 +619,13 @@ def pip(arg: str, ignore: bool = False, quiet: bool = False, show_stdout: bool =
             )
         txt = txt.strip()
         if result.returncode != 0 and not ignore:
-            log.error(f"Error running pip command: '{' '.join(pip_cmd)}'. Exit code: {result.returncode}")
+            log.error(
+                f"Error running pip command: '{' '.join(pip_cmd)}'. Exit code: {result.returncode}"
+            )
             log.error(f"Pip output: {txt}")
-            log.error("Please check the package name, version, your internet connection, and ensure pip is functioning correctly.")
+            log.error(
+                "Please check the package name, version, your internet connection, and ensure pip is functioning correctly."
+            )
         return txt
 
 
@@ -768,24 +833,39 @@ def run_cmd(run_cmd):
     """
     log.debug(f"Running command: {run_cmd}")
     try:
-        process = subprocess.run(run_cmd, shell=True, check=True, env=os.environ, capture_output=True, text=True)
+        process = subprocess.run(
+            run_cmd,
+            shell=True,
+            check=True,
+            env=os.environ,
+            capture_output=True,
+            text=True,
+        )
         log.debug(f"Command executed successfully: {run_cmd}")
         if process.stdout:
             log.debug(f"Stdout: {process.stdout.strip()}")
         if process.stderr:
             log.debug(f"Stderr: {process.stderr.strip()}")
     except subprocess.CalledProcessError as e:
-        log.error(f"Error occurred while running command: '{run_cmd}'. Exit code: {e.returncode}")
+        log.error(
+            f"Error occurred while running command: '{run_cmd}'. Exit code: {e.returncode}"
+        )
         if e.stdout:
             log.error(f"Stdout: {e.stdout.strip()}")
         if e.stderr:
             log.error(f"Stderr: {e.stderr.strip()}")
-        log.error("Please check the command syntax, permissions, and ensure all required programs are installed and in PATH.")
+        log.error(
+            "Please check the command syntax, permissions, and ensure all required programs are installed and in PATH."
+        )
     except FileNotFoundError:
         # This might occur if the command itself (e.g., the first part of run_cmd) is not found
-        log.error(f"Error running command: '{run_cmd}'. The command or a part of it was not found. Please ensure it is correctly spelled and accessible in your PATH.")
+        log.error(
+            f"Error running command: '{run_cmd}'. The command or a part of it was not found. Please ensure it is correctly spelled and accessible in your PATH."
+        )
     except Exception as e:
-        log.error(f"An unexpected error occurred while running command '{run_cmd}': {e}")
+        log.error(
+            f"An unexpected error occurred while running command '{run_cmd}': {e}"
+        )
 
 
 def clear_screen():

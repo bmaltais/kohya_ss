@@ -42,7 +42,7 @@ Options:
   -s, --skip-space-check        Skip the 10Gb minimum storage space check.
   -u, --no-gui                  Skips launching the GUI.
   -v, --verbose                 Increase verbosity levels up to 3.
-      --use-ipex                Use IPEX with Intel ARC GPUs.
+      --use-ipex                Use native PyTorch XPU for Intel Arc GPUs (legacy flag name).
       --use-rocm                Use ROCm with AMD GPUs.
 EOF
 }
@@ -227,27 +227,36 @@ install_python_dependencies() {
     fi
   fi
 
+  local install_status=0
   case "$OSTYPE" in
     "lin"*)
       if [ "$RUNPOD" = true ]; then
         python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_runpod.txt $QUIET
+        install_status=$?
       elif [ "$USE_IPEX" = true ]; then
-        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux_ipex.txt $QUIET
+        # Native PyTorch XPU (requirements_ipex_xpu.txt); IPEX wheels EOL — issue #3499
+        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_ipex_xpu.txt $QUIET
+        install_status=$?
       elif [ -x "$(command -v nvidia-smi)" ]; then
         python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux.txt $QUIET
+        install_status=$?
       elif [ "$USE_ROCM" = true ] || [ -x "$(command -v rocminfo)" ] || [ -f "/opt/rocm/bin/rocminfo" ]; then
         echo "Upgrading pip for ROCm."
         pip install --upgrade pip # PyTorch ROCm is too large to install with older pip
         python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux_rocm.txt $QUIET
+        install_status=$?
       else
         python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux.txt $QUIET
+        install_status=$?
       fi
       ;;
     "darwin"*)
       if [[ "$(uname -m)" == "arm64" ]]; then
         python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_macos_arm64.txt $QUIET
+        install_status=$?
       else
         python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_macos_amd64.txt $QUIET
+        install_status=$?
       fi
       ;;
   esac
@@ -265,6 +274,12 @@ install_python_dependencies() {
       echo "Keeping conda environment active as it was already activated before running this script."
     fi
   fi
+
+  if [ "$install_status" -ne 0 ]; then
+    echo "Python dependency installation failed (exit code $install_status). Setup cannot continue."
+    return 1
+  fi
+  return 0
 }
 
 # Function to configure accelerate
@@ -556,7 +571,10 @@ if [[ "$OSTYPE" == "lin"* ]]; then
     fi
   fi
 
-  install_python_dependencies
+  if ! install_python_dependencies; then
+    echo "Setup aborted because Python dependencies could not be installed."
+    exit 1
+  fi
 
   # We need just a little bit more setup for non-interactive environments
   if [ "$RUNPOD" = true ]; then
@@ -667,6 +685,8 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
 
   if ! install_python_dependencies; then
      echo "You may need to install Python. The command for this is brew install $PYTHON_BREW_VERSION."
+     echo "Setup aborted because Python dependencies could not be installed."
+     exit 1
   fi
 
   configure_accelerate

@@ -20,6 +20,7 @@ from kohya_gui.custom_logging import setup_logging
 log = setup_logging()
 log.debug(f"Project directory set to: {project_directory}")
 
+
 def check_path_with_space():
     """Check if the current working directory contains a space."""
     cwd = os.getcwd()
@@ -34,6 +35,7 @@ def check_path_with_space():
         )
         log.error(f"The current working directory is: {cwd}")
         raise RuntimeError("Invalid path: contains spaces.")
+
 
 def detect_toolkit():
     """Detect the available toolkit (NVIDIA, AMD, or Intel) and log the information."""
@@ -63,6 +65,7 @@ def detect_toolkit():
         log.debug("No specific GPU toolkit detected, defaulting to CPU")
         return "CPU"
 
+
 def check_torch():
     """Check if torch is available and log the relevant information."""
     # Detect the available toolkit (e.g., NVIDIA, AMD, Intel, or CPU)
@@ -80,10 +83,15 @@ def check_torch():
             try:
                 log.debug("Attempting to import Intel Extension for PyTorch (IPEX)...")
                 import intel_extension_for_pytorch as ipex
+
                 log.debug("Intel Extension for PyTorch (IPEX) imported successfully")
             except ImportError:
-                log.warning("Intel Extension for PyTorch (IPEX) not found.")
-        
+                # Optional after IPEX EOL; native torch.xpu is enough (#3499)
+                log.debug(
+                    "Intel Extension for PyTorch (IPEX) not found; "
+                    "using native XPU if available."
+                )
+
         # Log the PyTorch version
         log.info(f"Torch {torch.__version__}")
 
@@ -113,6 +121,7 @@ def check_torch():
         log.error(f"Unexpected error while checking torch: {e}")
         sys.exit(1)
 
+
 def log_cuda_info(torch):
     """Log information about CUDA-enabled GPUs."""
     # Log the CUDA and cuDNN versions if available
@@ -133,26 +142,32 @@ def log_cuda_info(torch):
             f"Torch detected GPU: {props.name} VRAM {round(props.total_memory / 1024 / 1024)}MB Arch {props.major}.{props.minor} Cores {props.multi_processor_count}"
         )
 
+
 def log_mps_info(torch):
     """Log information about Apple Silicone (MPS)"""
     max_recommended_mem = round(torch.mps.recommended_max_memory() / 1024**2)
     log.info(
         f"Torch detected Apple MPS: {max_recommended_mem}MB Unified Memory Available"
     )
-    log.warning('MPS support is still experimental, proceed with caution.')
+    log.warning("MPS support is still experimental, proceed with caution.")
 
 
 def log_xpu_info(torch, ipex):
     """Log information about Intel XPU-enabled GPUs."""
-    # Log the Intel Extension for PyTorch (IPEX) version if available
+    # IPEX is optional; native PyTorch XPU is the supported path after IPEX EOL (#3499)
     if ipex:
         log.info(f"Torch backend: Intel IPEX {ipex.__version__}")
+    else:
+        log.info(
+            "Torch backend: native PyTorch XPU (intel_extension_for_pytorch not installed)"
+        )
     # Log information about each detected XPU-enabled GPU
     for device in range(torch.xpu.device_count()):
         props = torch.xpu.get_device_properties(device)
         log.info(
             f"Torch detected GPU: {props.name} VRAM {round(props.total_memory / 1024 / 1024)}MB Compute Units {props.max_compute_units}"
         )
+
 
 def main():
     # Check the repository version to ensure compatibility
@@ -189,17 +204,25 @@ def main():
     # Install required packages from the specified requirements file
     requirements_file = args.requirements or "requirements_pytorch_windows.txt"
     log.debug(f"Installing requirements from: {requirements_file}")
-    setup_common.install_requirements_inbulk(
-        requirements_file, show_stdout=True, 
+    install_ok = setup_common.install_requirements_inbulk(
+        requirements_file,
+        show_stdout=True,
         # optional_parm="--index-url https://download.pytorch.org/whl/cu124"
     )
-    
+    if not install_ok:
+        log.error(
+            "Requirements installation failed. Aborting validation so a broken "
+            "environment is not treated as ready."
+        )
+        sys.exit(1)
+
     # setup_common.install_requirements(requirements_file, check_no_verify_flag=True)
-    
+
     # log.debug("Installing additional requirements from: requirements_windows.txt")
     # setup_common.install_requirements(
     #     "requirements_windows.txt", check_no_verify_flag=True
     # )
+
 
 if __name__ == "__main__":
     log.debug("Starting main function...")
