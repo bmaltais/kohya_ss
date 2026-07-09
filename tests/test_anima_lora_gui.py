@@ -1,7 +1,10 @@
 """Regression tests for GH issue #3487: Anima LoRA training support in the
-GUI.
+GUI, and GH issue #3524: Anima advanced options (torch.compile,
+Qwen-Image VAE 2D, timestep visualization).
 """
 
+import os
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -190,6 +193,109 @@ class TestAnimaLoraConfigOutput(unittest.TestCase):
             self.assertTrue(mocked.called)
             run_cmd = mocked.call_args[0][0]
             self.assertTrue(any("anima_train_network.py" in part for part in run_cmd))
+
+
+class TestAnimaAdvancedOptions(unittest.TestCase):
+    """GH issue #3524: --compile (per-block torch.compile), --qwen_image_vae_2d,
+    and shared timestep-visualization flags.
+    """
+
+    def _run_and_load_toml(self, overrides):
+        kwargs = build_train_model_kwargs(
+            lora_gui.train_model,
+            FIXTURE,
+            numeric_fixups=NUMERIC_FIXUPS,
+            string_overrides=STRING_OVERRIDES,
+            overrides={**ANIMA_OVERRIDES, **overrides},
+        )
+        return run_train_model_and_load_toml(lora_gui, kwargs)
+
+    def test_qwen_image_vae_2d_omitted_by_default(self):
+        config = self._run_and_load_toml({})
+        self.assertNotIn("qwen_image_vae_2d", config)
+
+    def test_qwen_image_vae_2d_forwarded_when_enabled(self):
+        config = self._run_and_load_toml({"anima_qwen_image_vae_2d": True})
+        self.assertTrue(config.get("qwen_image_vae_2d"))
+
+    def test_compile_omitted_by_default(self):
+        config = self._run_and_load_toml({})
+        self.assertNotIn("compile", config)
+        self.assertNotIn("torch_compile", config)
+
+    def test_compile_forwarded_with_options(self):
+        config = self._run_and_load_toml(
+            {
+                "anima_compile": True,
+                "anima_compile_backend": "inductor",
+                "anima_compile_mode": "max-autotune",
+                "anima_compile_dynamic": "true",
+                "anima_compile_fullgraph": True,
+                "anima_compile_cache_size_limit": 32,
+            }
+        )
+        self.assertTrue(config.get("compile"))
+        self.assertEqual(config.get("compile_backend"), "inductor")
+        self.assertEqual(config.get("compile_mode"), "max-autotune")
+        self.assertEqual(config.get("compile_dynamic"), "true")
+        self.assertTrue(config.get("compile_fullgraph"))
+        self.assertEqual(config.get("compile_cache_size_limit"), 32)
+
+    def test_compile_options_omitted_when_compile_disabled(self):
+        """`--compile_*` sub-options are only meaningful once `--compile` is on."""
+        config = self._run_and_load_toml(
+            {
+                "anima_compile": False,
+                "anima_compile_mode": "max-autotune",
+                "anima_compile_fullgraph": True,
+            }
+        )
+        self.assertNotIn("compile_mode", config)
+        self.assertNotIn("compile_fullgraph", config)
+
+    def test_compile_dynamic_auto_is_omitted(self):
+        config = self._run_and_load_toml(
+            {"anima_compile": True, "anima_compile_dynamic": "auto"}
+        )
+        self.assertNotIn("compile_dynamic", config)
+
+    def test_torch_compile_forwarded_when_enabled(self):
+        config = self._run_and_load_toml({"anima_torch_compile": True})
+        self.assertTrue(config.get("torch_compile"))
+
+    def test_compile_and_torch_compile_together_blocks_training(self):
+        """Mirrors the backend's own startup assertion: --compile and
+        --torch_compile are mutually exclusive. The GUI checkboxes clear one
+        another on change, but a saved/edited config could still set both, so
+        train_model() must refuse to emit a command in that case.
+        """
+        kwargs = build_train_model_kwargs(
+            lora_gui.train_model,
+            FIXTURE,
+            numeric_fixups=NUMERIC_FIXUPS,
+            string_overrides=STRING_OVERRIDES,
+            overrides={
+                **ANIMA_OVERRIDES,
+                "anima_compile": True,
+                "anima_torch_compile": True,
+            },
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            kwargs = dict(kwargs, output_dir=tmpdir, output_name="testout")
+            mock_executor(lora_gui)
+            lora_gui.train_model(**kwargs)
+            toml_files = [f for f in os.listdir(tmpdir) if f.endswith(".toml")]
+            self.assertEqual(toml_files, [])
+
+    def test_show_timesteps_forwarded_for_anima(self):
+        """`--show_timesteps` is shared across model families (FLUX/SD3/Anima);
+        it must not be dropped just because the Anima checkbox is set.
+        """
+        config = self._run_and_load_toml(
+            {"show_timesteps": "console", "show_timesteps_resolution": "1024"}
+        )
+        self.assertEqual(config.get("show_timesteps"), "console")
+        self.assertEqual(config.get("show_timesteps_resolution"), "1024")
 
 
 if __name__ == "__main__":

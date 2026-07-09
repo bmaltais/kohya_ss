@@ -359,6 +359,14 @@ def save_configuration(
     anima_vae_chunk_size,
     anima_vae_disable_cache,
     anima_unsloth_offload_checkpointing,
+    anima_qwen_image_vae_2d,
+    anima_compile,
+    anima_torch_compile,
+    anima_compile_backend,
+    anima_compile_mode,
+    anima_compile_dynamic,
+    anima_compile_fullgraph,
+    anima_compile_cache_size_limit,
     anima_checkbox,
 ):
     # Get list of function parameters and values
@@ -683,6 +691,14 @@ def open_configuration(
     anima_vae_chunk_size,
     anima_vae_disable_cache,
     anima_unsloth_offload_checkpointing,
+    anima_qwen_image_vae_2d,
+    anima_compile,
+    anima_torch_compile,
+    anima_compile_backend,
+    anima_compile_mode,
+    anima_compile_dynamic,
+    anima_compile_fullgraph,
+    anima_compile_cache_size_limit,
     anima_checkbox,
     ##
     training_preset,
@@ -1118,6 +1134,14 @@ def train_model(
     anima_vae_chunk_size,
     anima_vae_disable_cache,
     anima_unsloth_offload_checkpointing,
+    anima_qwen_image_vae_2d,
+    anima_compile,
+    anima_torch_compile,
+    anima_compile_backend,
+    anima_compile_mode,
+    anima_compile_dynamic,
+    anima_compile_fullgraph,
+    anima_compile_cache_size_limit,
     anima_checkbox,
 ):
     # Get list of function parameters and values
@@ -1168,6 +1192,15 @@ def train_model(
     if LoRA_type == "Anima" and not anima_checkbox:
         log.error(
             "The Anima model checkbox must be checked when LoRA type is set to 'Anima'."
+        )
+        return TRAIN_BUTTON_VISIBLE
+
+    # Backend mirrors this as a startup assertion (see anima_train_network.py);
+    # the GUI checkboxes already clear one another on change, but validate again
+    # here in case a saved/edited config re-enables both.
+    if anima_checkbox and anima_compile and anima_torch_compile:
+        log.error(
+            "Per-block Torch Compile and Legacy Torch Compile cannot both be enabled at the same time."
         )
         return TRAIN_BUTTON_VISIBLE
 
@@ -1980,12 +2013,12 @@ def train_model(
         "double_blocks_to_swap": double_blocks_to_swap if flux1_checkbox else None,
         "show_timesteps": (
             show_timesteps
-            if (flux1_checkbox or sd3_checkbox) and show_timesteps
+            if (flux1_checkbox or sd3_checkbox or anima_checkbox) and show_timesteps
             else None
         ),
         "show_timesteps_resolution": (
             show_timesteps_resolution
-            if (flux1_checkbox or sd3_checkbox) and show_timesteps
+            if (flux1_checkbox or sd3_checkbox or anima_checkbox) and show_timesteps
             else None
         ),
         # HunyuanImage-2.1 specific parameters
@@ -2068,6 +2101,31 @@ def train_model(
         "vae_disable_cache": anima_vae_disable_cache if anima_checkbox else None,
         "unsloth_offload_checkpointing": (
             anima_unsloth_offload_checkpointing if anima_checkbox else None
+        ),
+        "qwen_image_vae_2d": (anima_qwen_image_vae_2d if anima_checkbox else None),
+        # `--compile` (per-block) and `--torch_compile` (accelerate dynamo) are
+        # mutually exclusive at the backend; the GUI already prevents both
+        # checkboxes from being enabled together (see class_anima.py).
+        "compile": anima_compile if anima_checkbox else None,
+        "torch_compile": anima_torch_compile if anima_checkbox else None,
+        "compile_backend": (
+            anima_compile_backend if anima_checkbox and anima_compile else None
+        ),
+        "compile_mode": (
+            anima_compile_mode if anima_checkbox and anima_compile else None
+        ),
+        "compile_dynamic": (
+            anima_compile_dynamic
+            if anima_checkbox and anima_compile and anima_compile_dynamic != "auto"
+            else None
+        ),
+        "compile_fullgraph": (
+            anima_compile_fullgraph if anima_checkbox and anima_compile else None
+        ),
+        "compile_cache_size_limit": (
+            int(anima_compile_cache_size_limit)
+            if anima_checkbox and anima_compile and anima_compile_cache_size_limit
+            else None
         ),
     }
 
@@ -3415,6 +3473,14 @@ def lora_tab(
             anima_training.vae_chunk_size,
             anima_training.vae_disable_cache,
             anima_training.unsloth_offload_checkpointing,
+            anima_training.qwen_image_vae_2d,
+            anima_training.compile,
+            anima_training.torch_compile,
+            anima_training.compile_backend,
+            anima_training.compile_mode,
+            anima_training.compile_dynamic,
+            anima_training.compile_fullgraph,
+            anima_training.compile_cache_size_limit,
             source_model.anima_checkbox,
         ]
 
