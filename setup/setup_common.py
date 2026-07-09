@@ -303,6 +303,9 @@ def configure_accelerate(run_accelerate=False):
                 log.error(
                     f"Failed to copy accelerate config to {target_config_location}: {e}"
                 )
+                log.warning(
+                    "Could not automatically configure accelerate. Please manually configure accelerate with the option in the menu or with: accelerate config."
+                )
         elif run_accelerate:
             log.debug("Running accelerate configuration command...")
             run_cmd([sys.executable, "-m", "accelerate", "config"])

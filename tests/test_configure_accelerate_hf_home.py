@@ -72,7 +72,8 @@ def test_configure_accelerate_copy_failure_does_not_abort(
     dest = hf_home / "accelerate" / "default_config.yaml"
     assert not dest.exists()
     assert any(
-        "accelerate" in record.message.lower() or "copy" in record.message.lower()
+        "accelerate" in record.getMessage().lower()
+        or "copy" in record.getMessage().lower()
         for record in caplog.records
         if record.levelno >= logging.WARNING
     )
