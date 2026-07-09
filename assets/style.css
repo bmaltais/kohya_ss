@@ -43,7 +43,10 @@ label:focus-within .svelte-j9uq24:has(> .prose),
 .svelte-1hfxrpf.container:focus-within .svelte-j9uq24:has(> .prose),
 .block:has(> .svelte-j9uq24 > .prose):hover > .svelte-j9uq24:has(> .prose),
 .block:has(> .svelte-j9uq24 > .prose):focus-within > .svelte-j9uq24:has(> .prose) {
-    max-height: 6em;
+    /* Some info= strings run longer than ~6 lines; cap at a generous
+       height and let the rest scroll instead of clipping it away. */
+    max-height: 16em;
+    overflow-y: auto;
     opacity: 1;
 }
 
