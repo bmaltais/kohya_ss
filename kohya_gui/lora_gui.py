@@ -70,6 +70,13 @@ train_state_value = time.time()
 # so tests can assert it stays in sync without rebuilding the whole GUI.
 last_built_field_registry = None
 
+# Populated by lora_tab() with the dict-keyed adapter callables wired to the
+# train/save/load/preset buttons (GH #3543 M2). Exposed at module level so
+# tests can invoke the real .click()-bound callables directly instead of
+# calling train_model/save_configuration/open_configuration themselves,
+# exercising the same component-identity lookup the Gradio wiring uses.
+last_built_gui_entries = None
+
 document_symbol = "\U0001f4c4"  # 📄
 
 
@@ -3560,42 +3567,138 @@ def lora_tab(
         global last_built_field_registry
         last_built_field_registry = FIELD_REGISTRY
 
+        # GH #3543 M2: adapters at the Gradio boundary look up each argument by
+        # component identity (via FIELD_REGISTRY) rather than by position, so a
+        # field added out of order can no longer silently shift every
+        # subsequent value into the wrong parameter. train_model's/
+        # save_configuration's/open_configuration's own signatures and bodies
+        # are untouched; only the .click()/.input() wiring below changes.
+        def _kwargs_from_registry(data: dict) -> dict:
+            return {name: data[comp] for name, comp in FIELD_REGISTRY}
+
+        def _make_open_configuration_entry(
+            ask_for_file_comp, apply_preset_comp, output_file_path_comp
+        ):
+            def _entry(data: dict):
+                result = open_configuration(
+                    ask_for_file=data[ask_for_file_comp],
+                    apply_preset=data[apply_preset_comp],
+                    file_path=data[configuration.config_file_name],
+                    training_preset=data[training_preset],
+                    **_kwargs_from_registry(data),
+                )
+                if result is None:
+                    return {}
+                output_components = (
+                    [output_file_path_comp]
+                    + settings_list
+                    + [training_preset, convolution_row]
+                )
+                return dict(zip(output_components, result))
+
+            return _entry
+
+        def _save_configuration_entry(data: dict):
+            return save_configuration(
+                save_as_bool=data[dummy_db_false],
+                file_path=data[configuration.config_file_name],
+                **_kwargs_from_registry(data),
+            )
+
+        def _make_train_model_entry(print_only_comp):
+            def _entry(data: dict):
+                return train_model(
+                    headless=data[dummy_headless],
+                    print_only=data[print_only_comp],
+                    **_kwargs_from_registry(data),
+                )
+
+            return _entry
+
+        # Discarded on preset selection: the visible config_file_name field
+        # must not be overwritten just because a preset was applied.
+        preset_discard_output = gr.Textbox(visible=False)
+
+        open_config_entry = _make_open_configuration_entry(
+            dummy_db_true, dummy_db_false, configuration.config_file_name
+        )
+        load_config_entry = _make_open_configuration_entry(
+            dummy_db_false, dummy_db_false, configuration.config_file_name
+        )
+        preset_entry = _make_open_configuration_entry(
+            dummy_db_false, dummy_db_true, preset_discard_output
+        )
+        train_model_entry = _make_train_model_entry(dummy_db_false)
+        print_command_entry = _make_train_model_entry(dummy_db_true)
+
+        global last_built_gui_entries
+        last_built_gui_entries = {
+            "open_configuration": open_config_entry,
+            "load_configuration": load_config_entry,
+            "apply_preset": preset_entry,
+            "save_configuration": _save_configuration_entry,
+            "train_model": train_model_entry,
+            "print_command": print_command_entry,
+            "components": {
+                "dummy_headless": dummy_headless,
+                "dummy_db_true": dummy_db_true,
+                "dummy_db_false": dummy_db_false,
+                "config_file_name": configuration.config_file_name,
+                "training_preset": training_preset,
+                "convolution_row": convolution_row,
+            },
+        }
+
         configuration.button_open_config.click(
-            open_configuration,
-            inputs=[dummy_db_true, dummy_db_false, configuration.config_file_name]
-            + settings_list
-            + [training_preset],
-            outputs=[configuration.config_file_name]
-            + settings_list
-            + [training_preset, convolution_row],
+            open_config_entry,
+            inputs=set(
+                [dummy_db_true, dummy_db_false, configuration.config_file_name]
+                + settings_list
+                + [training_preset]
+            ),
+            outputs=set(
+                [configuration.config_file_name]
+                + settings_list
+                + [training_preset, convolution_row]
+            ),
             show_progress=False,
         )
 
         configuration.button_load_config.click(
-            open_configuration,
-            inputs=[dummy_db_false, dummy_db_false, configuration.config_file_name]
-            + settings_list
-            + [training_preset],
-            outputs=[configuration.config_file_name]
-            + settings_list
-            + [training_preset, convolution_row],
+            load_config_entry,
+            inputs=set(
+                [dummy_db_false, dummy_db_false, configuration.config_file_name]
+                + settings_list
+                + [training_preset]
+            ),
+            outputs=set(
+                [configuration.config_file_name]
+                + settings_list
+                + [training_preset, convolution_row]
+            ),
             show_progress=False,
         )
 
         training_preset.input(
-            open_configuration,
-            inputs=[dummy_db_false, dummy_db_true, configuration.config_file_name]
-            + settings_list
-            + [training_preset],
-            outputs=[gr.Textbox(visible=False)]
-            + settings_list
-            + [training_preset, convolution_row],
+            preset_entry,
+            inputs=set(
+                [dummy_db_false, dummy_db_true, configuration.config_file_name]
+                + settings_list
+                + [training_preset]
+            ),
+            outputs=set(
+                [preset_discard_output]
+                + settings_list
+                + [training_preset, convolution_row]
+            ),
             show_progress=False,
         )
 
         configuration.button_save_config.click(
-            save_configuration,
-            inputs=[dummy_db_false, configuration.config_file_name] + settings_list,
+            _save_configuration_entry,
+            inputs=set(
+                [dummy_db_false, configuration.config_file_name] + settings_list
+            ),
             outputs=[configuration.config_file_name],
             show_progress=False,
         )
@@ -3608,8 +3711,8 @@ def lora_tab(
         )
 
         executor.button_run.click(
-            train_model,
-            inputs=[dummy_headless] + [dummy_db_false] + settings_list,
+            train_model_entry,
+            inputs=set([dummy_headless, dummy_db_false] + settings_list),
             outputs=[executor.button_run, executor.button_stop_training, run_state],
             show_progress=False,
         )
@@ -3620,8 +3723,8 @@ def lora_tab(
         )
 
         button_print.click(
-            train_model,
-            inputs=[dummy_headless] + [dummy_db_true] + settings_list,
+            print_command_entry,
+            inputs=set([dummy_headless, dummy_db_true] + settings_list),
             show_progress=False,
         )
 
