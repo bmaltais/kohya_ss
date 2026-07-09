@@ -189,7 +189,10 @@ class TestAnimaLoraConfigOutput(unittest.TestCase):
                 overrides=ANIMA_OVERRIDES,
             )
             mock_executor(lora_gui)
-            lora_gui.train_model(**kwargs)
+            with patch.object(
+                lora_gui, "get_executable_path", return_value="accelerate"
+            ):
+                lora_gui.train_model(**kwargs)
             self.assertTrue(mocked.called)
             run_cmd = mocked.call_args[0][0]
             self.assertTrue(any("anima_train_network.py" in part for part in run_cmd))
