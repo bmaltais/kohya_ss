@@ -1,0 +1,11 @@
+[[prompts]]
+target = "van gogh"
+positive = "van gogh"
+unconditional = ""
+neutral = ""
+action = "erase"
+guidance_scale = 1.0
+resolution = 512
+batch_size = 1
+multiplier = 1.0
+weight = 1.0

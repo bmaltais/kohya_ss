@@ -253,7 +253,7 @@ class AdvancedTraining:
                 info="Use fp8 for base model",
                 value=self.config.get("advanced.fp8_base", False),
             )
-            self.fp8_base_unet  = gr.Checkbox(
+            self.fp8_base_unet = gr.Checkbox(
                 label="fp8 base unet",
                 info="Flux can be trained with fp8, and CLIP-L can be trained with bf16/fp16.",
                 value=self.config.get("advanced.fp8_base_unet", False),
@@ -278,7 +278,7 @@ class AdvancedTraining:
                 inputs=[self.full_fp16, self.full_bf16],
                 outputs=[self.full_fp16, self.full_bf16],
             )
-            
+
         with gr.Row():
             self.highvram = gr.Checkbox(
                 label="highvram",
@@ -286,11 +286,17 @@ class AdvancedTraining:
                 info="Disable low VRAM optimization. e.g. do not clear CUDA cache after each latent caching (for machines which have bigger VRAM)",
                 interactive=True,
             )
+            # lowvram was removed from sd-scripts (only --highvram remains) and
+            # is no longer forwarded to any training config; hidden rather than
+            # deleted to avoid touching every train_model()/save_configuration()/
+            # open_configuration() signature and .click() wiring list that
+            # still threads this widget through by position.
             self.lowvram = gr.Checkbox(
                 label="lowvram",
                 value=self.config.get("advanced.lowvram", False),
                 info="Enable low RAM optimization. e.g. load models to VRAM instead of RAM (for machines which have bigger VRAM than RAM such as Colab and Kaggle)",
                 interactive=True,
+                visible=False,
             )
             self.skip_cache_check = gr.Checkbox(
                 label="Skip cache check",
@@ -342,7 +348,7 @@ class AdvancedTraining:
                 value=self.config.get(
                     "advanced.scale_v_pred_loss_like_noise_pred", False
                 ),
-                info="Only for SD v2 models. By scaling the loss according to the time step, the weights of global noise prediction and local noise prediction become the same, and the improvement of details may be expected.",
+                info="SD v2 only. Scales loss by timestep so global/local noise prediction weights match; may improve detail.",
             )
             self.min_snr_gamma = gr.Slider(
                 label="Min SNR gamma",
@@ -502,17 +508,31 @@ class AdvancedTraining:
                 step=1,
                 interactive=True,
             )
+        with gr.Row():
+            self.show_timesteps = gr.Dropdown(
+                label="Show timesteps",
+                choices=["", "console", "image"],
+                value=self.config.get("advanced.show_timesteps", ""),
+                info="Visualizes sampled timestep distribution and loss weighting, then exits without training. 'console'=ASCII histogram, 'image'=matplotlib plot. FLUX/SD3 only.",
+                interactive=True,
+            )
+            self.show_timesteps_resolution = gr.Textbox(
+                label="Show timesteps resolution",
+                value=self.config.get("advanced.show_timesteps_resolution", "1024"),
+                info="Image resolution (pixels) assumed by 'Show timesteps' for resolution-dependent sampling (e.g. flux_shift). Comma-separated: a single value is used for both H and W, two values are H,W.",
+                interactive=True,
+            )
         with gr.Group(), gr.Row():
             self.save_state = gr.Checkbox(
                 label="Save training state",
                 value=self.config.get("advanced.save_state", False),
-                info="Save training state (including optimizer states etc.) when saving models"
+                info="Save training state (including optimizer states etc.) when saving models",
             )
 
             self.save_state_on_train_end = gr.Checkbox(
                 label="Save training state at end of training",
                 value=self.config.get("advanced.save_state_on_train_end", False),
-                info="Save training state (including optimizer states etc.) on train end"
+                info="Save training state (including optimizer states etc.) on train end",
             )
 
             def list_state_dirs(path):
@@ -526,7 +546,7 @@ class AdvancedTraining:
                 value=self.config.get("advanced.state_dir", ""),
                 interactive=True,
                 allow_custom_value=True,
-                info="Saved state to resume training from"
+                info="Saved state to resume training from",
             )
             create_refresh_button(
                 self.resume,
@@ -564,7 +584,7 @@ class AdvancedTraining:
         with gr.Row():
             self.log_with = gr.Dropdown(
                 label="Logging",
-                choices=["","wandb", "tensorboard","all"],
+                choices=["", "wandb", "tensorboard", "all"],
                 value="",
                 info="Loggers to use, tensorboard will be used as the default.",
             )

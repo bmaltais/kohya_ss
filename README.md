@@ -14,7 +14,9 @@ and training specialized models like LoRA (Low-Rank Adaptation).
 Key features of this GUI include:
 *   Easy-to-use interface for setting a wide range of training parameters.
 *   Automatic generation of the command-line interface (CLI) commands required to run the training scripts.
-*   Support for various training methods, including LoRA, Dreambooth, fine-tuning, and SDXL training.
+*   Support for LoRA, LoHa, LoKr, Dreambooth, fine-tuning, and Textual Inversion training.
+*   Support for a wide range of base models: Stable Diffusion 1.5/2.x, SDXL, SD3, Flux.1, Lumina Image 2.0, Anima, and HunyuanImage-2.1.
+*   LECO (concept erasure/editing) training.
 
 Support for Linux and macOS is also available. While Linux support is actively maintained through community contributions, macOS compatibility may vary.
 
@@ -45,10 +47,7 @@ Support for Linux and macOS is also available. While Linux support is actively m
 - [Contributing](#contributing)
 - [License](#license)
 - [Change History](#change-history)
-  - [v25.0.3](#v2503)
-  - [v25.0.2](#v2502)
-  - [v25.0.1](#v2501)
-  - [v25.0.0](#v2500)
+  - [v26.0.0](#v2600)
 
 
 ## Installation Options
@@ -247,7 +246,7 @@ See [Troubleshooting LORA Training on TESLA V100](docs/troubleshooting_tesla_v10
 
 ## SDXL training
 
-For detailed guidance on SDXL training, please refer to the [official sd-scripts documentation](https://github.com/kohya-ss/sd-scripts/blob/main/README.md#sdxl-training) and relevant sections in our [LoRA Training Guide](docs/LoRA/top_level.md).
+For detailed guidance on SDXL training, please refer to the [official sd-scripts documentation](https://github.com/kohya-ss/sd-scripts/blob/main/docs/train_SDXL-en.md) and relevant sections in our [LoRA Training Guide](docs/LoRA/top_level.md).
 
 ## Masked loss
 
@@ -300,24 +299,36 @@ This project is licensed under the Apache License 2.0. See the [LICENSE.md](LICE
 
 ## Change History
 
-### v25.0.3
+Only the upcoming release is detailed here. For the full history of published releases, see [GitHub Releases](https://github.com/bmaltais/kohya_ss/releases).
 
-- Upgrade Gradio, diffusers and huggingface-hub to latest release to fix issue with ASGI.
-- Add a new method to setup and run the GUI. You will find two new script for both Windows (gui-uv.bat) and Linux (gui-uv.sh). With those scripts there is no need to run setup.bat or setup.sh anymore.
+### v26.0.0
 
-### v25.0.2
+**Added**
+- Lumina Image 2.0 LoRA (#3553) and full fine-tune (#3521, #3554) training support.
+- Anima LoRA (#3541), full fine-tune (#3523, #3551), ControlNet-LLLite (#3549), and advanced options: torch.compile, Qwen-Image VAE 2D, timestep visualization (#3542).
+- Native LoHa/LoKr training (`networks.loha`/`networks.lokr`) for SDXL and Anima (#3550).
+- HunyuanImage-2.1 LoRA training support (#3537).
+- LECO (concept erasure/editing) training for SD1.x/2.x and SDXL (#3539).
+- Inpainting model training support for SD1.5/SDXL (#3540).
+- `--show_timesteps` / `--show_timesteps_resolution` exposed in the GUI for DiT training, with a console/matplotlib visualization mode (#3535).
+- `--svd_lowrank_niter` exposed in the Resize LoRA tab (#3534).
+- `wd-eva02-large-tagger-v3` added to the WD14 tagger (#3315).
+- In-app documentation pointer for multi-resolution dataset TOML config (#3536).
+- "Expand all accordions" option (#3310).
+- Flux Kontext manual captioning tool, with aspect-ratio correction, delete button, target-folder suggestion, and pagination fixes (#3346 series).
+- GUI layout polish: `info=` hint text is now hover-revealed instead of always shown, and tool-button icons are bottom-aligned with their input box.
 
-- Force gradio to 5.14.0 or greater so it is updated.
+**Changed**
+- Upgraded the `sd-scripts` submodule to v0.11.1 and adjusted GUI args for its refactor (#3519, #3520).
+- Refactored `lora_gui.py`, `leco_gui.py`, and the remaining GUI files onto a `FIELD_REGISTRY` + dict-adapter pattern for positional-argument safety (#3543, #3544, #3545, #3547, #3548).
+- Cleaned up HunyuanImage-2.1 LoRA arg-forwarding cosmetics (#3555).
+- Upgraded PyTorch for XPU (#3366).
+- Updated Intel packages for oneAPI compatibility (#3341).
 
-### v25.0.1
-
-- Fix issue with requirements version causing huggingface download issues
-
-### v25.0.0
-
-- Major update: Introduced support for flux.1 and sd3, moving the GUI to align with more recent script functionalities.
-- Users preferring the pre-flux.1/sd3 version can check out tag `v24.1.7`.
-  ```shell
-  git checkout v24.1.7
-  ```
-- For details on new flux.1 and sd3 parameters, refer to the [sd-scripts README](https://github.com/kohya-ss/sd-scripts/blob/sd3/README.md).
+**Fixed**
+- Console scripts are now found correctly when the venv is not activated (#3552).
+- Fixed requirement installation when using system pip (#3515).
+- Fixed a TensorBoard crash on non-x86 platforms via a cross-platform AVX check (#3345).
+- Fixed installation error on Apple Silicon (M-series) Macs (#3353).
+- Fixed broken documentation links in the README (#3505).
+- Addressed review feedback across the v0.11.1 upgrade, LoRA+/TI, and FIELD_REGISTRY PRs (#3518, #3533, #3546).

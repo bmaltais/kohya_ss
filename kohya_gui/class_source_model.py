@@ -15,7 +15,7 @@ from .class_gui_config import KohyaSSGUIConfig
 folder_symbol = "\U0001f4c2"  # 📂
 refresh_symbol = "\U0001f504"  # 🔄
 save_style_symbol = "\U0001f4be"  # 💾
-document_symbol = "\U0001F4C4"  # 📄
+document_symbol = "\U0001f4c4"  # 📄
 
 default_models = [
     "stabilityai/stable-diffusion-xl-base-1.0",
@@ -111,7 +111,9 @@ class SourceModel:
                         self.pretrained_model_name_or_path = gr.Dropdown(
                             label="Pretrained model name or path",
                             choices=default_models + model_checkpoints,
-                            value=self.config.get("model.models_dir", "runwayml/stable-diffusion-v1-5"),
+                            value=self.config.get(
+                                "model.models_dir", "runwayml/stable-diffusion-v1-5"
+                            ),
                             allow_custom_value=True,
                             visible=True,
                             min_width=100,
@@ -131,7 +133,11 @@ class SourceModel:
                         )
                         self.pretrained_model_name_or_path_file.click(
                             get_file_path,
-                            inputs=[self.pretrained_model_name_or_path, model_ext, model_ext_name],
+                            inputs=[
+                                self.pretrained_model_name_or_path,
+                                model_ext,
+                                model_ext_name,
+                            ],
                             outputs=self.pretrained_model_name_or_path,
                             show_progress=False,
                         )
@@ -198,6 +204,13 @@ class SourceModel:
                             value=self.config.get("model.dataset_config", ""),
                             interactive=True,
                             allow_custom_value=True,
+                            info=(
+                                "Multi-resolution / duplicate-subset datasets are configured"
+                                " entirely in this TOML file, not via GUI fields. See 'Behavior"
+                                " when there are duplicate subsets': https://github.com/kohya-ss"
+                                "/sd-scripts/blob/main/docs/config_README-en.md"
+                                "#behavior-when-there-are-duplicate-subsets"
+                            ),
                         )
                         # Refresh button for dataset_config directory
                         create_refresh_button(
@@ -244,7 +257,10 @@ class SourceModel:
                     with gr.Column():
                         with gr.Row():
                             self.v2 = gr.Checkbox(
-                                label="v2", value=False, visible=False, min_width=60,
+                                label="v2",
+                                value=False,
+                                visible=False,
+                                min_width=60,
                                 interactive=True,
                             )
                             self.v_parameterization = gr.Checkbox(
@@ -275,56 +291,149 @@ class SourceModel:
                                 min_width=60,
                                 interactive=True,
                             )
+                            self.hunyuan_image_checkbox = gr.Checkbox(
+                                label="HunyuanImage-2.1",
+                                value=False,
+                                visible=False,
+                                min_width=60,
+                                interactive=True,
+                            )
+                            self.anima_checkbox = gr.Checkbox(
+                                label="Anima",
+                                value=False,
+                                visible=False,
+                                min_width=60,
+                                interactive=True,
+                            )
+                            self.lumina_checkbox = gr.Checkbox(
+                                label="Lumina",
+                                value=False,
+                                visible=False,
+                                min_width=60,
+                                interactive=True,
+                            )
 
-                            def toggle_checkboxes(v2, v_parameterization, sdxl_checkbox, sd3_checkbox, flux1_checkbox):
+                            def toggle_checkboxes(
+                                v2,
+                                v_parameterization,
+                                sdxl_checkbox,
+                                sd3_checkbox,
+                                flux1_checkbox,
+                                hunyuan_image_checkbox,
+                                anima_checkbox,
+                                lumina_checkbox,
+                            ):
                                 # Check if all checkboxes are unchecked
-                                if not v2 and not sdxl_checkbox and not sd3_checkbox and not flux1_checkbox:
+                                if (
+                                    not v2
+                                    and not sdxl_checkbox
+                                    and not sd3_checkbox
+                                    and not flux1_checkbox
+                                    and not hunyuan_image_checkbox
+                                    and not anima_checkbox
+                                    and not lumina_checkbox
+                                ):
                                     # If all unchecked, return new interactive checkboxes
                                     return (
                                         gr.Checkbox(interactive=True),  # v2 checkbox
-                                        gr.Checkbox(interactive=False, value=False),  # v_parameterization checkbox
+                                        gr.Checkbox(
+                                            interactive=False, value=False
+                                        ),  # v_parameterization checkbox
                                         gr.Checkbox(interactive=True),  # sdxl_checkbox
                                         gr.Checkbox(interactive=True),  # sd3_checkbox
-                                        gr.Checkbox(interactive=True),  # sd3_checkbox
+                                        gr.Checkbox(interactive=True),  # flux1_checkbox
+                                        gr.Checkbox(
+                                            interactive=True
+                                        ),  # hunyuan_image_checkbox
+                                        gr.Checkbox(interactive=True),  # anima_checkbox
+                                        gr.Checkbox(
+                                            interactive=True
+                                        ),  # lumina_checkbox
                                     )
                                 else:
                                     # If any checkbox is checked, return checkboxes with current interactive state
                                     return (
                                         gr.Checkbox(interactive=v2),  # v2 checkbox
-                                        gr.Checkbox(interactive=sdxl_checkbox),  # v_parameterization checkbox
-                                        gr.Checkbox(interactive=sdxl_checkbox),  # sdxl_checkbox
-                                        gr.Checkbox(interactive=sd3_checkbox),  # sd3_checkbox
-                                        gr.Checkbox(interactive=flux1_checkbox),  # flux1_checkbox
+                                        gr.Checkbox(
+                                            interactive=v2
+                                        ),  # v_parameterization checkbox
+                                        gr.Checkbox(
+                                            interactive=sdxl_checkbox
+                                        ),  # sdxl_checkbox
+                                        gr.Checkbox(
+                                            interactive=sd3_checkbox
+                                        ),  # sd3_checkbox
+                                        gr.Checkbox(
+                                            interactive=flux1_checkbox
+                                        ),  # flux1_checkbox
+                                        gr.Checkbox(
+                                            interactive=hunyuan_image_checkbox
+                                        ),  # hunyuan_image_checkbox
+                                        gr.Checkbox(
+                                            interactive=anima_checkbox
+                                        ),  # anima_checkbox
+                                        gr.Checkbox(
+                                            interactive=lumina_checkbox
+                                        ),  # lumina_checkbox
                                     )
+
+                            checkbox_inputs = [
+                                self.v2,
+                                self.v_parameterization,
+                                self.sdxl_checkbox,
+                                self.sd3_checkbox,
+                                self.flux1_checkbox,
+                                self.hunyuan_image_checkbox,
+                                self.anima_checkbox,
+                                self.lumina_checkbox,
+                            ]
 
                             self.v2.change(
                                 fn=toggle_checkboxes,
-                                inputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox, self.flux1_checkbox],
-                                outputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox, self.flux1_checkbox],
+                                inputs=checkbox_inputs,
+                                outputs=checkbox_inputs,
                                 show_progress=False,
                             )
                             self.v_parameterization.change(
                                 fn=toggle_checkboxes,
-                                inputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox, self.flux1_checkbox],
-                                outputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox, self.flux1_checkbox],
+                                inputs=checkbox_inputs,
+                                outputs=checkbox_inputs,
                                 show_progress=False,
                             )
                             self.sdxl_checkbox.change(
                                 fn=toggle_checkboxes,
-                                inputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox, self.flux1_checkbox],
-                                outputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox, self.flux1_checkbox],
+                                inputs=checkbox_inputs,
+                                outputs=checkbox_inputs,
                                 show_progress=False,
                             )
                             self.sd3_checkbox.change(
                                 fn=toggle_checkboxes,
-                                inputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox, self.flux1_checkbox],
-                                outputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox, self.flux1_checkbox],
+                                inputs=checkbox_inputs,
+                                outputs=checkbox_inputs,
                                 show_progress=False,
                             )
                             self.flux1_checkbox.change(
                                 fn=toggle_checkboxes,
-                                inputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox, self.flux1_checkbox],
-                                outputs=[self.v2, self.v_parameterization, self.sdxl_checkbox, self.sd3_checkbox, self.flux1_checkbox],
+                                inputs=checkbox_inputs,
+                                outputs=checkbox_inputs,
+                                show_progress=False,
+                            )
+                            self.hunyuan_image_checkbox.change(
+                                fn=toggle_checkboxes,
+                                inputs=checkbox_inputs,
+                                outputs=checkbox_inputs,
+                                show_progress=False,
+                            )
+                            self.anima_checkbox.change(
+                                fn=toggle_checkboxes,
+                                inputs=checkbox_inputs,
+                                outputs=checkbox_inputs,
+                                show_progress=False,
+                            )
+                            self.lumina_checkbox.change(
+                                fn=toggle_checkboxes,
+                                inputs=checkbox_inputs,
+                                outputs=checkbox_inputs,
                                 show_progress=False,
                             )
                     with gr.Column():
@@ -364,6 +473,9 @@ class SourceModel:
                         self.sdxl_checkbox,
                         self.sd3_checkbox,
                         self.flux1_checkbox,
+                        self.hunyuan_image_checkbox,
+                        self.anima_checkbox,
+                        self.lumina_checkbox,
                     ],
                     show_progress=False,
                 )
