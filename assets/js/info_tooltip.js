@@ -5,12 +5,9 @@
 // in JS rather than pure CSS `position: absolute` (Accordion overflow:hidden
 // clips absolutely-positioned descendants too).
 //
-// Mouse hover only triggers over the field's *name* text, not its input
-// control, so the reveal area matches what the user reads as the field
-// label. Keyboard focus triggers on the whole field instead: a keyboard
-// user tabs directly into the input control, never the label text, so
-// restricting focus the same way as hover would make the tooltip
-// unreachable without a mouse.
+// Triggers only over the field's *name* text, not its input control, for
+// both mouse hover and keyboard focus -- selecting/typing into a field's
+// input does not show its tooltip.
 (function () {
     const VISIBLE_CLASS = "info-tooltip-visible";
     const BLOCK_SELECTOR = ".block";
@@ -47,14 +44,6 @@
         return { anchorEl: nameEl, infoDiv };
     }
 
-    function resolveFromBlock(target) {
-        const block = target.closest(BLOCK_SELECTOR);
-        if (!block) return null;
-        const infoDiv = getInfoDiv(block);
-        if (!infoDiv) return null;
-        return { anchorEl: block, infoDiv };
-    }
-
     function showTooltip(anchorEl, infoDiv) {
         const rect = anchorEl.getBoundingClientRect();
         infoDiv.style.top = rect.bottom + 4 + "px";
@@ -87,7 +76,7 @@
     document.addEventListener(
         "focusin",
         function (e) {
-            const resolved = resolveFromBlock(e.target);
+            const resolved = resolveFromName(e.target);
             if (resolved) showTooltip(resolved.anchorEl, resolved.infoDiv);
         },
         true
@@ -95,7 +84,7 @@
     document.addEventListener(
         "focusout",
         function (e) {
-            const resolved = resolveFromBlock(e.target);
+            const resolved = resolveFromName(e.target);
             if (resolved && !resolved.anchorEl.contains(e.relatedTarget)) {
                 hideTooltip(resolved.infoDiv);
             }
