@@ -1028,14 +1028,16 @@ def train_model(
     log.info(max_train_steps_info)
 
     # Calculate lr_warmup_steps
+    lr_warmup = float(lr_warmup) if lr_warmup not in ("", None) else 0
+    lr_warmup_steps = int(lr_warmup_steps) if lr_warmup_steps not in ("", None) else 0
+    
     if lr_warmup_steps > 0:
-        lr_warmup_steps = int(lr_warmup_steps)
         if lr_warmup > 0:
             log.warning(
                 "Both lr_warmup and lr_warmup_steps are set. lr_warmup_steps will be used."
             )
     elif lr_warmup != 0:
-        lr_warmup_steps = lr_warmup / 100
+        lr_warmup_steps = int(lr_warmup * max_train_steps / 100) if max_train_steps > 0 else 0
     else:
         lr_warmup_steps = 0
 
