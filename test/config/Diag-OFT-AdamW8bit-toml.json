@@ -21,7 +21,7 @@
   "conv_block_alphas": "",
   "conv_block_dims": "",
   "conv_dim": 8,
-  "dataset_config": "D:/kohya_ss/test/config/dataset.toml",
+  "dataset_config": "./test/config/dataset.toml",
   "debiased_estimation_loss": false,
   "decompose_both": false,
   "dim_from_weights": false,

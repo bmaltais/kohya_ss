@@ -500,75 +500,36 @@ if [[ "$OSTYPE" == "lin"* ]]; then
   echo "Raw detected distro string: $distro" >&4
   echo "Raw detected distro family string: $family" >&4
 
-  if "$distro" | grep -qi "Ubuntu" || "$family" | grep -qi "Ubuntu"; then
-    echo "Ubuntu detected."
-    if [ $(dpkg-query -W -f='${Status}' python3-tk 2>/dev/null | grep -c "ok installed") = 0 ]; then
-      # if [ "$root" = true ]; then
-        echo "This script needs YOU to install the missing python3-tk packages. Please install with:"
-        echo " "
-        if [ "$RUNPOD" = true ]; then
-          bash apt update -y && apt install -y python3-tk
-        else
-          echo "sudo apt update -y && sudo apt install -y python3-tk"
-        fi
-        exit 1
-      # else
-      #   echo "This script needs to be run as root or via sudo to install packages."
-      #   exit 1
-      # fi
-    else
-      echo "Python TK found..."
-    fi
-  elif "$distro" | grep -Eqi "Fedora|CentOS|Redhat"; then
+  # Tkinter preflight: test import on the interpreter we will use (issue #3459).
+  # Distro package queries (dpkg/rpm/pacman) are not a reliable proxy for
+  # source-built, pyenv, conda, or version-skewed Pythons.
+  # shellcheck source=setup/tkinter_preflight.sh
+  # shellcheck disable=SC1091
+  source "$SCRIPT_DIR/setup/tkinter_preflight.sh"
+
+  distro_name="$("$distro" 2>/dev/null || true)"
+  family_name="$("$family" 2>/dev/null || true)"
+  # Note: $distro/$family are function names assigned earlier (get_distro_*),
+  # matching the historical "$distro" | grep pattern used below for messages.
+  if echo "$distro_name $family_name" | grep -qi "Ubuntu\|debian"; then
+    echo "Ubuntu/Debian detected."
+  elif echo "$distro_name $family_name" | grep -Eqi "Fedora|CentOS|Redhat|rhel"; then
     echo "Redhat or Redhat base detected."
-    if ! rpm -qa | grep -qi python3-tkinter; then
-      # if [ "$root" = true ]; then
-        echo "This script needs you to install the missing python3-tk packages. Please install with:\n\n"
-        echo "sudo dnf install python3-tkinter -y >&3"
-        exit 1
-      # else
-      #   echo "This script needs to be run as root or via sudo to install packages."
-      #   exit 1
-      # fi
-    else
-      echo "Python TK found..."
-    fi
-  elif "$distro" | grep -Eqi "arch" || "$family" | grep -qi "arch"; then
+  elif echo "$distro_name $family_name" | grep -Eqi "arch"; then
     echo "Arch Linux or Arch base detected."
-    if ! pacman -Qi tk >/dev/null; then
-      # if [ "$root" = true ]; then
-        echo "This script needs you to install the missing python3-tk packages. Please install with:\n\n"
-        echo "pacman --noconfirm -S tk >&3"
-        exit 1
-      # else
-      #   echo "This script needs to be run as root or via sudo to install packages."
-      #   exit 1
-      # fi
-    else
-      echo "Python TK found..."
-    fi
-  elif "$distro" | grep -Eqi "opensuse" || "$family" | grep -qi "opensuse"; then
+  elif echo "$distro_name $family_name" | grep -Eqi "opensuse|suse"; then
     echo "OpenSUSE detected."
-    if ! rpm -qa | grep -qi python-tk; then
-      # if [ "$root" = true ]; then
-        echo "This script needs you to install the missing python3-tk packages. Please install with:\n\n"
-        echo "zypper install -y python-tk >&3"
-        exit 1
-      # else
-      #   echo "This script needs to be run as root or via sudo to install packages."
-      #   exit 1
-      # fi
-    else
-      echo "Python TK found..."
-    fi
-  elif [ "$distro" = "None" ] || [ "$family" = "None" ]; then
-    if [ "$distro" = "None" ]; then
+  elif [ "$distro_name" = "None" ] || [ "$family_name" = "None" ] || [ -z "$distro_name$family_name" ]; then
+    if [ "$distro_name" = "None" ] || [ -z "$distro_name" ]; then
       echo "We could not detect your distribution of Linux. Please file a bug report on github with the contents of your /etc/os-release file."
     fi
-
-    if [ "$family" = "None" ]; then
+    if [ "$family_name" = "None" ] || [ -z "$family_name" ]; then
       echo "We could not detect the family of your Linux distribution. Please file a bug report on github with the contents of your /etc/os-release file."
     fi
+  fi
+
+  if ! require_python_tkinter "" "$distro_name" "$family_name"; then
+    exit 1
   fi
 
   if ! install_python_dependencies; then

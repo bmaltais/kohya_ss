@@ -10,7 +10,7 @@
   "caption_extension": "",
   "clip_skip": 2,
   "color_aug": false,
-  "dataset_config": "D:/kohya_ss/test/config/dataset-masked_loss.toml",
+  "dataset_config": "./test/config/dataset-masked_loss.toml",
   "enable_bucket": true,
   "epoch": 1,
   "flip_aug": false,
