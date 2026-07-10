@@ -1,5 +1,6 @@
 import gradio as gr
 import os
+import re
 import subprocess
 import sys
 
@@ -36,6 +37,55 @@ WD14_REPO_IDS = [
 ]
 
 DEFAULT_WD14_REPO_ID = "SmilingWolf/wd-v1-4-convnextv2-tagger-v2"
+
+# HF hub style: org/name or org/name/subdir segments only (no path traversal).
+_HF_REPO_ID_RE = re.compile(r"^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$")
+
+
+def sanitize_hf_repo_id(repo_id: str) -> str | None:
+    """Return repo_id if it is a safe Hugging Face id, else None.
+
+    Rejects empty values, ``..``, absolute paths, and characters outside the
+    normal ``org/name`` (optional subdir) pattern used by the tagger cache.
+    """
+    if not repo_id or not isinstance(repo_id, str):
+        return None
+    cleaned = repo_id.strip()
+    if not cleaned or ".." in cleaned or cleaned.startswith(("/", "\\")):
+        return None
+    if not _HF_REPO_ID_RE.fullmatch(cleaned):
+        return None
+    return cleaned
+
+
+def resolve_wd14_model_dir(repo_id: str) -> str | None:
+    """Resolve the local model cache dir under the project, or None if unsafe.
+
+    Guarantees the resolved path stays under ``{scriptdir}/wd14_tagger_model``.
+    """
+    safe_id = sanitize_hf_repo_id(repo_id)
+    if safe_id is None:
+        return None
+    base = os.path.realpath(os.path.join(scriptdir, "wd14_tagger_model"))
+    candidate = os.path.realpath(os.path.join(base, safe_id.replace("/", "_")))
+    # Ensure candidate is base or a subpath of base (path-injection guard).
+    try:
+        common = os.path.commonpath([base, candidate])
+    except ValueError:
+        return None
+    if common != base:
+        return None
+    return candidate
+
+
+def validate_train_data_dir(train_data_dir: str) -> str | None:
+    """Return absolute image folder path if it exists as a directory."""
+    if not train_data_dir or not isinstance(train_data_dir, str):
+        return None
+    path = os.path.abspath(os.path.expanduser(train_data_dir.strip()))
+    if not os.path.isdir(path):
+        return None
+    return path
 
 
 def check_keras_backend_ready() -> str | None:
@@ -102,6 +152,12 @@ def caption_images(
         log.info("Image folder is missing...")
         return
 
+    validated_train_dir = validate_train_data_dir(train_data_dir)
+    if validated_train_dir is None:
+        log.error(f"Image folder is missing or not a directory: {train_data_dir!r}")
+        return
+    train_data_dir = validated_train_dir
+
     if caption_extension == "":
         log.info("Please provide an extension for the caption files.")
         return
@@ -117,15 +173,29 @@ def caption_images(
             log.error(keras_error)
             return
 
-    repo_id_converted = repo_id.replace("/", "_")
-    model_dir = os.path.join(scriptdir, "wd14_tagger_model", repo_id_converted)
+    safe_repo_id = sanitize_hf_repo_id(repo_id)
+    if safe_repo_id is None:
+        log.error(
+            f"Invalid Hugging Face repo id (refusing path-unsafe value): {repo_id!r}"
+        )
+        return
+    repo_id = safe_repo_id
+
+    model_dir = resolve_wd14_model_dir(repo_id)
+    if model_dir is None:
+        log.error(f"Could not resolve a safe model cache path for {repo_id!r}")
+        return
     if not os.path.exists(model_dir):
         force_download = True
 
     log.info(f"Captioning files in {train_data_dir}...")
+    # Fixed script path under the project tree (not user-controlled).
+    tagger_script = os.path.join(
+        scriptdir, "sd-scripts", "finetune", "tag_images_by_wd14_tagger.py"
+    )
     run_cmd = [
         PYTHON,
-        rf"{scriptdir}/sd-scripts/finetune/tag_images_by_wd14_tagger.py",
+        tagger_script,
     ]
 
     # Prefix/postfix are applied after a successful run via add_pre_postfix
@@ -185,8 +255,8 @@ def caption_images(
     if character_tags_first:
         run_cmd.append("--character_tags_first")
 
-    # Add the directory containing the training data
-    run_cmd.append(rf"{train_data_dir}")
+    # Add the validated image directory (absolute path, isdir-checked above).
+    run_cmd.append(train_data_dir)
 
     env = setup_environment()
 
@@ -197,6 +267,7 @@ def caption_images(
     # Run with project root as cwd so the default relative model dir
     # (wd14_tagger_model/) stays at the repo root. PYTHONPATH from
     # setup_environment() already includes sd-scripts for imports.
+    # shell=False + argv list: no shell metacharacter expansion.
     result = subprocess.run(
         run_cmd,
         env=env,

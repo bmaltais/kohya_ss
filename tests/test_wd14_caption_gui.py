@@ -5,6 +5,7 @@ No real tagger, GPU, or model weights.
 """
 
 import inspect
+import os
 import sys
 import unittest
 from types import SimpleNamespace
@@ -52,8 +53,16 @@ class TestWd14CaptionImagesLaunch(unittest.TestCase):
         self.completed = SimpleNamespace(returncode=0)
 
     def _run(self, **overrides):
+        def _ok_dir(p):
+            if not p:
+                return None
+            return os.path.abspath(os.path.expanduser(str(p).strip()))
+
         with (
             patch.object(wd14_caption_gui.os.path, "exists", return_value=True),
+            patch.object(
+                wd14_caption_gui, "validate_train_data_dir", side_effect=_ok_dir
+            ),
             patch.object(wd14_caption_gui, "setup_environment", return_value=self.env),
             patch.object(
                 wd14_caption_gui.subprocess,
@@ -152,10 +161,37 @@ class TestWd14CaptionImagesLaunch(unittest.TestCase):
             wd14_caption_gui.caption_images(**_base_kwargs(train_data_dir=""))
             mock_run.assert_not_called()
 
-    def test_keras_preflight_blocks_launch_when_numpy2(self):
-        fake_np = MagicMock()
-        fake_np.__version__ = "2.2.6"
+    def test_invalid_repo_id_does_not_launch(self):
+        with patch.object(wd14_caption_gui.subprocess, "run") as mock_run:
+            with patch.object(
+                wd14_caption_gui,
+                "validate_train_data_dir",
+                return_value=os.path.abspath("/data/images"),
+            ):
+                wd14_caption_gui.caption_images(
+                    **_base_kwargs(repo_id="../../etc/passwd")
+                )
+            mock_run.assert_not_called()
+
+    def test_nonexistent_train_dir_does_not_launch(self):
         with (
+            patch.object(wd14_caption_gui.subprocess, "run") as mock_run,
+            patch.object(
+                wd14_caption_gui, "validate_train_data_dir", return_value=None
+            ),
+        ):
+            wd14_caption_gui.caption_images(
+                **_base_kwargs(train_data_dir="/no/such/dir")
+            )
+            mock_run.assert_not_called()
+
+    def test_keras_preflight_blocks_launch_when_numpy2(self):
+        with (
+            patch.object(
+                wd14_caption_gui,
+                "validate_train_data_dir",
+                return_value=os.path.abspath("/data/images"),
+            ),
             patch.object(
                 wd14_caption_gui,
                 "check_keras_backend_ready",
@@ -168,6 +204,30 @@ class TestWd14CaptionImagesLaunch(unittest.TestCase):
             preflight.assert_called_once()
             mock_run.assert_not_called()
             self.assertTrue(mock_log.error.called)
+
+
+class TestSanitizeRepoAndPaths(unittest.TestCase):
+    def test_sanitize_accepts_smilingwolf_ids(self):
+        rid = wd14_caption_gui.sanitize_hf_repo_id(
+            "SmilingWolf/wd-v1-4-convnextv2-tagger-v2"
+        )
+        self.assertEqual(rid, "SmilingWolf/wd-v1-4-convnextv2-tagger-v2")
+
+    def test_sanitize_rejects_traversal(self):
+        self.assertIsNone(wd14_caption_gui.sanitize_hf_repo_id("../evil"))
+        self.assertIsNone(wd14_caption_gui.sanitize_hf_repo_id("foo/../../bar"))
+        self.assertIsNone(wd14_caption_gui.sanitize_hf_repo_id("/abs/path"))
+
+    def test_resolve_model_dir_stays_under_cache(self):
+        path = wd14_caption_gui.resolve_wd14_model_dir(
+            "SmilingWolf/wd-v1-4-convnextv2-tagger-v2"
+        )
+        self.assertIsNotNone(path)
+        base = os.path.realpath(
+            os.path.join(wd14_caption_gui.scriptdir, "wd14_tagger_model")
+        )
+        self.assertEqual(os.path.commonpath([base, path]), base)
+        self.assertIn("SmilingWolf_wd-v1-4-convnextv2-tagger-v2", path)
 
 
 class TestCheckKerasBackendReady(unittest.TestCase):
