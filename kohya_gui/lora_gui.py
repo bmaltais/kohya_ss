@@ -15,6 +15,7 @@ from .common_gui import (
     get_saveasfile_path,
     output_message,
     print_command_and_toml,
+    resolve_lr_warmup_steps,
     run_cmd_advanced_training,
     SaveConfigFile,
     scriptdir,
@@ -1441,12 +1442,27 @@ def train_model(
                     float(max_train_steps) / 100 * int(stop_text_encoder_training)
                 )
 
-            if lr_warmup != 0:
-                lr_warmup_steps = round(
-                    float(int(lr_warmup) * int(max_train_steps) / 100)
+            # Convert percent warmup to absolute steps when max_train_steps is
+            # known (historical LoRA dataset_config behavior). Coerce types so
+            # str/None do not TypeError (GH #3455). Absolute override is left
+            # for resolve_lr_warmup_steps so precedence stays consistent.
+            try:
+                _warmup_pct = float(lr_warmup) if lr_warmup not in ("", None) else 0.0
+            except (TypeError, ValueError):
+                _warmup_pct = 0.0
+            try:
+                _steps_override = (
+                    float(lr_warmup_steps) if lr_warmup_steps not in ("", None) else 0.0
                 )
-            else:
-                lr_warmup_steps = 0
+            except (TypeError, ValueError):
+                _steps_override = 0.0
+
+            if _steps_override > 0:
+                pass  # resolve_lr_warmup_steps applies override + dual-set warn
+            elif _warmup_pct != 0:
+                lr_warmup_steps = round(_warmup_pct * int(max_train_steps) / 100)
+                # Percent already consumed as absolute steps; avoid false warn
+                lr_warmup = 0
         else:
             stop_text_encoder_training = 0
             lr_warmup_steps = 0
@@ -1541,17 +1557,8 @@ def train_model(
                 float(max_train_steps) / 100 * int(stop_text_encoder_training)
             )
 
-    # Calculate lr_warmup_steps
-    if lr_warmup_steps > 0:
-        lr_warmup_steps = int(lr_warmup_steps)
-        if lr_warmup > 0:
-            log.warning(
-                "Both lr_warmup and lr_warmup_steps are set. lr_warmup_steps will be used."
-            )
-    elif lr_warmup != 0:
-        lr_warmup_steps = lr_warmup / 100
-    else:
-        lr_warmup_steps = 0
+    # Calculate lr_warmup_steps (coerce str/None from Gradio/config — GH #3455)
+    lr_warmup_steps = resolve_lr_warmup_steps(lr_warmup, lr_warmup_steps)
 
     log.info(f"Train batch size: {train_batch_size}")
     log.info(f"Gradient accumulation steps: {gradient_accumulation_steps}")
