@@ -66,13 +66,14 @@ def initialize_ui_interface(
         f'<script type="text/javascript">{info_tooltip_js}</script>'
         f'<script type="text/javascript">{icon_button_titles_js}</script>'
     )
+    # Gradio 6 moved app-level shell params (css/head/theme) from Blocks() to
+    # launch(); keep them bundled here so launch sites stay in sync.
+    theme = build_offline_theme()
+    shell_params = {"css": css, "head": head, "theme": theme}
 
-    # Create the main Gradio Blocks interface (offline-safe theme + no analytics)
+    # Create the main Gradio Blocks interface (no analytics)
     ui_interface = gr.Blocks(
-        css=css,
-        head=head,
         title=f"Kohya_ss GUI {release_info}",
-        theme=build_offline_theme(),
         analytics_enabled=False,
     )
     with ui_interface:
@@ -119,7 +120,7 @@ def initialize_ui_interface(
         # Display release information in a div element
         gr.Markdown(f"<div class='ver-class'>{release_info}</div>")
 
-    return ui_interface
+    return ui_interface, shell_params
 
 
 # Function to configure and launch the UI
@@ -152,8 +153,8 @@ def UI(**kwargs):
     if use_shell:
         log.info("Using shell=True when running external commands...")
 
-    # Initialize the Gradio UI interface
-    ui_interface = initialize_ui_interface(
+    # Initialize the Gradio UI interface (shell css/head/theme come back for launch)
+    ui_interface, shell_params = initialize_ui_interface(
         config,
         config_file_path,
         headless,
@@ -180,6 +181,8 @@ def UI(**kwargs):
         "root_path": kwargs.get("root_path", None),
         "debug": kwargs.get("debug", False),
         "allowed_paths": config.allowed_paths,
+        # Gradio 6: app-level shell params belong on launch(), not Blocks().
+        **shell_params,
     }
 
     # This line filters out any key-value pairs from `launch_params` where the value is `None`, ensuring only valid parameters are passed to the `launch` function.

@@ -17,14 +17,12 @@
     // span; its own <label> (checkbox + text) doubles as the field name.
     const NAME_SELECTOR = '[data-testid="block-info"], label';
 
+    // Gradio 6 exposes a stable `.info-text` class on the info div for all
+    // three field shapes (Dropdown, Textbox/label-as-block, Checkbox), so
+    // this is a one-line lookup instead of the Gradio 5 version-hashed
+    // `.svelte-*` fallback chain.
     function getInfoDiv(block) {
-        return (
-            block.querySelector(":scope > label > .svelte-j9uq24:has(> .prose)") ||
-            block.querySelector(
-                ":scope > .svelte-1hfxrpf.container > .svelte-j9uq24:has(> .prose)"
-            ) ||
-            block.querySelector(":scope > .svelte-j9uq24:has(> .prose)")
-        );
+        return block.querySelector(".info-text");
     }
 
     function resolveFromName(target) {

@@ -21,9 +21,9 @@ except ModuleNotFoundError:  # Python 3.10
 
 _repo_root = Path(__file__).resolve().parents[1]
 
-# Align with uv.lock resolved versions (gradio 5.34.2 / client 1.10.3)
-_GRADIO_EXPECTED = Version("5.34.2")
-_GRADIO_CLIENT_EXPECTED = Version("1.10.3")
+# Align with uv.lock resolved versions (gradio 6.17.3 / client 2.5.0)
+_GRADIO_EXPECTED = Version("6.17.3")
+_GRADIO_CLIENT_EXPECTED = Version("2.5.0")
 
 
 def _requirements_text() -> str:
