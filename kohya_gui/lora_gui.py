@@ -963,6 +963,134 @@ def append_loraplus_network_args(
 # sd-scripts/docs/loha_lokr.md and GH issue #3528.
 KOHYA_LOHA_LOKR_TYPES = frozenset({"Kohya LoHa", "Kohya LoKr"})
 
+# GH #3389: native kohya LoRA modules that implement neuron/rank/module dropout
+# and max-norm regularization (apply_max_norm_regularization). Flux1 OFT is
+# intentionally excluded — networks.oft_flux has none of these hooks.
+MODERN_NATIVE_LORA_REGULARIZER_TYPES = frozenset(
+    {
+        "Flux1",
+        "Anima",
+        "Lumina",
+        "HunyuanImage-2.1",
+    }
+)
+
+# Visibility allow-lists for the four Basic-accordion regularizer sliders.
+# Legacy types kept as before; modern native types added for #3389.
+LORA_TYPES_SCALE_WEIGHT_NORMS = (
+    frozenset(
+        {
+            "LoCon",
+            "Kohya DyLoRA",
+            "Kohya LoCon",
+            "LoRA-FA",
+            "LyCORIS/DyLoRA",
+            "LyCORIS/GLoRA",
+            "LyCORIS/LoHa",
+            "LyCORIS/LoCon",
+            "LyCORIS/LoKr",
+            "Standard",
+        }
+    )
+    | MODERN_NATIVE_LORA_REGULARIZER_TYPES
+)
+
+LORA_TYPES_NETWORK_DROPOUT = (
+    frozenset(
+        {
+            "LoCon",
+            "Kohya DyLoRA",
+            "Kohya LoCon",
+            "LoRA-FA",
+            "LyCORIS/BOFT",
+            "LyCORIS/Diag-OFT",
+            "LyCORIS/DyLoRA",
+            "LyCORIS/GLoRA",
+            "LyCORIS/LoCon",
+            "LyCORIS/LoHa",
+            "LyCORIS/LoKr",
+            "LyCORIS/Native Fine-Tuning",
+            "Standard",
+        }
+    )
+    | MODERN_NATIVE_LORA_REGULARIZER_TYPES
+)
+
+LORA_TYPES_RANK_DROPOUT = (
+    frozenset(
+        {
+            "LoCon",
+            "Kohya DyLoRA",
+            "Kohya LoHa",
+            "Kohya LoKr",
+            "LyCORIS/BOFT",
+            "LyCORIS/Diag-OFT",
+            "LyCORIS/GLoRA",
+            "LyCORIS/LoCon",
+            "LyCORIS/LoHa",
+            "LyCORIS/LoKr",
+            "Kohya LoCon",
+            "LoRA-FA",
+            "LyCORIS/Native Fine-Tuning",
+            "Standard",
+        }
+    )
+    | MODERN_NATIVE_LORA_REGULARIZER_TYPES
+)
+
+LORA_TYPES_MODULE_DROPOUT = (
+    frozenset(
+        {
+            "LoCon",
+            "LyCORIS/BOFT",
+            "LyCORIS/Diag-OFT",
+            "Kohya DyLoRA",
+            "Kohya LoHa",
+            "Kohya LoKr",
+            "LyCORIS/GLoRA",
+            "LyCORIS/LoCon",
+            "LyCORIS/LoHa",
+            "LyCORIS/LoKr",
+            "Kohya LoCon",
+            "LyCORIS/Native Fine-Tuning",
+            "LoRA-FA",
+            "Standard",
+        }
+    )
+    | MODERN_NATIVE_LORA_REGULARIZER_TYPES
+)
+
+
+def regularizer_controls_visible(lora_type: str) -> dict[str, bool]:
+    """Return Basic-accordion regularizer slider visibility for a LoRA type.
+
+    Used by the LoRA-type change handler and unit-tested for #3389.
+    """
+    return {
+        "scale_weight_norms": lora_type in LORA_TYPES_SCALE_WEIGHT_NORMS,
+        "network_dropout": lora_type in LORA_TYPES_NETWORK_DROPOUT,
+        "rank_dropout": lora_type in LORA_TYPES_RANK_DROPOUT,
+        "module_dropout": lora_type in LORA_TYPES_MODULE_DROPOUT,
+    }
+
+
+def append_rank_module_dropout_network_args(
+    network_args: str,
+    rank_dropout: float | int | None = 0,
+    module_dropout: float | int | None = 0,
+) -> str:
+    """Append rank_dropout / module_dropout network kwargs when non-zero.
+
+    Matches the truthy/nonzero convention used by Standard / Kohya LoCon so
+    default-zero configs do not emit overrides. Used by Flux1, Anima, Lumina,
+    and HunyuanImage-2.1 (#3389).
+    """
+    if rank_dropout is not None and float(rank_dropout) > 0:
+        network_args += f" rank_dropout={rank_dropout}"
+    if module_dropout is not None and float(module_dropout) > 0:
+        network_args += f" module_dropout={module_dropout}"
+    return network_args
+
 
 def build_native_loha_lokr_network_args(
     *,
@@ -1755,6 +1883,10 @@ def train_model(
             if value:
                 network_args += f" {key}={value}"
 
+        network_args = append_rank_module_dropout_network_args(
+            network_args, rank_dropout, module_dropout
+        )
+
     if LoRA_type == "Flux1 OFT":
         # Add a list of supported network arguments for Flux1 OFT below when supported
         kohya_lora_var_list = [
@@ -1784,12 +1916,21 @@ def train_model(
 
     if LoRA_type == "HunyuanImage-2.1":
         network_module = "networks.lora_hunyuan_image"
+        network_args = append_rank_module_dropout_network_args(
+            network_args, rank_dropout, module_dropout
+        )
 
     if LoRA_type == "Anima":
         network_module = "networks.lora_anima"
+        network_args = append_rank_module_dropout_network_args(
+            network_args, rank_dropout, module_dropout
+        )
 
     if LoRA_type == "Lumina":
         network_module = "networks.lora_lumina"
+        network_args = append_rank_module_dropout_network_args(
+            network_args, rank_dropout, module_dropout
+        )
 
     # Native sd-scripts LoHa/LoKr (not lycoris.kohya). Targets/excludes are
     # auto-detected from the loaded model; optional conv/factor args only.
@@ -2894,6 +3035,8 @@ def lora_tab(
                 ):
                     log.debug("LoRA type changed...")
 
+                    regularizer_vis = regularizer_controls_visible(LoRA_type)
+
                     lora_settings_config = {
                         "network_row": {
                             "gr_type": gr.Row,
@@ -3202,84 +3345,25 @@ def lora_tab(
                         "scale_weight_norms": {
                             "gr_type": gr.Slider,
                             "update_params": {
-                                "visible": LoRA_type
-                                in {
-                                    "LoCon",
-                                    "Kohya DyLoRA",
-                                    "Kohya LoCon",
-                                    "LoRA-FA",
-                                    "LyCORIS/DyLoRA",
-                                    "LyCORIS/GLoRA",
-                                    "LyCORIS/LoHa",
-                                    "LyCORIS/LoCon",
-                                    "LyCORIS/LoKr",
-                                    "Standard",
-                                },
+                                "visible": regularizer_vis["scale_weight_norms"],
                             },
                         },
                         "network_dropout": {
                             "gr_type": gr.Slider,
                             "update_params": {
-                                "visible": LoRA_type
-                                in {
-                                    "LoCon",
-                                    "Kohya DyLoRA",
-                                    "Kohya LoCon",
-                                    "LoRA-FA",
-                                    "LyCORIS/BOFT",
-                                    "LyCORIS/Diag-OFT",
-                                    "LyCORIS/DyLoRA",
-                                    "LyCORIS/GLoRA",
-                                    "LyCORIS/LoCon",
-                                    "LyCORIS/LoHa",
-                                    "LyCORIS/LoKr",
-                                    "LyCORIS/Native Fine-Tuning",
-                                    "Standard",
-                                },
+                                "visible": regularizer_vis["network_dropout"],
                             },
                         },
                         "rank_dropout": {
                             "gr_type": gr.Slider,
                             "update_params": {
-                                "visible": LoRA_type
-                                in {
-                                    "LoCon",
-                                    "Kohya DyLoRA",
-                                    "Kohya LoHa",
-                                    "Kohya LoKr",
-                                    "LyCORIS/BOFT",
-                                    "LyCORIS/Diag-OFT",
-                                    "LyCORIS/GLoRA",
-                                    "LyCORIS/LoCon",
-                                    "LyCORIS/LoHa",
-                                    "LyCORIS/LoKr",
-                                    "Kohya LoCon",
-                                    "LoRA-FA",
-                                    "LyCORIS/Native Fine-Tuning",
-                                    "Standard",
-                                },
+                                "visible": regularizer_vis["rank_dropout"],
                             },
                         },
                         "module_dropout": {
                             "gr_type": gr.Slider,
                             "update_params": {
-                                "visible": LoRA_type
-                                in {
-                                    "LoCon",
-                                    "LyCORIS/BOFT",
-                                    "LyCORIS/Diag-OFT",
-                                    "Kohya DyLoRA",
-                                    "Kohya LoHa",
-                                    "Kohya LoKr",
-                                    "LyCORIS/GLoRA",
-                                    "LyCORIS/LoCon",
-                                    "LyCORIS/LoHa",
-                                    "LyCORIS/LoKr",
-                                    "Kohya LoCon",
-                                    "LyCORIS/Native Fine-Tuning",
-                                    "LoRA-FA",
-                                    "Standard",
-                                },
+                                "visible": regularizer_vis["module_dropout"],
                             },
                         },
                         "LyCORIS_preset": {
