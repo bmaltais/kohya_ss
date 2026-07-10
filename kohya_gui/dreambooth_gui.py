@@ -13,6 +13,7 @@ from .common_gui import (
     get_file_path,
     get_saveasfile_path,
     print_command_and_toml,
+    resolve_lr_warmup_steps,
     run_cmd_advanced_training,
     SaveConfigFile,
     scriptdir,
@@ -831,17 +832,8 @@ def train_model(
 
         log.info(f"Total steps: {total_steps}")
 
-    # Calculate lr_warmup_steps
-    if lr_warmup_steps > 0:
-        lr_warmup_steps = int(lr_warmup_steps)
-        if lr_warmup > 0:
-            log.warning(
-                "Both lr_warmup and lr_warmup_steps are set. lr_warmup_steps will be used."
-            )
-    elif lr_warmup != 0:
-        lr_warmup_steps = lr_warmup / 100
-    else:
-        lr_warmup_steps = 0
+    # Calculate lr_warmup_steps (coerce str/None from Gradio/config — GH #3455)
+    lr_warmup_steps = resolve_lr_warmup_steps(lr_warmup, lr_warmup_steps)
 
     log.info(f"Train batch size: {train_batch_size}")
     log.info(f"Gradient accumulation steps: {gradient_accumulation_steps}")

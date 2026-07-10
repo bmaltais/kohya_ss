@@ -1182,6 +1182,50 @@ def set_pretrained_model_name_or_path_input(
 ###
 
 
+def resolve_lr_warmup_steps(lr_warmup, lr_warmup_steps):
+    """Resolve effective lr_warmup_steps from percent and absolute override.
+
+    Gradio / loaded configs may pass str, None, or empty values. Coerce both
+    inputs to numbers before comparison or arithmetic so train_model paths do
+    not raise TypeError (GH #3455).
+
+    Precedence matches historical train_model behavior:
+    1. If absolute override > 0, use int(override); warn if percent also set.
+    2. Else if percent != 0, return percent / 100 (fraction of total steps).
+    3. Else return 0.
+
+    Args:
+        lr_warmup: LR warmup as percent of total steps (0–100), any coercible type.
+        lr_warmup_steps: Absolute warmup steps override, any coercible type.
+
+    Returns:
+        int or float: Absolute override as int, or percent/100 as float, or 0.
+    """
+
+    def _as_float(value, default=0.0):
+        if value is None or value == "":
+            return default
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return default
+
+    warmup = _as_float(lr_warmup)
+    steps = _as_float(lr_warmup_steps)
+
+    if steps > 0:
+        resolved = int(steps)
+        if warmup > 0:
+            log.warning(
+                "Both lr_warmup and lr_warmup_steps are set. "
+                "lr_warmup_steps will be used."
+            )
+        return resolved
+    if warmup != 0:
+        return warmup / 100
+    return 0
+
+
 def get_int_or_default(kwargs, key, default_value=0):
     """
     Retrieves an integer value from the provided kwargs dictionary based on the given key. If the key is not found,
