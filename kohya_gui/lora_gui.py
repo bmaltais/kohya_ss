@@ -289,6 +289,7 @@ def save_configuration(
     # Flux1
     flux1_cache_text_encoder_outputs,
     flux1_cache_text_encoder_outputs_to_disk,
+    model_type,
     ae,
     clip_l,
     t5xxl,
@@ -635,6 +636,7 @@ def open_configuration(
     # Flux1
     flux1_cache_text_encoder_outputs,
     flux1_cache_text_encoder_outputs_to_disk,
+    model_type,
     ae,
     clip_l,
     t5xxl,
@@ -1145,6 +1147,7 @@ def train_model(
     # Flux1
     flux1_cache_text_encoder_outputs,
     flux1_cache_text_encoder_outputs_to_disk,
+    model_type,
     ae,
     clip_l,
     t5xxl,
@@ -1913,12 +1916,15 @@ def train_model(
         text_encoder_lr_float == 0 and unet_lr_float != 0
     ) or hunyuan_image_checkbox
 
+    # Chroma (flux_train_network --model_type=chroma) does not use CLIP-L.
+    is_chroma = bool(flux1_checkbox) and str(model_type or "").lower() == "chroma"
+
     clip_l_value = None
     if sd3_checkbox:
         # print("Setting clip_l_value to sd3_clip_l")
         # print("sd3_clip_l: ", sd3_clip_l)
         clip_l_value = sd3_clip_l
-    elif flux1_checkbox:
+    elif flux1_checkbox and not is_chroma:
         clip_l_value = clip_l
 
     t5xxl_value = None
@@ -2173,6 +2179,9 @@ def train_model(
         # Flux.1 specific parameters
         # "cache_text_encoder_outputs": see previous assignment above for code
         # "cache_text_encoder_outputs_to_disk": see previous assignment above for code
+        # model_type: only emit for chroma so default flux stays byte-compatible
+        # with pre-change configs (sd-scripts defaults to flux when omitted).
+        "model_type": "chroma" if is_chroma else None,
         "ae": (lumina_ae if lumina_checkbox else ae if flux1_checkbox else None),
         # "clip_l": see previous assignment above for code
         "t5xxl": t5xxl_value,
@@ -2345,6 +2354,8 @@ def train_model(
 
     # Given dictionary `config_toml_data`
     # Remove all values = ""
+    # NOTE: `0.0 in [False]` is True in Python, so guidance_scale=0.0 is
+    # dropped here. Chroma re-injects it immediately below.
     config_toml_data = {
         key: value
         for key, value in config_toml_data.items()
@@ -2352,6 +2363,14 @@ def train_model(
     }
 
     config_toml_data["max_data_loader_n_workers"] = int(max_data_loader_n_workers)
+
+    # Chroma backend contract (flux_train_network.py):
+    # - apply_t5_attn_mask is hard-required (assert)
+    # - guidance_scale=0.0 is required by docs; the filter above drops 0.0
+    #   because 0.0 == False in Python, so re-emit explicitly
+    if is_chroma:
+        config_toml_data["apply_t5_attn_mask"] = True
+        config_toml_data["guidance_scale"] = float(guidance_scale)
 
     # Sort the dictionary by keys
     config_toml_data = dict(sorted(config_toml_data.items()))
@@ -3658,6 +3677,7 @@ def lora_tab(
                 "flux1_cache_text_encoder_outputs_to_disk",
                 flux1_training.flux1_cache_text_encoder_outputs_to_disk,
             ),
+            ("model_type", flux1_training.model_type),
             ("ae", flux1_training.ae),
             ("clip_l", flux1_training.clip_l),
             ("t5xxl", flux1_training.t5xxl),

@@ -92,6 +92,7 @@ STRING_OVERRIDES = (
     "dynamo_mode",
     "extra_accelerate_launch_args",
     "network_weights",
+    "model_type",
     "model_prediction_type",
     "timestep_sampling",
     "train_blocks",
@@ -222,6 +223,123 @@ class TestLoraTrainInpainting(unittest.TestCase):
         self.assertTrue(config.get("train_inpainting"))
         self.assertFalse(config.get("cache_latents"))
         self.assertFalse(config.get("cache_latents_to_disk"))
+
+
+class TestChromaModelType(unittest.TestCase):
+    """GH issue #3227: expose sd-scripts Chroma LoRA training via model_type.
+
+    flux_train_network.py accepts --model_type {flux,chroma}. Chroma does not
+    use CLIP-L, requires guidance_scale=0.0 and apply_t5_attn_mask, and keeps
+    AE/T5XXL the same as Flux.
+    """
+
+    def _run_and_load_toml(self, overrides):
+        kwargs = build_train_model_kwargs(
+            lora_gui.train_model,
+            FIXTURE,
+            numeric_fixups=NUMERIC_FIXUPS,
+            string_overrides=STRING_OVERRIDES,
+            overrides=overrides,
+        )
+        return run_train_model_and_load_toml(lora_gui, kwargs)
+
+    def test_flux_default_omits_model_type_and_keeps_clip_l(self):
+        # Existing Flux users who never touch the new control must stay
+        # byte-compatible: no required model_type, clip_l still forwarded.
+        config = self._run_and_load_toml(
+            {
+                "flux1_checkbox": True,
+                "LoRA_type": "Flux1",
+                "clip_l": "/models/clip_l.safetensors",
+                "ae": "/models/ae.safetensors",
+                "t5xxl": "/models/t5xxl.safetensors",
+                "model_type": "flux",
+            }
+        )
+        self.assertNotIn("model_type", config)
+        self.assertEqual(config.get("clip_l"), "/models/clip_l.safetensors")
+
+    def test_empty_model_type_treated_as_flux(self):
+        # Fixture/legacy configs without the field default to "" — same as flux.
+        config = self._run_and_load_toml(
+            {
+                "flux1_checkbox": True,
+                "LoRA_type": "Flux1",
+                "clip_l": "/models/clip_l.safetensors",
+                "model_type": "",
+            }
+        )
+        self.assertNotIn("model_type", config)
+        self.assertEqual(config.get("clip_l"), "/models/clip_l.safetensors")
+
+    def test_chroma_emits_model_type_and_omits_clip_l(self):
+        config = self._run_and_load_toml(
+            {
+                "flux1_checkbox": True,
+                "LoRA_type": "Flux1",
+                "model_type": "chroma",
+                "clip_l": "/models/clip_l.safetensors",
+                "ae": "/models/ae.safetensors",
+                "t5xxl": "/models/t5xxl.safetensors",
+                "guidance_scale": 0.0,
+                "apply_t5_attn_mask": True,
+                "timestep_sampling": "sigmoid",
+            }
+        )
+        self.assertEqual(config.get("model_type"), "chroma")
+        self.assertNotIn("clip_l", config)
+        self.assertEqual(config.get("ae"), "/models/ae.safetensors")
+        self.assertEqual(config.get("t5xxl"), "/models/t5xxl.safetensors")
+        self.assertEqual(config.get("guidance_scale"), 0.0)
+        self.assertTrue(config.get("apply_t5_attn_mask"))
+        self.assertEqual(config.get("timestep_sampling"), "sigmoid")
+
+    def test_chroma_does_not_require_clip_l_to_start(self):
+        # Empty CLIP-L must not block Chroma launch path in generated config.
+        config = self._run_and_load_toml(
+            {
+                "flux1_checkbox": True,
+                "LoRA_type": "Flux1",
+                "model_type": "chroma",
+                "clip_l": "",
+                "ae": "/models/ae.safetensors",
+                "t5xxl": "/models/t5xxl.safetensors",
+            }
+        )
+        self.assertEqual(config.get("model_type"), "chroma")
+        self.assertNotIn("clip_l", config)
+
+    def test_chroma_forces_apply_t5_attn_mask(self):
+        # sd-scripts asserts apply_t5_attn_mask for chroma; the GUI must not
+        # emit a config that dies at trainer startup when the box is unchecked.
+        config = self._run_and_load_toml(
+            {
+                "flux1_checkbox": True,
+                "LoRA_type": "Flux1",
+                "model_type": "chroma",
+                "apply_t5_attn_mask": False,
+                "guidance_scale": 0.0,
+            }
+        )
+        self.assertEqual(config.get("model_type"), "chroma")
+        self.assertTrue(config.get("apply_t5_attn_mask"))
+        self.assertEqual(config.get("guidance_scale"), 0.0)
+
+    def test_chroma_model_type_persisted_in_saved_json(self):
+        kwargs = build_train_model_kwargs(
+            lora_gui.train_model,
+            FIXTURE,
+            numeric_fixups=NUMERIC_FIXUPS,
+            string_overrides=STRING_OVERRIDES,
+            overrides={
+                "flux1_checkbox": True,
+                "LoRA_type": "Flux1",
+                "model_type": "chroma",
+                "clip_l": "",
+            },
+        )
+        config = run_train_model_and_load_saved_json(lora_gui, kwargs)
+        self.assertEqual(config.get("model_type"), "chroma")
 
 
 class TestLoraGuiFieldRegistry(unittest.TestCase):
