@@ -1465,6 +1465,29 @@ def SaveConfigFile(
         json.dump(variables, file, indent=2)
 
 
+def try_save_training_config(
+    parameters,
+    file_path: str,
+    *,
+    headless: bool = False,
+    exclusion: list = None,
+) -> bool:
+    """Save training JSON via :func:`SaveConfigFile`; surface OSError to the user.
+
+    Returns True on success, False after logging and messaging on write failure.
+    """
+    if exclusion is None:
+        exclusion = ["file_path", "save_as", "headless", "print_only"]
+    try:
+        SaveConfigFile(parameters=parameters, file_path=file_path, exclusion=exclusion)
+        return True
+    except OSError as exc:
+        msg = f"Failed to write training config {file_path}: {exc}"
+        log.error(msg)
+        output_message(msg=msg, headless=headless)
+        return False
+
+
 def save_to_file(content):
     """
     Appends the given content to a file named 'print_command.txt' within a 'logs' directory.
@@ -1652,11 +1675,6 @@ def write_toml_config(path: str, data: dict, headless: bool = False) -> bool:
     try:
         with open(path, "w", encoding="utf-8") as toml_file:
             toml.dump(data, toml_file)
-        if not os.path.exists(path):
-            msg = f"Failed to write TOML file: {path}"
-            log.error(msg)
-            output_message(msg=msg, headless=headless)
-            return False
         return True
     except OSError as exc:
         msg = f"Failed to write config file {path}: {exc}"

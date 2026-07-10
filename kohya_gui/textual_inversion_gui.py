@@ -21,6 +21,7 @@ from .common_gui import (
     run_cmd_advanced_training,
     SaveConfigFile,
     scriptdir,
+    try_save_training_config,
     update_my_data,
     validate_file_path,
     validate_folder_path,
@@ -933,16 +934,7 @@ def train_model(
 
         log.info(f"Saving training config to {file_path}...")
 
-        try:
-            SaveConfigFile(
-                parameters=parameters,
-                file_path=file_path,
-                exclusion=["file_path", "save_as", "headless", "print_only"],
-            )
-        except OSError as exc:
-            msg = f"Failed to write training config {file_path}: {exc}"
-            log.error(msg)
-            output_message(msg=msg, headless=headless)
+        if not try_save_training_config(parameters, file_path, headless=headless):
             return TRAIN_BUTTON_VISIBLE
 
         env = setup_environment()

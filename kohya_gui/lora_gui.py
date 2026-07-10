@@ -22,6 +22,7 @@ from .common_gui import (
     SaveConfigFile,
     scriptdir,
     train_inpainting_changed,
+    try_save_training_config,
     update_my_data,
     validate_file_path,
     validate_folder_path,
@@ -1408,10 +1409,6 @@ def train_model(
         )
         return TRAIN_BUTTON_VISIBLE
 
-    if output_dir != "":
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-
     if stop_text_encoder_training > 0:
         output_message(
             msg='Output "stop text encoder training" is not yet supported. Ignoring',
@@ -2389,16 +2386,7 @@ def train_model(
 
         log.info(f"Saving training config to {file_path}...")
 
-        try:
-            SaveConfigFile(
-                parameters=parameters,
-                file_path=file_path,
-                exclusion=["file_path", "save_as", "headless", "print_only"],
-            )
-        except OSError as exc:
-            msg = f"Failed to write training config {file_path}: {exc}"
-            log.error(msg)
-            output_message(msg=msg, headless=headless)
+        if not try_save_training_config(parameters, file_path, headless=headless):
             return TRAIN_BUTTON_VISIBLE
 
         # log.info(run_cmd)
