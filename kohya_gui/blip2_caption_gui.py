@@ -9,27 +9,69 @@ from .custom_logging import setup_logging
 # Set up logging
 log = setup_logging()
 
+# Salesforce/blip2-opt-2.7b tip tokenizer JSON breaks TokenizerFast (ModelWrapper)
+# with transformers==4.54.1. Pin a known-good revision (#2992, #3037, #3367).
+BLIP2_MODEL_ID = "Salesforce/blip2-opt-2.7b"
+BLIP2_HF_REVISION = "51572668da0eb669e01a189dc22abe6088589a24"
+
+
+def get_caption_device(torch_module=None):
+    """Return preferred device string: cuda → xpu → mps → cpu.
+
+    Mirrors sd-scripts device preference without importing the submodule.
+    ``torch_module`` is injectable for unit tests (defaults to global torch).
+    """
+    t = torch if torch_module is None else torch_module
+    try:
+        if hasattr(t, "cuda") and t.cuda.is_available():
+            return "cuda"
+    except Exception:
+        pass
+    try:
+        if hasattr(t, "xpu") and t.xpu.is_available():
+            return "xpu"
+    except Exception:
+        pass
+    try:
+        if hasattr(t, "mps") and t.mps.is_available():
+            return "mps"
+    except Exception:
+        pass
+    return "cpu"
+
+
+def get_blip2_processor_load_kwargs():
+    """Kwargs for Blip2Processor.from_pretrained (revision + slow tokenizer)."""
+    return {
+        "revision": BLIP2_HF_REVISION,
+        "use_fast": False,
+    }
+
+
+def get_blip2_model_load_kwargs(torch_dtype=None):
+    """Kwargs for Blip2ForConditionalGeneration.from_pretrained."""
+    kwargs = {"revision": BLIP2_HF_REVISION}
+    if torch_dtype is not None:
+        kwargs["torch_dtype"] = torch_dtype
+    return kwargs
+
 
 def load_model():
     # Lazy import: transformers' Blip2 stack pulls TensorFlow at import time
     # (oneDNN INFO spam + slower GUI cold start). Only needed when captioning.
     from transformers import Blip2Processor, Blip2ForConditionalGeneration
 
-    # Set the device to GPU if available, otherwise use CPU
-    if hasattr(torch, "cuda") and torch.cuda.is_available():
-        device = "cuda"
-    elif hasattr(torch, "mps") and torch.mps.is_available():
-        device = "mps"
-    else:
-        device = "cpu"
+    device = get_caption_device()
 
-    # Initialize the BLIP2 processor
-    processor = Blip2Processor.from_pretrained("Salesforce/blip2-opt-2.7b")
+    # Initialize the BLIP2 processor (pinned revision; avoid fast-tokenizer ModelWrapper)
+    processor = Blip2Processor.from_pretrained(
+        BLIP2_MODEL_ID, **get_blip2_processor_load_kwargs()
+    )
     log.debug("Processor initialized: %s", processor)
 
     # Initialize the BLIP2 model
     model = Blip2ForConditionalGeneration.from_pretrained(
-        "Salesforce/blip2-opt-2.7b", torch_dtype=torch.float16
+        BLIP2_MODEL_ID, **get_blip2_model_load_kwargs(torch_dtype=torch.float16)
     )
 
     # Move the model to the specified device
