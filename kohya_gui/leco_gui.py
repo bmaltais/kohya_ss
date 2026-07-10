@@ -12,9 +12,12 @@ from .common_gui import (
     get_folder_path,
     get_saveasfile_path,
     check_if_model_exist,
+    join_config_path,
     list_files,
     create_refresh_button,
+    output_message,
     print_command_and_toml,
+    require_writable_directory,
     run_cmd_advanced_training,
     SaveConfigFile,
     scriptdir,
@@ -25,6 +28,7 @@ from .common_gui import (
     validate_toml_file,
     validate_args_setting,
     setup_environment,
+    write_toml_config,
 )
 from .class_source_model import default_models
 from .class_accelerate_launch import AccelerateLaunch
@@ -405,9 +409,7 @@ def train_model(
     if not validate_file_path(network_weights):
         return TRAIN_BUTTON_VISIBLE
 
-    if not validate_folder_path(
-        output_dir, can_be_written_to=True, create_if_not_exists=True
-    ):
+    if not require_writable_directory(output_dir, headless=headless):
         return TRAIN_BUTTON_VISIBLE
 
     if not validate_model_path(pretrained_model_name_or_path):
@@ -419,10 +421,6 @@ def train_model(
     #
     # End of path validation
     #
-
-    if output_dir != "":
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
 
     if not print_only and check_if_model_exist(
         output_name, output_dir, save_model_as, headless=headless
@@ -536,13 +534,10 @@ def train_model(
 
     current_datetime = datetime.now()
     formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
-    tmpfilename = os.path.join(output_dir, f"config_leco-{formatted_datetime}.toml")
+    tmpfilename = join_config_path(output_dir, f"config_leco-{formatted_datetime}.toml")
 
-    with open(tmpfilename, "w", encoding="utf-8") as toml_file:
-        toml.dump(config_toml_data, toml_file)
-
-        if not os.path.exists(toml_file.name):
-            log.error(f"Failed to write TOML file: {toml_file.name}")
+    if not write_toml_config(tmpfilename, config_toml_data, headless=headless):
+        return TRAIN_BUTTON_VISIBLE
 
     run_cmd.append("--config_file")
     run_cmd.append(rf"{tmpfilename}")
@@ -554,15 +549,23 @@ def train_model(
     else:
         current_datetime = datetime.now()
         formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
-        file_path = os.path.join(output_dir, f"{output_name}_{formatted_datetime}.json")
+        file_path = join_config_path(
+            output_dir, f"{output_name}_{formatted_datetime}.json"
+        )
 
         log.info(f"Saving training config to {file_path}...")
 
-        SaveConfigFile(
-            parameters=parameters,
-            file_path=file_path,
-            exclusion=["file_path", "save_as", "headless", "print_only"],
-        )
+        try:
+            SaveConfigFile(
+                parameters=parameters,
+                file_path=file_path,
+                exclusion=["file_path", "save_as", "headless", "print_only"],
+            )
+        except OSError as exc:
+            msg = f"Failed to write training config {file_path}: {exc}"
+            log.error(msg)
+            output_message(msg=msg, headless=headless)
+            return TRAIN_BUTTON_VISIBLE
 
         env = setup_environment()
 
