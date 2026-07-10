@@ -121,6 +121,104 @@ class TestAppendLoraplusNetworkArgs(unittest.TestCase):
         self.assertEqual(result, " loraplus_unet_lr_ratio=8.0")
 
 
+class TestResolveNetworkTrainFlags(unittest.TestCase):
+    """GH #3388 / #3430: LR values must map to train-mode flags predictably.
+
+    Stock defaults train both UNet and TE (v24-style). TE LR 0 + non-zero
+    Unet LR remains the intentional UNet-only escape hatch.
+    """
+
+    def test_default_lrs_train_both(self):
+        unet_only, te_only = lora_gui.resolve_network_train_flags(
+            lora_gui.DEFAULT_TEXT_ENCODER_LR, lora_gui.DEFAULT_UNET_LR
+        )
+        self.assertFalse(unet_only)
+        self.assertFalse(te_only)
+
+    def test_te_zero_unet_nonzero_is_unet_only(self):
+        unet_only, te_only = lora_gui.resolve_network_train_flags(0.0, 0.0001)
+        self.assertTrue(unet_only)
+        self.assertFalse(te_only)
+
+    def test_te_nonzero_unet_nonzero_trains_both(self):
+        unet_only, te_only = lora_gui.resolve_network_train_flags(0.0001, 0.0001)
+        self.assertFalse(unet_only)
+        self.assertFalse(te_only)
+
+    def test_te_nonzero_unet_zero_is_te_only(self):
+        unet_only, te_only = lora_gui.resolve_network_train_flags(0.0001, 0.0)
+        self.assertFalse(unet_only)
+        self.assertTrue(te_only)
+
+    def test_force_unet_only_overrides_te_lr(self):
+        unet_only, te_only = lora_gui.resolve_network_train_flags(
+            0.0001, 0.0001, force_unet_only=True
+        )
+        self.assertTrue(unet_only)
+        self.assertFalse(te_only)
+
+    def test_both_zero_trains_neither_flag(self):
+        # Main LR path trains both components when neither specific LR is set.
+        unet_only, te_only = lora_gui.resolve_network_train_flags(0.0, 0.0)
+        self.assertFalse(unet_only)
+        self.assertFalse(te_only)
+
+
+class TestFormatNetworkTrainModeMessage(unittest.TestCase):
+    """Train-time log must name the mode and warn about missing TE keys."""
+
+    def test_unet_only_mentions_missing_te_keys(self):
+        msg = lora_gui.format_network_train_mode_message(True, False)
+        self.assertIn("UNet-only", msg)
+        self.assertIn("no TE keys", msg)
+
+    def test_te_only_message(self):
+        msg = lora_gui.format_network_train_mode_message(False, True)
+        self.assertIn("text-encoder-only", msg)
+
+    def test_both_message(self):
+        msg = lora_gui.format_network_train_mode_message(False, False)
+        self.assertIn("UNet and text encoder", msg)
+
+
+class TestDefaultTextEncoderLr(unittest.TestCase):
+    """Fresh LoRA form must default TE LR so both sides train (not UNet-only)."""
+
+    def test_default_te_lr_matches_unet_and_is_nonzero(self):
+        self.assertEqual(lora_gui.DEFAULT_TEXT_ENCODER_LR, 0.0001)
+        self.assertEqual(lora_gui.DEFAULT_UNET_LR, 0.0001)
+        self.assertGreater(lora_gui.DEFAULT_TEXT_ENCODER_LR, 0.0)
+
+
+class TestNetworkTrainModeConfigOutput(unittest.TestCase):
+    """print_only train config reflects LR→flag mapping for #3388."""
+
+    def _run_and_load_toml(self, overrides):
+        kwargs = build_train_model_kwargs(
+            lora_gui.train_model,
+            FIXTURE,
+            numeric_fixups=NUMERIC_FIXUPS,
+            string_overrides=STRING_OVERRIDES,
+            overrides=overrides,
+        )
+        return run_train_model_and_load_toml(lora_gui, kwargs)
+
+    def test_both_lrs_nonzero_does_not_set_unet_only(self):
+        config = self._run_and_load_toml({"text_encoder_lr": 0.0001, "unet_lr": 0.0001})
+        self.assertFalse(config.get("network_train_unet_only", False))
+        self.assertFalse(config.get("network_train_text_encoder_only", False))
+
+    def test_te_zero_unet_nonzero_sets_unet_only(self):
+        config = self._run_and_load_toml({"text_encoder_lr": 0.0, "unet_lr": 0.0001})
+        self.assertTrue(config.get("network_train_unet_only"))
+        self.assertFalse(config.get("network_train_text_encoder_only", False))
+
+    def test_te_nonzero_unet_zero_sets_te_only(self):
+        config = self._run_and_load_toml({"text_encoder_lr": 0.0001, "unet_lr": 0.0})
+        self.assertFalse(config.get("network_train_unet_only", False))
+        self.assertTrue(config.get("network_train_text_encoder_only"))
+
+
 class TestTrainModelConfigOutput(unittest.TestCase):
     """End-to-end: train_model(print_only=True) writes a real TOML file we
     can inspect for the specific keys #3520 flagged.

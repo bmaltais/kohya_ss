@@ -893,6 +893,50 @@ def get_effective_lr_messages(
     return messages
 
 
+# Stock LoRA defaults (v24-style): train both UNet and text encoder unless the
+# user deliberately zeros one side. See GH #3388 / #3430 — a TE LR default of 0
+# silently forced UNet-only training and produced safetensors with no TE keys.
+DEFAULT_TEXT_ENCODER_LR = 0.0001
+DEFAULT_UNET_LR = 0.0001
+
+TEXT_ENCODER_LR_INFO = (
+    "Optional. 0 = do not train text encoder (UNet-only; no TE keys in the "
+    "saved LoRA). Non-zero trains CLIP-L/T5XXL LoRA modules at this rate."
+)
+
+
+def resolve_network_train_flags(
+    text_encoder_lr: float,
+    unet_lr: float,
+    force_unet_only: bool = False,
+) -> tuple[bool, bool]:
+    """Map TE/UNet learning rates to sd-scripts train-mode flags.
+
+    Returns (network_train_unet_only, network_train_text_encoder_only).
+    When both flags are False, both UNet and text-encoder LoRA modules train.
+    """
+    if force_unet_only:
+        return True, False
+    network_train_text_encoder_only = text_encoder_lr != 0 and unet_lr == 0
+    network_train_unet_only = text_encoder_lr == 0 and unet_lr != 0
+    return network_train_unet_only, network_train_text_encoder_only
+
+
+def format_network_train_mode_message(
+    network_train_unet_only: bool,
+    network_train_text_encoder_only: bool,
+) -> str:
+    """User-visible train-mode summary for logs (and similar surfaces)."""
+    if network_train_unet_only:
+        return (
+            "Network train mode: UNet-only (text encoder not trained; "
+            "saved LoRA will have no TE keys)."
+        )
+    if network_train_text_encoder_only:
+        return "Network train mode: text-encoder-only (UNet not trained)."
+    return "Network train mode: UNet and text encoder (both LoRA modules trained)."
+
+
 def append_loraplus_network_args(
     network_args: str,
     loraplus_lr_ratio: float | None,
@@ -1907,14 +1951,19 @@ def train_model(
     ):
         output_message(msg="Please input learning rate values.", headless=headless)
         return TRAIN_BUTTON_VISIBLE
-    # Flag to train text encoder only if its learning rate is non-zero and unet's is zero.
-    network_train_text_encoder_only = (
-        text_encoder_lr_float != 0 and unet_lr_float == 0 and not hunyuan_image_checkbox
+    # HunyuanImage forces UNet-only; otherwise TE/UNet LRs select the mode.
+    network_train_unet_only, network_train_text_encoder_only = (
+        resolve_network_train_flags(
+            text_encoder_lr_float,
+            unet_lr_float,
+            force_unet_only=bool(hunyuan_image_checkbox),
+        )
     )
-    # Flag to train unet only if its learning rate is non-zero and text encoder's is zero.
-    network_train_unet_only = (
-        text_encoder_lr_float == 0 and unet_lr_float != 0
-    ) or hunyuan_image_checkbox
+    log.info(
+        format_network_train_mode_message(
+            network_train_unet_only, network_train_text_encoder_only
+        )
+    )
 
     # Chroma (flux_train_network --model_type=chroma) does not use CLIP-L.
     is_chroma = bool(flux1_checkbox) and str(model_type or "").lower() == "chroma"
@@ -2598,8 +2647,8 @@ def lora_tab(
                 with gr.Row():
                     text_encoder_lr = gr.Number(
                         label="Text Encoder learning rate",
-                        value=0,
-                        info="(Optional) Set CLIP-L and T5XXL learning rates.",
+                        value=DEFAULT_TEXT_ENCODER_LR,
+                        info=TEXT_ENCODER_LR_INFO,
                         minimum=0,
                         maximum=1,
                     )
@@ -2614,8 +2663,8 @@ def lora_tab(
 
                     unet_lr = gr.Number(
                         label="Unet learning rate",
-                        value=0.0001,
-                        info="(Optional)",
+                        value=DEFAULT_UNET_LR,
+                        info="(Optional) 0 = do not train UNet (text-encoder-only when TE LR is non-zero).",
                         minimum=0,
                         maximum=1,
                     )
