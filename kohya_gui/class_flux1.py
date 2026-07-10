@@ -34,6 +34,21 @@ class flux1Training:
             "Flux.1", open=True, visible=False, elem_classes=["flux1_background"]
         ) as flux1_accordion:
             with gr.Group():
+                # Chroma is network-training only (flux_train_network.py).
+                # Finetune/DreamBooth use flux_train.py without model_type.
+                with gr.Row(visible=not finetuning):
+                    self.model_type = gr.Dropdown(
+                        label="Base Model Type",
+                        choices=["flux", "chroma"],
+                        value=self.config.get("flux1.model_type", "flux"),
+                        info=(
+                            "flux: standard FLUX.1 (CLIP-L + T5 + AE). "
+                            "chroma: Chroma / FLUX.1-schnell based (no CLIP-L; "
+                            "guidance_scale=0.0 and apply_t5_attn_mask recommended)."
+                        ),
+                        interactive=True,
+                    )
+
                 with gr.Row():
                     self.ae = gr.Textbox(
                         label="VAE Path",
@@ -53,16 +68,21 @@ class flux1Training:
                         show_progress=False,
                     )
 
+                    # CLIP-L is required for flux, unused for chroma.
+                    # Finetune path always shows CLIP-L (no Chroma model_type there).
+                    _initial_model_type = self.config.get("flux1.model_type", "flux")
+                    _clip_l_visible = finetuning or _initial_model_type != "chroma"
                     self.clip_l = gr.Textbox(
                         label="CLIP-L Path",
                         placeholder="Path to CLIP-L model",
                         value=self.config.get("flux1.clip_l", ""),
                         interactive=True,
+                        visible=_clip_l_visible,
                     )
                     self.clip_l_button = gr.Button(
                         document_symbol,
                         elem_id="open_folder_small",
-                        visible=(not headless),
+                        visible=(not headless) and _clip_l_visible,
                         interactive=True,
                     )
                     self.clip_l_button.click(
@@ -338,3 +358,39 @@ class flux1Training:
                     inputs=[self.flux1_checkbox],
                     outputs=[flux1_accordion],
                 )
+
+                # Apply Chroma-safe defaults when the user switches to chroma;
+                # hide CLIP-L (not used). Switching back to flux only restores
+                # CLIP-L visibility — other fields stay as the user left them.
+                if not finetuning:
+
+                    def model_type_change(selected: str):
+                        is_chroma = selected == "chroma"
+                        clip_visible = not is_chroma
+                        if is_chroma:
+                            return (
+                                gr.Textbox(visible=clip_visible),
+                                gr.Button(visible=(not headless) and clip_visible),
+                                gr.Number(value=0.0),
+                                gr.Checkbox(value=True),
+                                gr.Dropdown(value="sigmoid"),
+                            )
+                        return (
+                            gr.Textbox(visible=clip_visible),
+                            gr.Button(visible=(not headless) and clip_visible),
+                            gr.Number(),
+                            gr.Checkbox(),
+                            gr.Dropdown(),
+                        )
+
+                    self.model_type.change(
+                        model_type_change,
+                        inputs=[self.model_type],
+                        outputs=[
+                            self.clip_l,
+                            self.clip_l_button,
+                            self.guidance_scale,
+                            self.apply_t5_attn_mask,
+                            self.timestep_sampling,
+                        ],
+                    )
