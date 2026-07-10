@@ -58,7 +58,7 @@ def _to_bash_path(path: Path | str) -> str:
             cwd=str(_REPO_ROOT),
         )
         out = result.stdout.strip()
-        # Reject "." / empty — seen when wslpath mis-parses backslash paths.
+        # Reject "." / empty — seen when wslpath mishandles backslash paths.
         if out and out not in {".", "./"}:
             return out
     except (FileNotFoundError, subprocess.CalledProcessError, OSError):
