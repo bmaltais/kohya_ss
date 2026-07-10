@@ -55,10 +55,23 @@ def test_ui_theme_does_not_emit_google_fonts_stylesheet():
     assert urls == []
 
 
-def test_default_gradio_theme_still_uses_google_fonts_for_contrast():
-    """Guard: stock Default() still hits Google Fonts; our helper must diverge."""
-    stock_urls = theme_stylesheet_urls(gr.themes.Default())
-    assert any(_is_google_fonts_url(u) for u in stock_urls)
+def test_google_font_remote_fallback_is_detected_for_contrast():
+    """Guard: GoogleFont still emits a fonts.googleapis URL when not bundled.
+
+    Gradio 6's stock Default() uses local Source Sans Pro (no CDN). A
+    deliberately unknown GoogleFont name still falls back to the CDN, so
+    theme_stylesheet_urls must keep detecting that URL — and our offline
+    helper must not produce one.
+    """
+    from gradio.themes.utils.fonts import GoogleFont
+
+    remote = GoogleFont("Definitely Not A Bundled Gradio Font XYZ")
+    sheet = remote.stylesheet()
+    assert sheet.get("url")
+    assert _is_google_fonts_url(sheet["url"])
+
+    # Offline theme must still emit zero external stylesheet URLs.
+    assert theme_stylesheet_urls(build_offline_theme()) == []
 
 
 # --- Cycle 2: About / README offline-safe content ---
@@ -137,7 +150,7 @@ def test_blocks_created_with_analytics_disabled():
         for p in tab_patches:
             p.start()
         try:
-            kohya_gui_launcher.initialize_ui_interface(
+            ui, shell_params = kohya_gui_launcher.initialize_ui_interface(
                 mock_config,
                 "./config.toml",
                 True,
@@ -152,9 +165,15 @@ def test_blocks_created_with_analytics_disabled():
     mock_blocks.assert_called_once()
     kwargs = mock_blocks.call_args.kwargs
     assert kwargs.get("analytics_enabled") is False
+    # Gradio 6: css/head/theme moved off Blocks() onto launch() shell params.
+    assert "theme" not in kwargs
+    assert "css" not in kwargs
+    assert "head" not in kwargs
     mock_theme.assert_called_once()
-    theme = kwargs.get("theme")
+    theme = shell_params.get("theme")
     assert theme is not None
+    assert shell_params.get("css") is not None
+    assert shell_params.get("head") is not None
     for url in theme_stylesheet_urls(theme):
         assert not _is_google_fonts_url(url)
 

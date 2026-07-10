@@ -19,7 +19,7 @@ _IFRAME_RESIZER_JS = (
     _PROJECT_ROOT / "assets" / "js" / "iframeResizer.contentWindow.min.js"
 )
 
-# Gradio 5.34.x frontend index.html / share.html remote host markers.
+# Gradio frontend index.html / share.html remote host markers (5.x/6.x).
 _CDNJS_IFRAME_RESIZER = (
     b"https://cdnjs.cloudflare.com/ajax/libs/iframe-resizer/"
     b"4.3.1/iframeResizer.contentWindow.min.js"
@@ -68,12 +68,20 @@ def build_offline_theme() -> gr.themes.Base:
 
 
 def theme_stylesheet_urls(theme: gr.themes.Base) -> list[str]:
-    """Collect external stylesheet URLs emitted by a theme's font stack."""
+    """Collect external stylesheet URLs emitted by a theme's font stack.
+
+    Gradio 6 may store plain strings (e.g. ``\"sans-serif\"``) alongside
+    Font/LocalFont/GoogleFont objects in ``_font`` / ``_font_mono``; skip
+    anything that does not expose ``stylesheet()``.
+    """
     urls: list[str] = []
     for font in list(getattr(theme, "_font", []) or []) + list(
         getattr(theme, "_font_mono", []) or []
     ):
-        sheet = font.stylesheet()
+        stylesheet = getattr(font, "stylesheet", None)
+        if not callable(stylesheet):
+            continue
+        sheet = stylesheet()
         url = sheet.get("url") if isinstance(sheet, dict) else None
         if url:
             urls.append(url)

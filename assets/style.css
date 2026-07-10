@@ -23,26 +23,15 @@
 }
 
 /*
- * Hover-reveal for auto-generated `info=` hint text (Gradio 5.34.2).
- * Gradio wraps info text in a div carrying its Info.svelte scope class
- * (currently svelte-j9uq24) with a `.prose`-classed span inside; this
- * differs from a real gr.Markdown() block, which has no such wrapper and
- * lacks the `chatbot` class on its inner span. Re-verify these class names
- * after any Gradio version bump.
- * Reveal is scoped to the field's own label/container element, NOT to
- * `.block`: Gradio reuses the `.block` class identically for individual
- * fields AND for their Row/Column/Accordion parents (same scope hash,
- * `block svelte-1svsvh2 padded auto-margin`, on both), so `.block:hover`
- * would reveal every info line in the whole panel at once. Two field
- * shapes exist in this Gradio build: components with a `<label>` wrapper
- * (Textbox/Number/Slider/Radio), Dropdown, which instead wraps
- * label+info+control in `div.svelte-1hfxrpf.container` with no `<label>`
- * at all, and Checkbox, whose info div is a direct child of its own leaf
- * `.block` with neither a `<label>` nor a `.container` ancestor. The
- * Checkbox rule is scoped with `.block:has(> .svelte-j9uq24 ...)` (direct
- * child only) so it never matches an outer Row/Column/Accordion `.block`,
- * whose children are always `.form`/`.row` wrappers, not the info div
- * itself.
+ * Hover-reveal for auto-generated `info=` hint text (Gradio 6.x).
+ * Gradio 6 exposes a stable `.info-text` class on the info div for all
+ * field shapes (Dropdown, Textbox/label-as-block, Checkbox), so we no
+ * longer depend on version-hashed `.svelte-*` scope classes.
+ *
+ * Reveal is driven by assets/js/info_tooltip.js (name-text hover/focus
+ * only), NOT by `.block:hover`: Gradio reuses `.block` for fields AND
+ * for Row/Column/Accordion parents, so a block-level hover rule would
+ * reveal every info line in the panel at once.
  *
  * Revealed info renders as a `position: fixed` tooltip instead of
  * growing in-flow, so hovering one field never reflows/pushes down
@@ -54,12 +43,12 @@
  * positioning is computed against the viewport, not a clipping
  * ancestor, as long as no ancestor establishes its own containing
  * block via `transform`/`filter`/`perspective` — none of the Gradio
- * chrome around these fields does). assets/info_tooltip.js computes
+ * chrome around these fields does). assets/js/info_tooltip.js computes
  * the anchor's viewport position on hover/focus and sets `bottom`/`left`
  * inline (rendering the tooltip above the field name), then toggles the
  * `.info-tooltip-visible` class below.
  */
-.svelte-j9uq24:has(> .prose) {
+.info-text {
     position: fixed;
     z-index: 9999;
     width: max-content;
@@ -80,7 +69,7 @@
     pointer-events: none;
     transition: opacity 0.15s ease;
 }
-.svelte-j9uq24.info-tooltip-visible:has(> .prose) {
+.info-text.info-tooltip-visible {
     opacity: 1;
     visibility: visible;
 }
