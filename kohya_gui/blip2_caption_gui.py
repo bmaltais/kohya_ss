@@ -1,5 +1,4 @@
 from PIL import Image
-from transformers import Blip2Processor, Blip2ForConditionalGeneration
 import torch
 import gradio as gr
 import os
@@ -12,18 +11,21 @@ log = setup_logging()
 
 
 def load_model():
-    # Set the device to GPU if available, otherwise use CPU
-    if hasattr(torch, 'cuda') and torch.cuda.is_available():
-        device = 'cuda'
-    elif hasattr(torch, 'mps') and torch.mps.is_available():
-        device = 'mps'
-    else:
-        device = 'cpu'
+    # Lazy import: transformers' Blip2 stack pulls TensorFlow at import time
+    # (oneDNN INFO spam + slower GUI cold start). Only needed when captioning.
+    from transformers import Blip2Processor, Blip2ForConditionalGeneration
 
+    # Set the device to GPU if available, otherwise use CPU
+    if hasattr(torch, "cuda") and torch.cuda.is_available():
+        device = "cuda"
+    elif hasattr(torch, "mps") and torch.mps.is_available():
+        device = "mps"
+    else:
+        device = "cpu"
 
     # Initialize the BLIP2 processor
     processor = Blip2Processor.from_pretrained("Salesforce/blip2-opt-2.7b")
-    log.debug('Processor initialized: %s', processor)
+    log.debug("Processor initialized: %s", processor)
 
     # Initialize the BLIP2 model
     model = Blip2ForConditionalGeneration.from_pretrained(
@@ -327,7 +329,7 @@ def gradio_blip2_caption_gui_tab(headless=False, directory_path=None):
             with gr.Tab("Nucleus sampling"):
                 with gr.Row():
                     do_sample = gr.Checkbox(label="Sample", value=True)
-                    
+
                     temperature = gr.Slider(
                         minimum=0.5,
                         maximum=1.0,
