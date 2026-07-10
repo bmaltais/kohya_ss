@@ -20,6 +20,7 @@ Install the NVIDIA Container Toolkit with this guide.
 
 #### Design of our Dockerfile
 
+- The image starts the GUI with **`--headless`** by default (see `Dockerfile` `CMD`). That skips native overwrite dialogs and local file pickers so training cannot softlock inside the container. Override carefully if you change the command.
 - It is required that all training data is stored in the `dataset` subdirectory, which is mounted into the container at `/dataset`.
 - Please note that the file picker functionality is not available. Instead, you will need to manually input the folder path and configuration file path.
 - TensorBoard has been separated from the project.

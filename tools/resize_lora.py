@@ -119,7 +119,7 @@ def merge_conv(lora_down, lora_up, device):
 def merge_linear(lora_down, lora_up, device):
     in_rank, in_size = lora_down.shape
     out_size, out_rank = lora_up.shape
-    assert in_rank == out_rank, f"rank {in_rank} {out_rank} mismatch"
+    assert in_rank > 0 and out_rank > 0, f"ranks must be positive: {in_rank} {out_rank}"
     
     lora_down = lora_down.to(device)
     lora_up = lora_up.to(device)
@@ -191,14 +191,17 @@ def resize_lora_model(lora_sd, new_rank, save_dtype, device, dynamic_method, dyn
   for key, value in lora_sd.items():
     if network_alpha is None and 'alpha' in key:
       network_alpha = value
-    if network_dim is None and 'lora_down' in key and len(value.size()) == 2:
+    if network_dim is None and 'lora_down' in key:
       network_dim = value.size()[0]
     if network_alpha is not None and network_dim is not None:
       break
     if network_alpha is None:
       network_alpha = network_dim
 
-  scale = network_alpha/network_dim
+  if network_dim is None or network_alpha is None:
+    scale = 1.0
+  else:
+    scale = network_alpha/network_dim
 
   if dynamic_method:
     print(f"Dynamically determining new alphas and dims based off {dynamic_method}: {dynamic_param}, max rank is {new_rank}")

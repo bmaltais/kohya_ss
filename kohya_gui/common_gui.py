@@ -3,7 +3,7 @@ try:
 except ImportError:
     pass
 from easygui import msgbox, ynbox
-from typing import Optional
+from typing import Mapping, Optional
 from .custom_logging import setup_logging
 from .sd_modeltype import SDModelType
 
@@ -117,6 +117,54 @@ def calculate_max_train_steps(
             * int(reg_factor)
         )
     )
+
+
+def should_recommend_headless(
+    headless: bool = False,
+    *,
+    environ: Optional[Mapping[str, str]] = None,
+    platform: Optional[str] = None,
+) -> bool:
+    """
+    Return True when starting without --headless is likely to hang on native dialogs.
+
+    Remote/SSH sessions and Unix environments without DISPLAY/Wayland cannot
+    interact with easygui/tkinter prompts that run on the server process.
+    Callers should pass --headless so overwrite confirmation is skipped and
+    local file-picker buttons stay hidden.
+
+    Parameters:
+        headless: Whether --headless was already requested.
+        environ: Environment mapping (defaults to os.environ; injectable for tests).
+        platform: sys.platform value (injectable for tests).
+
+    Returns:
+        True if a startup warning recommending --headless should be emitted.
+    """
+    if headless:
+        return False
+
+    env = os.environ if environ is None else environ
+    plat = sys.platform if platform is None else platform
+
+    # OpenSSH (and compatible) session markers — cross-platform when set.
+    if any(env.get(key) for key in ("SSH_CONNECTION", "SSH_CLIENT", "SSH_TTY")):
+        return True
+
+    # Non-Windows without a graphical display: native dialogs will hang.
+    if plat != "win32":
+        if not (env.get("DISPLAY") or env.get("WAYLAND_DISPLAY")):
+            return True
+
+    return False
+
+
+HEADLESS_RECOMMENDATION_MESSAGE = (
+    "No interactive display detected (or SSH session). "
+    "Native dialogs (easygui/tkinter) can block the process. "
+    "Start with --headless for remote/SSH use so overwrite confirmation "
+    "and local file pickers are skipped."
+)
 
 
 def check_if_model_exist(

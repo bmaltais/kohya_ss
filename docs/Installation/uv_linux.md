@@ -78,7 +78,7 @@ To launch the GUI service, run `./gui-uv.sh` or run the `kohya_gui.py` script di
                         Port to run the server listener on
   --inbrowser           Open in browser
   --share               Share the gradio UI
-  --headless            Is the server headless
+  --headless            Remote/SSH: hide local file pickers; skip overwrite dialog
   --language LANGUAGE   Set custom language
   --use-ipex            Use native PyTorch XPU for Intel Arc GPUs (legacy flag name)
   --use-rocm            Use ROCm environment
@@ -97,7 +97,7 @@ When you run `gui-uv.sh`, it will first check if `uv` is installed on your syste
 ./gui-uv.sh --listen 127.0.0.1 --server_port 7860 --inbrowser --share
 ```
 
-If you are running on a headless server, use:
+If you are running on a remote/SSH or headless server, **always pass `--headless`**. Without it, native overwrite confirmation and file dialogs can block the server process with no way to answer them. See also [Remote / SSH: use `--headless`](../../README.md#remote--ssh-use---headless) in the main README.
 
 ```shell
 ./gui-uv.sh --headless --listen 127.0.0.1 --server_port 7860 --inbrowser --share

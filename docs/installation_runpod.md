@@ -22,7 +22,7 @@ To install the necessary components for Runpod and run kohya_ss, follow these st
    ./setup-runpod.sh
    ```
 
-5. Run the GUI with:
+5. Run the GUI with **`--headless`** (required on Runpod/SSH so native overwrite dialogs do not block training):
 
    ```shell
    ./gui.sh --share --headless
