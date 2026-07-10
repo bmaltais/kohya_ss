@@ -22,6 +22,52 @@ old_onnx_value = True
 # TensorFlow via TensorBoard (#3422 / #3577 Phase 1).
 PYTHON = sys.executable
 
+# Repo IDs exposed in the UI (include changelog models such as eva02 v3).
+WD14_REPO_IDS = [
+    "SmilingWolf/wd-v1-4-convnext-tagger-v2",
+    "SmilingWolf/wd-v1-4-convnextv2-tagger-v2",
+    "SmilingWolf/wd-v1-4-vit-tagger-v2",
+    "SmilingWolf/wd-v1-4-swinv2-tagger-v2",
+    "SmilingWolf/wd-v1-4-moat-tagger-v2",
+    "SmilingWolf/wd-swinv2-tagger-v3",
+    "SmilingWolf/wd-vit-tagger-v3",
+    "SmilingWolf/wd-convnext-tagger-v3",
+    "SmilingWolf/wd-eva02-large-tagger-v3",
+]
+
+DEFAULT_WD14_REPO_ID = "SmilingWolf/wd-v1-4-convnextv2-tagger-v2"
+
+
+def check_keras_backend_ready() -> str | None:
+    """Return an actionable error if the non-ONNX (Keras/TF) path cannot run.
+
+    ONNX captioning does not need TensorFlow. Call only when onnx is False.
+    """
+    try:
+        import numpy as np
+    except ImportError:
+        return (
+            "NumPy is not installed. Enable ONNX (recommended) or install "
+            'NumPy 1.x: pip install "numpy>=1.26,<2"'
+        )
+
+    major = int(str(np.__version__).split(".", 1)[0])
+    if major >= 2:
+        return (
+            f"NumPy {np.__version__} is installed; the Keras/TF WD14 path needs "
+            "NumPy 1.x. Enable ONNX (recommended) or run: "
+            'pip install "numpy>=1.26,<2"'
+        )
+
+    try:
+        import tensorflow  # noqa: F401
+    except Exception as exc:  # import can fail for many ABI reasons
+        return (
+            f"TensorFlow import failed ({exc}). Enable ONNX (recommended) or "
+            "fix TensorFlow with NumPy 1.x before using the Keras path."
+        )
+    return None
+
 
 def caption_images(
     train_data_dir: str,
@@ -36,6 +82,7 @@ def caption_images(
     undesired_tags: str,
     frequency_tags: bool,
     always_first_tags: str,
+    caption_postfix: str,
     onnx: bool,
     append_tags: bool,
     force_download: bool,
@@ -44,6 +91,9 @@ def caption_images(
     character_tag_expand: str,
     use_rating_tags: bool,
     use_rating_tags_as_last_tag: bool,
+    use_quality_tags: bool,
+    use_quality_tags_as_last_tag: bool,
+    character_tags_first: bool,
     remove_underscore: bool,
     thresh: float,
 ) -> None:
@@ -56,8 +106,20 @@ def caption_images(
         log.info("Please provide an extension for the caption files.")
         return
 
+    # Normalize extension (users may type "txt" without a leading dot)
+    caption_extension = caption_extension.strip()
+    if caption_extension and not caption_extension.startswith("."):
+        caption_extension = f".{caption_extension}"
+
+    if not onnx:
+        keras_error = check_keras_backend_ready()
+        if keras_error:
+            log.error(keras_error)
+            return
+
     repo_id_converted = repo_id.replace("/", "_")
-    if not os.path.exists(f"./wd14_tagger_model/{repo_id_converted}"):
+    model_dir = os.path.join(scriptdir, "wd14_tagger_model", repo_id_converted)
+    if not os.path.exists(model_dir):
         force_download = True
 
     log.info(f"Captioning files in {train_data_dir}...")
@@ -66,10 +128,8 @@ def caption_images(
         rf"{scriptdir}/sd-scripts/finetune/tag_images_by_wd14_tagger.py",
     ]
 
-    # Uncomment and modify if needed
-    # if always_first_tags != "":
-    #     run_cmd.append('--always_first_tags')
-    #     run_cmd.append(always_first_tags)
+    # Prefix/postfix are applied after a successful run via add_pre_postfix
+    # (not --always_first_tags) so they are not double-applied and postfix works.
 
     if append_tags:
         run_cmd.append("--append_tags")
@@ -118,6 +178,12 @@ def caption_images(
         run_cmd.append("--use_rating_tags")
     if use_rating_tags_as_last_tag:
         run_cmd.append("--use_rating_tags_as_last_tag")
+    if use_quality_tags:
+        run_cmd.append("--use_quality_tags")
+    if use_quality_tags_as_last_tag:
+        run_cmd.append("--use_quality_tags_as_last_tag")
+    if character_tags_first:
+        run_cmd.append("--character_tags_first")
 
     # Add the directory containing the training data
     run_cmd.append(rf"{train_data_dir}")
@@ -145,11 +211,12 @@ def caption_images(
         )
         return
 
-    # Add prefix and postfix only after a successful tagger run
+    # Prefix/postfix only after a successful tagger run (#2569, #3577 Phase 2)
     add_pre_postfix(
         folder=train_data_dir,
         caption_file_ext=caption_extension,
-        prefix=always_first_tags,
+        prefix=always_first_tags or "",
+        postfix=caption_postfix or "",
         recursive=recursive,
     )
 
@@ -185,11 +252,12 @@ def gradio_wd14_caption_gui_tab(
             "This utility uses WD14 to caption images in a folder.\n\n"
             "**ONNX (recommended, default):** runs via onnxruntime and does not "
             "require a working TensorFlow install. Disable only if you need the "
-            "Keras path; that path needs TensorFlow and NumPy 1.x."
+            "Keras path; that path needs TensorFlow and NumPy 1.x.\n\n"
+            "**Prefix / postfix** are applied after a successful tagger run "
+            "(not via the tagger CLI), so they work for both ONNX and Keras."
         )
 
         # Input Settings
-        # with gr.Section('Input Settings'):
         with gr.Group(), gr.Row():
             train_data_dir = gr.Dropdown(
                 label="Image folder to caption (containing the images to caption)",
@@ -219,20 +287,11 @@ def gradio_wd14_caption_gui_tab(
 
             repo_id = gr.Dropdown(
                 label="Repo ID",
-                choices=[
-                    "SmilingWolf/wd-v1-4-convnext-tagger-v2",
-                    "SmilingWolf/wd-v1-4-convnextv2-tagger-v2",
-                    "SmilingWolf/wd-v1-4-vit-tagger-v2",
-                    "SmilingWolf/wd-v1-4-swinv2-tagger-v2",
-                    "SmilingWolf/wd-v1-4-moat-tagger-v2",
-                    "SmilingWolf/wd-swinv2-tagger-v3",
-                    "SmilingWolf/wd-vit-tagger-v3",
-                    "SmilingWolf/wd-convnext-tagger-v3",
-                ],
-                value=config.get(
-                    "wd14_caption.repo_id", "SmilingWolf/wd-v1-4-convnextv2-tagger-v2"
-                ),
+                choices=WD14_REPO_IDS,
+                value=config.get("wd14_caption.repo_id", DEFAULT_WD14_REPO_ID),
                 show_label="Repo id for wd14 tagger on Hugging Face",
+                allow_custom_value=True,
+                info="Includes v2/v3 and eva02 large v3. Custom HF repo IDs allowed.",
             )
 
             force_download = gr.Checkbox(
@@ -245,10 +304,11 @@ def gradio_wd14_caption_gui_tab(
 
             caption_extension = gr.Dropdown(
                 label="Caption file extension",
-                choices=[".cap", ".caption", ".txt"],
-                value=".txt",
+                choices=[".cap", ".caption", ".txt", ".wd14.txt"],
+                value=config.get("wd14_caption.caption_extension", ".txt"),
                 interactive=True,
                 allow_custom_value=True,
+                info="Type any extension for multi-tool workflows (e.g. .wd14.txt).",
             )
 
             caption_separator = gr.Textbox(
@@ -261,7 +321,7 @@ def gradio_wd14_caption_gui_tab(
 
             tag_replacement = gr.Textbox(
                 label="Tag replacement",
-                info="tag replacement in the format of `source1,target1;source2,target2; ...`. Escape `,` and `;` with `\`. e.g. `tag1,tag2;tag3,tag4`",
+                info=r"tag replacement in the format of `source1,target1;source2,target2; ...`. Escape `,` and `;` with `\`. e.g. `tag1,tag2;tag3,tag4`",
                 value=config.get("wd14_caption.tag_replacement", ""),
                 interactive=True,
             )
@@ -283,10 +343,17 @@ def gradio_wd14_caption_gui_tab(
         with gr.Row():
             always_first_tags = gr.Textbox(
                 label="Prefix to add to WD14 caption",
-                info="comma-separated list of tags to always put at the beginning, e.g.: 1girl, 1boy, ",
+                info="Applied after tagging succeeds (GUI post-process). e.g.: 1girl, 1boy",
                 placeholder="(Optional)",
                 interactive=True,
                 value=config.get("wd14_caption.always_first_tags", ""),
+            )
+            caption_postfix = gr.Textbox(
+                label="Postfix to add to WD14 caption",
+                info="Applied after tagging succeeds (GUI post-process).",
+                placeholder="(Optional)",
+                interactive=True,
+                value=config.get("wd14_caption.caption_postfix", ""),
             )
 
         with gr.Row():
@@ -318,6 +385,26 @@ def gradio_wd14_caption_gui_tab(
                 value=config.get("wd14_caption.use_rating_tags_as_last_tag", False),
                 interactive=True,
                 info="Adds rating tags as the last tag",
+            )
+
+        with gr.Row():
+            use_quality_tags = gr.Checkbox(
+                label="Use quality tags",
+                value=config.get("wd14_caption.use_quality_tags", False),
+                interactive=True,
+                info="Adds quality tags as the first tag",
+            )
+            use_quality_tags_as_last_tag = gr.Checkbox(
+                label="Use quality tags as last tag",
+                value=config.get("wd14_caption.use_quality_tags_as_last_tag", False),
+                interactive=True,
+                info="Adds quality tags as the last tag",
+            )
+            character_tags_first = gr.Checkbox(
+                label="Character tags first",
+                value=config.get("wd14_caption.character_tags_first", False),
+                interactive=True,
+                info="Always insert character tags before general tags",
             )
 
         with gr.Row():
@@ -411,6 +498,7 @@ def gradio_wd14_caption_gui_tab(
                 undesired_tags,
                 frequency_tags,
                 always_first_tags,
+                caption_postfix,
                 onnx,
                 append_tags,
                 force_download,
@@ -419,6 +507,9 @@ def gradio_wd14_caption_gui_tab(
                 character_tag_expand,
                 use_rating_tags,
                 use_rating_tags_as_last_tag,
+                use_quality_tags,
+                use_quality_tags_as_last_tag,
+                character_tags_first,
                 remove_underscore,
                 thresh,
             ],
