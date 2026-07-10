@@ -7,6 +7,7 @@ package presence. The uv launcher path must not run this gate at all.
 from __future__ import annotations
 
 import os
+import shlex
 import stat
 import subprocess
 import tempfile
@@ -16,6 +17,7 @@ from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _PREFLIGHT = _REPO_ROOT / "setup" / "tkinter_preflight.sh"
+_PREFLIGHT_REL = "setup/tkinter_preflight.sh"
 _SETUP_SH = _REPO_ROOT / "setup.sh"
 _GUI_UV_SH = _REPO_ROOT / "gui-uv.sh"
 
@@ -27,10 +29,56 @@ def _bash_available() -> bool:
             check=True,
             capture_output=True,
             text=True,
+            cwd=str(_REPO_ROOT),
         )
         return True
     except (FileNotFoundError, subprocess.CalledProcessError, OSError):
         return False
+
+
+def _to_bash_path(path: Path | str) -> str:
+    """Translate a host path into a form the local ``bash`` can open.
+
+    On Windows, ``bash`` is often WSL or Git Bash; neither accepts raw
+    ``D:\\...`` paths with backslashes. Prefer ``wslpath`` / ``cygpath``
+    with forward-slash Windows paths, then fall back to ``/d/...``.
+    """
+    resolved = Path(path).resolve()
+    if os.name != "nt":
+        return str(resolved)
+
+    # Forward slashes: required for reliable wslpath from Windows Python.
+    win = str(resolved).replace("\\", "/")
+    try:
+        result = subprocess.run(
+            ["bash", "-c", f"wslpath -u {shlex.quote(win)}"],
+            capture_output=True,
+            text=True,
+            check=True,
+            cwd=str(_REPO_ROOT),
+        )
+        out = result.stdout.strip()
+        # Reject "." / empty — seen when wslpath mis-parses backslash paths.
+        if out and out not in {".", "./"}:
+            return out
+    except (FileNotFoundError, subprocess.CalledProcessError, OSError):
+        pass
+    try:
+        result = subprocess.run(
+            ["cygpath", "-u", win],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        out = result.stdout.strip()
+        if out and out not in {".", "./"}:
+            return out
+    except (FileNotFoundError, subprocess.CalledProcessError, OSError):
+        pass
+    # Fallback: D:/foo/bar -> /d/foo/bar (Git Bash) or leave as-is.
+    if len(win) >= 2 and win[1] == ":":
+        return f"/{win[0].lower()}{win[2:]}"
+    return win
 
 
 def _write_fake_python(directory: Path, *, import_ok: bool) -> Path:
@@ -52,13 +100,24 @@ def _write_fake_python(directory: Path, *, import_ok: bool) -> Path:
         """)
     path.write_text(body, encoding="utf-8", newline="\n")
     path.chmod(path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    # WSL may ignore NTFS execute bits until chmod is run from bash.
+    bash_path = _to_bash_path(path)
+    subprocess.run(
+        ["bash", "-c", f"chmod +x {shlex.quote(bash_path)}"],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=str(_REPO_ROOT),
+    )
     return path
 
 
 def _source_and_run(
     snippet: str, *, env: dict | None = None
 ) -> subprocess.CompletedProcess:
-    script = f'source "{_PREFLIGHT}"\n{snippet}\n'
+    # Source via repo-relative path + cwd=repo so Windows/WSL/Git-Bash agree
+    # without embedding machine-absolute paths in the shell script text.
+    script = f"source {_PREFLIGHT_REL}\n{snippet}\n"
     run_env = os.environ.copy()
     if env:
         run_env.update(env)
@@ -68,6 +127,7 @@ def _source_and_run(
         text=True,
         env=run_env,
         check=False,
+        cwd=str(_REPO_ROOT),
     )
 
 
@@ -79,7 +139,7 @@ class TestPythonHasTkinter(unittest.TestCase):
     def test_passes_when_interpreter_can_import_tkinter(self):
         with tempfile.TemporaryDirectory() as tmp:
             fake = _write_fake_python(Path(tmp), import_ok=True)
-            result = _source_and_run(f'python_has_tkinter "{fake}"')
+            result = _source_and_run(f'python_has_tkinter "{_to_bash_path(fake)}"')
             self.assertEqual(
                 result.returncode,
                 0,
@@ -89,17 +149,22 @@ class TestPythonHasTkinter(unittest.TestCase):
     def test_fails_when_interpreter_cannot_import_tkinter(self):
         with tempfile.TemporaryDirectory() as tmp:
             fake = _write_fake_python(Path(tmp), import_ok=False)
-            result = _source_and_run(f'python_has_tkinter "{fake}"')
+            result = _source_and_run(f'python_has_tkinter "{_to_bash_path(fake)}"')
             self.assertNotEqual(result.returncode, 0)
 
     def test_fails_for_missing_executable(self):
         with tempfile.TemporaryDirectory() as tmp:
             missing = Path(tmp) / "no-such-python"
-            result = _source_and_run(f'python_has_tkinter "{missing}"')
+            result = _source_and_run(f'python_has_tkinter "{_to_bash_path(missing)}"')
             self.assertNotEqual(result.returncode, 0)
 
     def test_passes_on_real_python_when_tkinter_present(self):
-        """Skip if the host interpreter has no tkinter (common on minimal Linux)."""
+        """Skip if host python lacks tkinter or bash cannot exec it.
+
+        On Windows with WSL-as-bash, the host ``python.exe`` may not be
+        executable from bash (exit 126). Fake-python tests cover the
+        preflight contract in that case.
+        """
         import sys
 
         probe = subprocess.run(
@@ -110,7 +175,22 @@ class TestPythonHasTkinter(unittest.TestCase):
         )
         if probe.returncode != 0:
             self.skipTest(f"{sys.executable} cannot import tkinter")
-        result = _source_and_run(f'python_has_tkinter "{sys.executable}"')
+
+        bash_py = _to_bash_path(sys.executable)
+        can_run = subprocess.run(
+            ["bash", "-c", f"{shlex.quote(bash_py)} -c 'import tkinter'"],
+            capture_output=True,
+            text=True,
+            check=False,
+            cwd=str(_REPO_ROOT),
+        )
+        if can_run.returncode != 0:
+            self.skipTest(
+                f"bash cannot exec host python at {bash_py!r} "
+                f"(rc={can_run.returncode}); covered by fake-python tests"
+            )
+
+        result = _source_and_run(f'python_has_tkinter "{bash_py}"')
         self.assertEqual(result.returncode, 0)
 
 
@@ -121,7 +201,7 @@ class TestRequirePythonTkinter(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             fake = _write_fake_python(Path(tmp), import_ok=True)
             result = _source_and_run(
-                f'require_python_tkinter "{fake}" "Ubuntu" "debian"',
+                f'require_python_tkinter "{_to_bash_path(fake)}" "Ubuntu" "debian"',
                 env={"RUNPOD": "false"},
             )
             self.assertEqual(
@@ -135,7 +215,7 @@ class TestRequirePythonTkinter(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             fake = _write_fake_python(Path(tmp), import_ok=False)
             result = _source_and_run(
-                f'require_python_tkinter "{fake}" "Ubuntu" "debian"',
+                f'require_python_tkinter "{_to_bash_path(fake)}" "Ubuntu" "debian"',
                 env={"RUNPOD": "false"},
             )
             self.assertNotEqual(result.returncode, 0)
@@ -147,7 +227,7 @@ class TestRequirePythonTkinter(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             fake = _write_fake_python(Path(tmp), import_ok=False)
             result = _source_and_run(
-                f'require_python_tkinter "{fake}" "Fedora" "rhel"',
+                f'require_python_tkinter "{_to_bash_path(fake)}" "Fedora" "rhel"',
                 env={"RUNPOD": "false"},
             )
             self.assertNotEqual(result.returncode, 0)
