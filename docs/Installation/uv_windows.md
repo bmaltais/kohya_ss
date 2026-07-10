@@ -75,7 +75,7 @@ This script utilizes the `uv` managed environment and handles dependencies and u
                         Port to run the server listener on
   --inbrowser           Open in browser
   --share               Share the gradio UI
-  --headless            Is the server headless
+  --headless            Remote/SSH: hide local file pickers; skip overwrite dialog
   --language LANGUAGE   Set custom language
   --use-ipex            Use native PyTorch XPU for Intel Arc GPUs (legacy flag name; Linux-oriented)
   --use-rocm            Use ROCm environment

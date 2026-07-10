@@ -31,6 +31,8 @@ Support for Linux and macOS is also available. While Linux support is actively m
   - [Offline / air-gapped GUI shell](#offline--air-gapped-gui-shell)
 - [Custom Path Defaults](#custom-path-defaults)
 - [Server Options](#server-options)
+  - [`allowed_paths`](#allowed_paths)
+  - [Remote / SSH: use `--headless`](#remote--ssh-use---headless)
 - [LoRA](#lora)
   - [Sample image generation during training](#sample-image-generation-during-training)
   - [Troubleshooting](#troubleshooting)
@@ -207,6 +209,29 @@ The `allowed_paths` option allows you to specify a list of directories that the 
 [server]
 allowed_paths = ["/mnt/external_drive/models", "/home/user/datasets"]
 ```
+
+### Remote / SSH: use `--headless`
+
+When you run the GUI on a remote machine (SSH, Runpod, Docker, cloud GPU) and open it in a browser, **start with `--headless`**.
+
+Without it, native OS dialogs (easygui overwrite confirmation, local file pickers) run on the **server** process. Over SSH there is usually no interactive display, so those prompts can **block training indefinitely**.
+
+`--headless` does two things that matter for remote use:
+
+* Hides local file/folder picker buttons in the Gradio UI (type paths instead).
+* Skips the easygui “overwrite existing model?” prompt and overwrites if the output name already exists.
+
+Examples:
+
+```bash
+# Linux / macOS
+./gui.sh --listen 0.0.0.0 --server_port 7860 --headless
+
+# Windows
+gui.bat --listen 0.0.0.0 --server_port 7860 --headless
+```
+
+If you start without `--headless` over SSH or without a display, the process logs a warning recommending `--headless`. There is no separate `--skip_overwrite` flag; use `--headless` for that behavior on train start.
 
 ## LoRA
 
