@@ -62,7 +62,7 @@
   "output_dir": "d:\\lycoris\\sdxl",
   "output_name": "froddy-loha-sx_v1.0a",
   "persistent_data_loader_workers": false,
-  "pretrained_model_name_or_path": "D:/models/sdxl/sd_xl_base_0.9.safetensors",
+  "pretrained_model_name_or_path": "stabilityai/stable-diffusion-xl-base-1.0",
   "prior_loss_weight": 1.0,
   "random_crop": false,
   "rank_dropout": 0,

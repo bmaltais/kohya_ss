@@ -21,7 +21,7 @@
   "conv_block_alphas": "",
   "conv_block_dims": "",
   "conv_dim": 1,
-  "dataset_config": "D:/kohya_ss/test/config/dataset-masked_loss.toml",
+  "dataset_config": "./test/config/dataset-masked_loss.toml",
   "debiased_estimation_loss": false,
   "decompose_both": false,
   "dim_from_weights": false,

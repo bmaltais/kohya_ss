@@ -10,9 +10,25 @@ import json
 import inspect
 import os
 import tempfile
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import toml
+
+# Repo root (parent of tests/). Never hardcode machine-absolute paths in
+# fixtures; resolve in-repo relatives from here so WSL/Linux/Windows agree.
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+
+# Path-like kwargs that must exist on disk for train_model validation.
+_REPO_PATH_KEYS = frozenset(
+    {
+        "dataset_config",
+        "train_data_dir",
+        "reg_data_dir",
+        "logging_dir",
+        "output_dir",
+    }
+)
 
 # Heuristics for defaulting fields the fixture doesn't cover, or that the
 # fixture stores as an empty string placeholder for a numeric field (Gradio
@@ -37,6 +53,28 @@ BOOL_NAME_HINTS = (
 )
 
 
+def resolve_repo_path(value: str) -> str:
+    """Map a fixture path to an absolute path under the repo when possible.
+
+    Accepts portable relatives like ``./test/config/dataset.toml`` or
+    ``test/config/dataset.toml``. Does not invent machine-specific roots.
+    Absolute paths that already exist are left unchanged.
+    """
+    if not isinstance(value, str) or not value.strip():
+        return value
+    raw = value.strip().replace("\\", "/")
+    # Drop a single leading ./ used in some fixtures
+    if raw.startswith("./"):
+        raw = raw[2:]
+    candidate = Path(raw)
+    if candidate.is_absolute():
+        return str(candidate)
+    under_repo = (_REPO_ROOT / raw).resolve()
+    if under_repo.exists():
+        return str(under_repo)
+    return value
+
+
 def build_train_model_kwargs(
     train_model_fn,
     fixture_path: str,
@@ -51,6 +89,7 @@ def build_train_model_kwargs(
       in which case they're coerced to 0.
     - Fields missing from the fixture default to False (BOOL_NAME_HINTS),
       "" (`string_overrides`), or 0 otherwise.
+    - In-repo path fields are resolved via :func:`resolve_repo_path`.
     - `overrides` wins over everything.
     """
     sig = inspect.signature(train_model_fn)
@@ -65,6 +104,8 @@ def build_train_model_kwargs(
             v = cfg[p]
             if p in numeric_fixups and v == "":
                 v = 0
+            elif p in _REPO_PATH_KEYS and isinstance(v, str) and v:
+                v = resolve_repo_path(v)
             kwargs[p] = v
         elif any(hint in p for hint in BOOL_NAME_HINTS):
             kwargs[p] = False
@@ -77,6 +118,10 @@ def build_train_model_kwargs(
     kwargs["print_only"] = True
     if overrides:
         kwargs.update(overrides)
+        # Re-resolve path overrides so callers can pass relatives too
+        for key in _REPO_PATH_KEYS:
+            if key in overrides and isinstance(kwargs.get(key), str) and kwargs[key]:
+                kwargs[key] = resolve_repo_path(kwargs[key])
     return kwargs
 
 
