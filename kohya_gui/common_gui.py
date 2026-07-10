@@ -1465,6 +1465,29 @@ def SaveConfigFile(
         json.dump(variables, file, indent=2)
 
 
+def try_save_training_config(
+    parameters,
+    file_path: str,
+    *,
+    headless: bool = False,
+    exclusion: list = None,
+) -> bool:
+    """Save training JSON via :func:`SaveConfigFile`; surface OSError to the user.
+
+    Returns True on success, False after logging and messaging on write failure.
+    """
+    if exclusion is None:
+        exclusion = ["file_path", "save_as", "headless", "print_only"]
+    try:
+        SaveConfigFile(parameters=parameters, file_path=file_path, exclusion=exclusion)
+        return True
+    except OSError as exc:
+        msg = f"Failed to write training config {file_path}: {exc}"
+        log.error(msg)
+        output_message(msg=msg, headless=headless)
+        return False
+
+
 def save_to_file(content):
     """
     Appends the given content to a file named 'print_command.txt' within a 'logs' directory.
@@ -1587,6 +1610,77 @@ def validate_folder_path(
         return False
     log.info(f"{msg} SUCCESS")
     return True
+
+
+def require_writable_directory(
+    folder_path: str,
+    *,
+    label: str = "Output directory",
+    headless: bool = False,
+    create_if_not_exists: bool = True,
+) -> bool:
+    """Require a non-empty, writable directory; surface a user-facing message on failure.
+
+    Unlike :func:`validate_folder_path`, an empty path is rejected (required for
+    training output dirs). Creates the directory when missing if requested.
+    """
+    if folder_path is None or not str(folder_path).strip():
+        msg = f"{label} is required"
+        log.error(msg)
+        output_message(msg=msg, headless=headless)
+        return False
+
+    folder_path = str(folder_path).strip()
+    msg = f"Validating {folder_path} existence and writability..."
+    try:
+        if not os.path.isdir(folder_path):
+            if create_if_not_exists:
+                os.makedirs(folder_path)
+                log.info(f"{msg} SUCCESS (created)")
+                return True
+            fail = f"{label} does not exist: {folder_path}"
+            log.error(fail)
+            output_message(msg=fail, headless=headless)
+            return False
+        if not os.access(folder_path, os.W_OK):
+            fail = f"{label} is not writable: {folder_path}"
+            log.error(fail)
+            output_message(msg=fail, headless=headless)
+            return False
+    except OSError as exc:
+        fail = f"{label} is not usable ({folder_path}): {exc}"
+        log.error(fail)
+        output_message(msg=fail, headless=headless)
+        return False
+
+    log.info(f"{msg} SUCCESS")
+    return True
+
+
+def join_config_path(base_dir: str, filename: str) -> str:
+    """Join a config filename under ``base_dir``.
+
+    Raises ``ValueError`` if ``base_dir`` is empty/whitespace so callers never
+    build a root-absolute path like ``/config_….toml`` from an empty output dir.
+    """
+    if base_dir is None or not str(base_dir).strip():
+        raise ValueError("base directory must not be empty")
+    if not filename or not str(filename).strip():
+        raise ValueError("filename must not be empty")
+    return os.path.join(str(base_dir).strip(), str(filename).strip())
+
+
+def write_toml_config(path: str, data: dict, headless: bool = False) -> bool:
+    """Write ``data`` as TOML to ``path``. On OSError, log + user message; return False."""
+    try:
+        with open(path, "w", encoding="utf-8") as toml_file:
+            toml.dump(data, toml_file)
+        return True
+    except OSError as exc:
+        msg = f"Failed to write config file {path}: {exc}"
+        log.error(msg)
+        output_message(msg=msg, headless=headless)
+        return False
 
 
 def validate_toml_file(file_path: str) -> bool:

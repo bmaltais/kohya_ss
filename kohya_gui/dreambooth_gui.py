@@ -12,18 +12,22 @@ from .common_gui import (
     get_executable_path,
     get_file_path,
     get_saveasfile_path,
+    join_config_path,
     print_command_and_toml,
+    require_writable_directory,
     resolve_lr_warmup_steps,
     run_cmd_advanced_training,
     SaveConfigFile,
     scriptdir,
     train_inpainting_changed,
+    try_save_training_config,
     update_my_data,
     validate_file_path,
     validate_folder_path,
     validate_model_path,
     validate_args_setting,
     setup_environment,
+    write_toml_config,
 )
 from .class_accelerate_launch import AccelerateLaunch
 from .class_configuration_file import ConfigurationFile
@@ -715,9 +719,7 @@ def train_model(
     ):
         return TRAIN_BUTTON_VISIBLE
 
-    if not validate_folder_path(
-        output_dir, can_be_written_to=True, create_if_not_exists=True
-    ):
+    if not require_writable_directory(output_dir, headless=headless):
         return TRAIN_BUTTON_VISIBLE
 
     if not validate_model_path(pretrained_model_name_or_path):
@@ -1151,14 +1153,12 @@ def train_model(
 
     current_datetime = datetime.now()
     formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
-    tmpfilename = rf"{output_dir}/config_dreambooth-{formatted_datetime}.toml"
+    tmpfilename = join_config_path(
+        output_dir, f"config_dreambooth-{formatted_datetime}.toml"
+    )
 
-    # Save the updated TOML data back to the file
-    with open(tmpfilename, "w", encoding="utf-8") as toml_file:
-        toml.dump(config_toml_data, toml_file)
-
-        if not os.path.exists(toml_file.name):
-            log.error(f"Failed to write TOML file: {toml_file.name}")
+    if not write_toml_config(tmpfilename, config_toml_data, headless=headless):
+        return TRAIN_BUTTON_VISIBLE
 
     run_cmd.append(f"--config_file")
     run_cmd.append(rf"{tmpfilename}")
@@ -1177,16 +1177,14 @@ def train_model(
         # Saving config file for model
         current_datetime = datetime.now()
         formatted_datetime = current_datetime.strftime("%Y%m%d-%H%M%S")
-        # config_dir = os.path.dirname(os.path.dirname(train_data_dir))
-        file_path = os.path.join(output_dir, f"{output_name}_{formatted_datetime}.json")
+        file_path = join_config_path(
+            output_dir, f"{output_name}_{formatted_datetime}.json"
+        )
 
         log.info(f"Saving training config to {file_path}...")
 
-        SaveConfigFile(
-            parameters=parameters,
-            file_path=file_path,
-            exclusion=["file_path", "save_as", "headless", "print_only"],
-        )
+        if not try_save_training_config(parameters, file_path, headless=headless):
+            return TRAIN_BUTTON_VISIBLE
 
         # log.info(run_cmd)
 
