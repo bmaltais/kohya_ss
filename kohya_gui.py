@@ -16,6 +16,10 @@ from kohya_gui.anima_lllite_gui import anima_lllite_tab
 from kohya_gui.class_lora_tab import LoRATools
 from kohya_gui.settings_gui import settings_tab
 from kohya_gui.custom_logging import setup_logging
+from kohya_gui.common_gui import (
+    HEADLESS_RECOMMENDATION_MESSAGE,
+    should_recommend_headless,
+)
 from kohya_gui.localization_ext import add_javascript
 from kohya_gui.offline_assets import (
     build_offline_theme,
@@ -117,7 +121,10 @@ def UI(**kwargs):
     install_offline_template_patches()
     # Add custom JavaScript if specified
     add_javascript(kwargs.get("language"))
-    log.info(f"headless: {kwargs.get('headless', False)}")
+    headless = kwargs.get("headless", False)
+    log.info(f"headless: {headless}")
+    if should_recommend_headless(headless):
+        log.warning(HEADLESS_RECOMMENDATION_MESSAGE)
 
     # Load release and README information
     release_info = read_file_content("./.release")
@@ -141,7 +148,7 @@ def UI(**kwargs):
     ui_interface = initialize_ui_interface(
         config,
         config_file_path,
-        kwargs.get("headless", False),
+        headless,
         use_shell,
         release_info,
         readme_content,
@@ -202,7 +209,13 @@ def initialize_arg_parser():
     parser.add_argument("--inbrowser", action="store_true", help="Open in browser")
     parser.add_argument("--share", action="store_true", help="Share the gradio UI")
     parser.add_argument(
-        "--headless", action="store_true", help="Is the server headless"
+        "--headless",
+        action="store_true",
+        help=(
+            "Run without local GUI dialogs: hide file/folder picker buttons and "
+            "skip easygui overwrite confirmation (required for remote/SSH; "
+            "existing models are overwritten without a prompt)"
+        ),
     )
     parser.add_argument(
         "--language", type=str, default=None, help="Set custom language"

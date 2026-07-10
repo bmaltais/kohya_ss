@@ -116,7 +116,7 @@ You can pass the following arguments to `gui.sh` or `kohya_gui.py`:
                         Port to run the server listener on
   --inbrowser           Open in browser
   --share               Share the gradio UI
-  --headless            Is the server headless
+  --headless            Remote/SSH: hide local file pickers; skip overwrite dialog
   --language LANGUAGE   Set custom language
   --use-ipex            Use native PyTorch XPU for Intel Arc GPUs (legacy flag name)
   --use-rocm            Use ROCm environment
@@ -127,6 +127,12 @@ You can pass the following arguments to `gui.sh` or `kohya_gui.py`:
   --root_path ROOT_PATH
                         `root_path` for Gradio to enable reverse proxy support. e.g. /kohya_ss
   --noverify            Disable requirements verification
+```
+
+On remote/SSH or headless servers, **always pass `--headless`**. Without it, native overwrite confirmation and file dialogs can block the server process. See [Remote / SSH: use `--headless`](../../README.md#remote--ssh-use---headless).
+
+```bash
+./gui.sh --headless --listen 0.0.0.0 --server_port 7860
 ```
 
 ## Upgrade Instructions
