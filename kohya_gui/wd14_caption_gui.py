@@ -1,20 +1,26 @@
 import gradio as gr
+import os
 import subprocess
+import sys
+
 from .common_gui import (
     get_folder_path,
     add_pre_postfix,
     scriptdir,
     list_dirs,
-    get_executable_path, setup_environment,
+    setup_environment,
 )
 from .class_gui_config import KohyaSSGUIConfig
-import os
-
 from .custom_logging import setup_logging
 
 # Set up logging
 log = setup_logging()
 old_onnx_value = True
+
+# Same pattern as BLIP captioning: run the tagger with the venv Python.
+# accelerate launch is unnecessary for single-process ONNX tagging and pulls
+# TensorFlow via TensorBoard (#3422 / #3577 Phase 1).
+PYTHON = sys.executable
 
 
 def caption_images(
@@ -56,8 +62,7 @@ def caption_images(
 
     log.info(f"Captioning files in {train_data_dir}...")
     run_cmd = [
-        rf'{get_executable_path("accelerate")}',
-        "launch",
+        PYTHON,
         rf"{scriptdir}/sd-scripts/finetune/tag_images_by_wd14_tagger.py",
     ]
 
@@ -123,10 +128,24 @@ def caption_images(
     command_to_run = " ".join(run_cmd)
     log.info(f"Executing command: {command_to_run}")
 
-    # Run the command in the sd-scripts folder context
-    subprocess.run(run_cmd, env=env)
+    # Run with project root as cwd so the default relative model dir
+    # (wd14_tagger_model/) stays at the repo root. PYTHONPATH from
+    # setup_environment() already includes sd-scripts for imports.
+    result = subprocess.run(
+        run_cmd,
+        env=env,
+        shell=False,
+        cwd=scriptdir,
+    )
 
-    # Add prefix and postfix
+    if result.returncode != 0:
+        log.error(
+            f"WD14 captioning failed with exit code {result.returncode}. "
+            "Caption files may be incomplete; prefix/postfix was not applied."
+        )
+        return
+
+    # Add prefix and postfix only after a successful tagger run
     add_pre_postfix(
         folder=train_data_dir,
         caption_file_ext=caption_extension,
@@ -163,7 +182,10 @@ def gradio_wd14_caption_gui_tab(
 
     with gr.Tab("WD14 Captioning"):
         gr.Markdown(
-            "This utility will use WD14 to caption files for each images in a folder."
+            "This utility uses WD14 to caption images in a folder.\n\n"
+            "**ONNX (recommended, default):** runs via onnxruntime and does not "
+            "require a working TensorFlow install. Disable only if you need the "
+            "Keras path; that path needs TensorFlow and NumPy 1.x."
         )
 
         # Input Settings
@@ -269,10 +291,13 @@ def gradio_wd14_caption_gui_tab(
 
         with gr.Row():
             onnx = gr.Checkbox(
-                label="Use onnx",
+                label="Use ONNX (recommended)",
                 value=config.get("wd14_caption.onnx", True),
                 interactive=True,
-                info="https://github.com/onnx/onnx",
+                info=(
+                    "Recommended. Uses onnxruntime (no TensorFlow). "
+                    "Turn off only for the Keras/TF backend (needs TensorFlow + NumPy 1.x)."
+                ),
             )
             append_tags = gr.Checkbox(
                 label="Append TAGs",
