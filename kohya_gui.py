@@ -3,6 +3,14 @@ import sys
 import argparse
 import subprocess
 import contextlib
+
+# Quiet TensorFlow C++ INFO noise (oneDNN notices) before any import that may
+# pull TF in transitively (e.g. transformers BLIP2 / WD14 Keras path).
+# setdefault keeps user/shell overrides. Matches setup_environment() for train
+# subprocesses (TF_ENABLE_ONEDNN_OPTS).
+os.environ.setdefault("TF_ENABLE_ONEDNN_OPTS", "0")
+os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
+
 import gradio as gr
 
 from kohya_gui.class_gui_config import KohyaSSGUIConfig
@@ -260,9 +268,10 @@ if __name__ == "__main__":
     # Set up logging based on the debug flag
     log = setup_logging(debug=args.debug)
 
-    # Verify requirements unless `noverify` flag is set
+    # Verify requirements unless `noverify` flag is set.
+    # gui-uv.* always passes --noverify (uv owns deps); log at info, not warning.
     if args.noverify:
-        log.warning("Skipping requirements verification.")
+        log.info("Skipping requirements verification.")
     else:
         # Run the validation command to verify requirements
         validation_command = [
