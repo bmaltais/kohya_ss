@@ -8,7 +8,8 @@ easygui==0.98.3
 einops==0.7.0
 fairscale==0.4.13
 ftfy==6.3.1
-gradio>=5.34.1
+gradio==5.34.2
+gradio-client==1.10.3
 huggingface-hub==0.34.3
 imagesize==1.4.1
 invisible-watermark==0.2.0
