@@ -1350,80 +1350,82 @@ def run_cmd_advanced_training(run_cmd: list = [], **kwargs):
     return run_cmd
 
 
-def verify_image_folder_pattern(folder_path: str) -> bool:
-    """
-    Verify the image folder pattern in the given folder path.
+# DreamBooth / LoRA / TI folder-mode concept dirs: <repeats>_<name>
+# Name may include letters, numbers, underscores, hyphens, and spaces
+# (see docs/image_folder_structure.md — e.g. "30_black mamba").
+_IMAGE_FOLDER_CONCEPT_PATTERN = re.compile(r"^\d+_.+$")
+_IMAGE_FOLDER_STRUCTURE_DOC = "docs/image_folder_structure.md"
 
-    Args:
-        folder_path (str): The path to the folder containing image folders.
+
+def verify_image_folder_pattern(
+    folder_path: str,
+    *,
+    headless: bool = False,
+    label: str = "Image folder",
+) -> bool:
+    """Verify DreamBooth-style ``N_name`` subfolders under ``folder_path``.
+
+    ``folder_path`` must be the **parent** of concept folders named
+    ``<repeats>_<name>`` (e.g. ``10_my_concept``), not the leaf folder that
+    contains the images. Empty ``folder_path`` is treated as "nothing to
+    check" (callers skip when a dataset TOML is used instead).
 
     Returns:
-        bool: True if the image folder pattern is valid, False otherwise.
+        True when the layout is valid (or path is empty); False otherwise.
+        On failure, logs and surfaces a user-facing message via
+        :func:`output_message`.
     """
-    # Initialize the return value to True
-    return_value = True
+    if folder_path is None or not str(folder_path).strip():
+        return True
 
-    # Log the start of the verification process
+    folder_path = str(folder_path).strip()
     log.info(f"Verifying image folder pattern of {folder_path}...")
 
-    # Check if the folder exists
+    parent_hint = (
+        f"{label} must be the parent of folders named <repeats>_<name> "
+        f"(e.g. 10_my_concept), not the folder that contains the images "
+        f"directly. See {_IMAGE_FOLDER_STRUCTURE_DOC}."
+    )
+
     if not os.path.isdir(folder_path):
-        # Log an error message if the folder does not exist
-        log.error(
-            f"...the provided path '{folder_path}' is not a valid folder. "
-            "Please follow the folder structure documentation found at docs\image_folder_structure.md ..."
+        msg = (
+            f"{label} preflight failed: '{folder_path}' is not a valid folder. "
+            f"{parent_hint}"
         )
-        # Return False to indicate that the folder pattern is not valid
+        log.error(msg)
+        output_message(msg=msg, headless=headless)
         return False
 
-    # Create a regular expression pattern to match the required sub-folder names
-    # The pattern should start with one or more digits (\d+) followed by an underscore (_)
-    # After the underscore, it should match one or more word characters (\w+), which can be letters, numbers, or underscores
-    # Example of a valid pattern matching name: 123_example_folder
-    pattern = r"^\d+_\w+"
-
-    # Get the list of sub-folders in the directory
     subfolders = [
-        os.path.join(folder_path, subfolder)
-        for subfolder in os.listdir(folder_path)
-        if os.path.isdir(os.path.join(folder_path, subfolder))
+        name
+        for name in os.listdir(folder_path)
+        if os.path.isdir(os.path.join(folder_path, name))
     ]
-
-    # Check the pattern of each sub-folder
-    matching_subfolders = [
-        subfolder
-        for subfolder in subfolders
-        if re.match(pattern, os.path.basename(subfolder))
+    matching = [
+        name for name in subfolders if _IMAGE_FOLDER_CONCEPT_PATTERN.match(name)
     ]
+    non_matching = [name for name in subfolders if name not in matching]
 
-    # Print non-matching sub-folders
-    non_matching_subfolders = set(subfolders) - set(matching_subfolders)
-    if non_matching_subfolders:
-        # Log an error message if any sub-folders do not match the pattern
-        log.error(
-            f"...the following folders do not match the required pattern <number>_<text>: {', '.join(non_matching_subfolders)}"
+    if not matching:
+        detail = (
+            f"Found subfolders that do not match <repeats>_<name>: "
+            f"{', '.join(non_matching)}. "
+            if non_matching
+            else "No concept subfolders found. "
         )
-        # Log an error message suggesting to follow the folder structure documentation
-        log.error(
-            f"...please follow the folder structure documentation found at docs\image_folder_structure.md ..."
-        )
-        # Return False to indicate that the folder pattern is not valid
+        msg = f"{label} preflight failed for '{folder_path}'. {detail}{parent_hint}"
+        log.error(msg)
+        output_message(msg=msg, headless=headless)
         return False
 
-    # Check if no sub-folders exist
-    if not matching_subfolders:
-        # Log an error message if no image folders are found
-        log.error(
-            f"...no image folders found in {folder_path}. "
-            "Please follow the folder structure documentation found at docs\image_folder_structure.md ..."
+    if non_matching:
+        log.warning(
+            f"...ignoring non-matching subfolders under {folder_path}: "
+            f"{', '.join(non_matching)}"
         )
-        # Return False to indicate that the folder pattern is not valid
-        return False
 
-    # Log the successful verification
-    log.info(f"...valid")
-    # Return True to indicate that the folder pattern is valid
-    return return_value
+    log.info(f"...valid ({len(matching)} concept folder(s))")
+    return True
 
 
 def SaveConfigFile(

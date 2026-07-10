@@ -29,6 +29,7 @@ from .common_gui import (
     validate_model_path,
     validate_toml_file,
     validate_args_setting,
+    verify_image_folder_pattern,
     setup_environment,
     write_toml_config,
 )
@@ -1562,6 +1563,18 @@ def train_model(
 
     if not validate_model_path(vae):
         return TRAIN_BUTTON_VISIBLE
+
+    # DreamBooth-style layout: train_data_dir must be parent of N_name folders.
+    # Skip when a dataset TOML defines the layout instead (GH #3374).
+    if not dataset_config:
+        if not verify_image_folder_pattern(
+            train_data_dir, headless=headless, label="Image folder"
+        ):
+            return TRAIN_BUTTON_VISIBLE
+        if not verify_image_folder_pattern(
+            reg_data_dir, headless=headless, label="Regularisation folder"
+        ):
+            return TRAIN_BUTTON_VISIBLE
 
     #
     # End of path validation
