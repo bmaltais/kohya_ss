@@ -96,9 +96,9 @@ def build_run_config(
             continue
         if spec.name not in values:
             continue
-        value = values[spec.name]
+        value = spec.coerce_to_toml(values[spec.name])
         if not (spec.keep_if_falsy or keep_falsy_default):
             if value in ("", False, None):
                 continue
-        out[spec.name] = spec.coerce_to_toml(value)
+        out[spec.name] = value
     return dict(sorted(out.items()))
