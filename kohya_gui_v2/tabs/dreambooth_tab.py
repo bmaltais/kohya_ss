@@ -11,6 +11,7 @@ from kohya_gui.common_gui import get_file_path, get_saveasfile_path, setup_envir
 
 from ..builder import build_components, visible_groups_for
 from ..config_io import build_run_config, load_config, save_config
+from ..legacy_import import import_json
 from ..registry import SD_SCRIPTS_BACKEND
 from .dreambooth_derivations import derive
 from .dreambooth_fields import ARCHITECTURE_CHOICES, DREAMBOOTH_REGISTRY
@@ -92,7 +93,9 @@ def dreambooth_tab(headless: bool = False, config=None):
     def do_open(path):
         if not path or not os.path.isfile(path):
             path = get_file_path(
-                path, default_extension=".toml", extension_name="TOML files (*.toml)"
+                path,
+                default_extension=".toml",
+                extension_name="TOML/JSON files (*.toml *.json)",
             )
         if not path or not os.path.isfile(path):
             return (
@@ -100,8 +103,18 @@ def dreambooth_tab(headless: bool = False, config=None):
                 + [gr.update() for _ in ordered_components]
                 + [gr.Dropdown()]
             )
-        values = load_config(DREAMBOOTH_REGISTRY, path)
-        arch_key = values.get("architecture", "sd15")
+        if path.lower().endswith(".json"):
+            result = import_json(path, training_type="dreambooth")
+            values = result.values
+            arch_key = result.architecture
+            if result.unrecognized_keys:
+                gr.Warning(
+                    "Ignored legacy keys not recognized by v2: "
+                    + ", ".join(result.unrecognized_keys)
+                )
+        else:
+            values = load_config(DREAMBOOTH_REGISTRY, path)
+            arch_key = values.get("architecture", "sd15")
         return (
             [gr.Textbox(value=path)]
             + [gr.update(value=values.get(n)) for n in ordered_names]

@@ -16,6 +16,7 @@ from kohya_gui.common_gui import get_file_path, get_saveasfile_path, setup_envir
 
 from ..builder import build_components, visible_groups_for
 from ..config_io import build_run_config, load_config, save_config
+from ..legacy_import import import_json
 from ..registry import SD_SCRIPTS_BACKEND
 from .anima_lllite_derivations import derive
 from .anima_lllite_fields import ANIMA_LLLITE_REGISTRY, ARCHITECTURE_CHOICES
@@ -93,7 +94,9 @@ def anima_lllite_tab(headless: bool = False, config=None):
     def do_open(path):
         if not path or not os.path.isfile(path):
             path = get_file_path(
-                path, default_extension=".toml", extension_name="TOML files (*.toml)"
+                path,
+                default_extension=".toml",
+                extension_name="TOML/JSON files (*.toml *.json)",
             )
         if not path or not os.path.isfile(path):
             return (
@@ -101,8 +104,18 @@ def anima_lllite_tab(headless: bool = False, config=None):
                 + [gr.update() for _ in ordered_components]
                 + [gr.Dropdown()]
             )
-        values = load_config(ANIMA_LLLITE_REGISTRY, path)
-        arch_key = values.get("architecture", "anima_lllite")
+        if path.lower().endswith(".json"):
+            result = import_json(path, training_type="anima_lllite")
+            values = result.values
+            arch_key = result.architecture
+            if result.unrecognized_keys:
+                gr.Warning(
+                    "Ignored legacy keys not recognized by v2: "
+                    + ", ".join(result.unrecognized_keys)
+                )
+        else:
+            values = load_config(ANIMA_LLLITE_REGISTRY, path)
+            arch_key = values.get("architecture", "anima_lllite")
         return (
             [gr.Textbox(value=path)]
             + [gr.update(value=values.get(n)) for n in ordered_names]
