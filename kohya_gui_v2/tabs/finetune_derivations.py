@@ -10,10 +10,13 @@ FieldSpec values before calling `build_run_config`.
 
 Simple "arch X only" or "AND <field> truthy" gates that don't require
 composing multiple widgets are NOT reimplemented here -- FieldSpec.archs
-(via for_selection) already hides/excludes fields per architecture, and
-build_run_config's falsy-drop already removes any field left at its falsy
-default. Only genuine composites (OR-merges, computed values, cross-field
-fallbacks, per-arch widget routing) need code below.
+(via for_selection) already hides/excludes fields per architecture. Note
+finetune_tab.py calls build_run_config with zero_survives_false=True
+(finetune_gui.py's own falsy-drop filter uses `value is False`, keeping
+numeric 0 -- see config_io.py's build_run_config docstring), so fields the
+old GUI explicitly guards with `!= 0 else None` need the explicit
+ZERO_TO_NONE_FIELDS handling below; they are NOT dropped by default the way
+they would be under the equality-based filter.
 
 Architecture keys: base (fine_tune.py), sdxl, sd3, flux1, anima, lumina --
 see finetune_fields.py's ARCHITECTURE_CHOICES.
@@ -30,6 +33,41 @@ NO_CLIP_SKIP_ARCHS = {"anima", "lumina"}
 NO_MAX_TOKEN_LENGTH_ARCHS = {"anima", "lumina"}
 SHOW_TIMESTEPS_ARCHS = {"flux1", "sd3", "anima", "lumina"}
 
+# Fields the old GUI explicitly guards with `!= 0 else None` (or `> 0 else
+# None` for fused_optimizer_groups) INDEPENDENT of the blanket falsy-drop
+# filter -- arch-matrix-finetune.md's per-key "None if == 0" notes.
+ZERO_TO_NONE_FIELDS = (
+    "adaptive_noise_scale",
+    "clip_skip",
+    "fused_optimizer_groups",
+    "ip_noise_gamma",
+    "max_timestep",
+    "max_train_epochs",
+    "min_snr_gamma",
+    "min_timestep",
+    "multires_noise_iterations",
+    "noise_offset",
+    "sample_every_n_epochs",
+    "sample_every_n_steps",
+    "save_every_n_epochs",
+    "save_every_n_steps",
+    "save_last_n_epochs",
+    "save_last_n_epochs_state",
+    "save_last_n_steps",
+    "save_last_n_steps_state",
+    "seed",
+    "v_pred_like_loss",
+    "vae_batch_size",
+)
+
+
+def _zero_to_none(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)) and value == 0:
+        return None
+    return value
+
 
 def _count_image_files(image_folder: str) -> int:
     if not image_folder or not os.path.isdir(image_folder):
@@ -45,6 +83,10 @@ def _count_image_files(image_folder: str) -> int:
 
 def derive(values: dict, arch_key: str) -> dict:
     out = {}
+
+    # enable_bucket: hardcoded True in finetune_gui.py's config_toml_data --
+    # not backed by any widget at all (arch-matrix-finetune.md #83).
+    out["enable_bucket"] = True
 
     # max_train_steps: recomputed from the image-folder file count when no
     # external dataset_config is set and the raw widget is 0
@@ -111,9 +153,11 @@ def derive(values: dict, arch_key: str) -> dict:
     else:
         out["no_half_vae"] = None
 
-    # in_json: composite of train_dir + one of two metadata-filename
+    # in_json: composite of the GUI's own `train_dir` widget (a metadata
+    # storage folder, DISTINCT from `train_data_dir`/image_folder -- the
+    # actual training images folder) + one of two metadata-filename
     # widgets, switched by use_latent_files (finetune_gui.py section 4).
-    train_dir = values.get("train_data_dir") or ""
+    train_dir = values.get("train_dir") or ""
     use_latent_files = values.get("use_latent_files")
     if use_latent_files == "Yes":
         filename = values.get("latent_metadata_filename") or ""
@@ -258,5 +302,11 @@ def derive(values: dict, arch_key: str) -> dict:
     # None, never reach the TOML (arch-matrix-finetune.md lines 198-199).
     out["split_mode"] = None
     out["train_blocks"] = None
+
+    # Explicit `!= 0 else None` guards independent of the blanket falsy
+    # drop (see ZERO_TO_NONE_FIELDS docstring above).
+    for name in ZERO_TO_NONE_FIELDS:
+        current = out[name] if name in out else values.get(name)
+        out[name] = _zero_to_none(current)
 
     return out

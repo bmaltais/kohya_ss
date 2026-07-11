@@ -110,7 +110,11 @@ def finetune_tab(headless: bool = False, config=None):
     def do_train(arch_key, print_only, *component_values):
         values = _build_values(arch_key, *component_values)
         run_config = build_run_config(
-            FINETUNE_REGISTRY, values, arch_key=arch_key, training_type="finetune"
+            FINETUNE_REGISTRY,
+            values,
+            arch_key=arch_key,
+            training_type="finetune",
+            zero_survives_false=True,
         )
 
         import tempfile

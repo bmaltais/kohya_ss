@@ -83,12 +83,29 @@ def build_run_config(
     arch_key: str,
     training_type: str,
     keep_falsy_default: bool = False,
+    zero_survives_false: bool = False,
 ) -> dict:
     """Build the dict that gets written to the run-time TOML passed via
     --config_file. Drops GUI-only keys, drops keys not applicable to the
     selected architecture/training type, and drops falsy values (""/False/
     None) unless the FieldSpec opts out via keep_if_falsy=True or the
     backend's keep_falsy_default is True.
+
+    `zero_survives_false` controls whether the False check uses identity
+    (`value is False`) or equality (`value == False`, which also matches
+    numeric 0/0.0 since `0 == False` is True in Python). The six old GUIs
+    are NOT consistent here (Move 7 equivalence harness finding, 2026-07-11):
+    dreambooth_gui.py and finetune_gui.py use `value is False` in their own
+    falsy-drop filters (finetune_gui.py's carries an explicit comment citing
+    sigmoid_scale=0.0), so numeric 0 legitimately survives their run TOML;
+    lora_gui.py, textual_inversion_gui.py, leco_gui.py, and
+    anima_lllite_gui.py all use `value not in ["", False, None]` (equality),
+    which silently drops legitimate 0 values -- a real inconsistency in the
+    old GUI, ported faithfully per training type rather than "fixed"
+    globally. Callers must pass `zero_survives_false=True` for dreambooth
+    and finetune to match their real old-GUI behavior; the other four
+    training types keep the default (equality, matching their real old-GUI
+    behavior, however arguably buggy).
     """
     out = {}
     for spec in registry.for_selection(arch_key=arch_key, training_type=training_type):
@@ -98,7 +115,11 @@ def build_run_config(
             continue
         value = spec.coerce_to_toml(values[spec.name])
         if not (spec.keep_if_falsy or keep_falsy_default):
-            if value in ("", False, None):
-                continue
+            if zero_survives_false:
+                if value == "" or value is None or value is False:
+                    continue
+            else:
+                if value in ("", False, None):
+                    continue
         out[spec.name] = value
     return dict(sorted(out.items()))

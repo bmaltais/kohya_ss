@@ -22,6 +22,45 @@ TRAIN_INPAINTING_SUPPORTED_ARCHS = {"sd15", "sd2", "sdxl"}
 TEXT_ENCODER_OUTPUTS_ARCHS = {"sdxl", "sd3", "flux1"}
 TEXT_ENCODER_OUTPUTS_TO_DISK_ARCHS = {"sd3", "flux1"}
 
+# Fields the old GUI explicitly guards with `!= 0 else None` (or `> 0 else
+# None` for fused_optimizer_groups) INDEPENDENT of the blanket falsy-drop
+# filter -- arch-matrix-dreambooth.md's per-key "None if == 0" notes. These
+# must be nulled explicitly now that build_run_config is called with
+# zero_survives_false=True for this training type (dreambooth_tab.py),
+# which otherwise lets legitimate numeric 0 survive.
+ZERO_TO_NONE_FIELDS = (
+    "adaptive_noise_scale",
+    "clip_skip",
+    "fused_optimizer_groups",
+    "ip_noise_gamma",
+    "max_timestep",
+    "max_train_epochs",
+    "min_snr_gamma",
+    "min_timestep",
+    "multires_noise_iterations",
+    "noise_offset",
+    "sample_every_n_epochs",
+    "sample_every_n_steps",
+    "save_every_n_epochs",
+    "save_every_n_steps",
+    "save_last_n_epochs",
+    "save_last_n_epochs_state",
+    "save_last_n_steps",
+    "save_last_n_steps_state",
+    "seed",
+    "stop_text_encoder_training",
+    "v_pred_like_loss",
+    "vae_batch_size",
+)
+
+
+def _zero_to_none(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)) and value == 0:
+        return None
+    return value
+
 
 def _count_dataset_steps(train_data_dir: str) -> int:
     """Sum `repeats * image_count` across `<repeats>_<name>` subfolders,
@@ -212,5 +251,19 @@ def derive(values: dict, arch_key: str) -> dict:
     # (arch-matrix-dreambooth.md lines 166-167, 200).
     out["split_mode"] = None
     out["train_blocks"] = None
+
+    # show_timesteps_resolution depends on the sibling show_timesteps field
+    # (a different field), not just its own value; both are also gated on
+    # flux1/sd3 architecture (arch-matrix-dreambooth.md #175-176).
+    show_timesteps_val = out.get("show_timesteps", values.get("show_timesteps"))
+    if arch_key not in ("flux1", "sd3") or not show_timesteps_val:
+        out["show_timesteps"] = None
+        out["show_timesteps_resolution"] = None
+
+    # Explicit `!= 0 else None` guards independent of the blanket falsy
+    # drop (see ZERO_TO_NONE_FIELDS docstring above).
+    for name in ZERO_TO_NONE_FIELDS:
+        current = out[name] if name in out else values.get(name)
+        out[name] = _zero_to_none(current)
 
     return out

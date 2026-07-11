@@ -41,7 +41,28 @@ GAP_FILE = os.path.join(
 MODULE_NAME = "anima_train_control_net_lllite"
 ARCH_KEY = "anima_lllite"
 
-NO_FIELDSPEC_EXPECTED = {"config_file", "output_config"}
+NO_FIELDSPEC_EXPECTED = {
+    "config_file",
+    "output_config",
+    # Accelerate-launch-only concepts: anima_lllite_gui.py's train_model
+    # consumes these directly into the accelerate-launch CLI prefix and
+    # never writes them into config_toml_data, even though the real trainer
+    # parser also declares dynamo_backend. Deliberately excluded from the
+    # generator to avoid colliding with the existing accelerate-launch-only
+    # GUI parameter of the same name -- found via the Move 7 equivalence
+    # harness (2026-07-11), same fix as LeCo's.
+    "dynamo_backend",
+    "dynamo_mode",
+    "dynamo_use_fullgraph",
+    "dynamo_use_dynamic",
+    "num_processes",
+    "num_machines",
+    "num_cpu_threads_per_process",
+    "multi_gpu",
+    "gpu_ids",
+    "main_process_port",
+    "extra_accelerate_launch_args",
+}
 
 
 def _load_parser():

@@ -111,14 +111,6 @@ LECO_FIELDS = [
         group="leco_generated",
     ),
     FieldSpec(
-        name="dynamo_backend",
-        widget=Widget.DROPDOWN,
-        default="inductor",
-        archs=None,
-        training_types=frozenset({"leco"}),
-        group="leco_generated",
-    ),
-    FieldSpec(
         name="fp8_base",
         widget=Widget.CHECKBOX,
         default=False,

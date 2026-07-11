@@ -60,15 +60,16 @@ def derive(values: dict, arch_key: str) -> dict:
         out["show_timesteps_resolution"] = None
 
     # optimizer_args / lr_scheduler_args: space-separated, quote-stripped
-    # textbox -> list of strings.
-    raw_optimizer_args = values.get("optimizer_args")
-    if raw_optimizer_args == []:
-        out["optimizer_args"] = None
-    else:
-        out["optimizer_args"] = str(raw_optimizer_args or "").replace('"', "").split()
-    out["lr_scheduler_args"] = (
-        str(values.get("lr_scheduler_args") or "").replace('"', "").split()
-    )
+    # textbox -> list of strings, explicitly None when unset -- unlike
+    # LeCo/LoRA/DreamBooth/Finetune, anima_lllite_gui.py guards BOTH fields
+    # with an explicit `not in ("", [], None) else None` check
+    # (anima_lllite_gui.py:679-688), not just optimizer_args.
+    for name in ("optimizer_args", "lr_scheduler_args"):
+        raw = values.get(name)
+        if raw in ("", [], None):
+            out[name] = None
+        else:
+            out[name] = str(raw).replace('"', "").split()
 
     # wandb_run_name falls back to output_name when empty.
     if not values.get("wandb_run_name"):

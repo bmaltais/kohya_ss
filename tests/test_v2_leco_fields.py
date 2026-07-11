@@ -53,7 +53,30 @@ ARCH_SECTION_TOKEN = {
     "sdxl": "sdxl",
 }
 
-NO_FIELDSPEC_EXPECTED = {"config_file", "output_config"}
+NO_FIELDSPEC_EXPECTED = {
+    "config_file",
+    "output_config",
+    # Accelerate-launch-only concepts (arch-matrix-leco.md section 2's
+    # closing note): leco_gui.py's train_model consumes these directly into
+    # the accelerate-launch CLI prefix and never writes them into
+    # config_toml_data, even though the real trainer parser also declares
+    # some of them (hence gap-analysis classifies dynamo_backend as a
+    # gap-candidate). Deliberately excluded from the generator
+    # (gen_leco_fields.py's ALWAYS_EXCLUDE) to avoid colliding with the
+    # existing accelerate-launch-only GUI parameter of the same name --
+    # found via the Move 7 equivalence harness (2026-07-11).
+    "dynamo_backend",
+    "dynamo_mode",
+    "dynamo_use_fullgraph",
+    "dynamo_use_dynamic",
+    "num_processes",
+    "num_machines",
+    "num_cpu_threads_per_process",
+    "multi_gpu",
+    "gpu_ids",
+    "main_process_port",
+    "extra_accelerate_launch_args",
+}
 
 
 def _load_parser(module_name):

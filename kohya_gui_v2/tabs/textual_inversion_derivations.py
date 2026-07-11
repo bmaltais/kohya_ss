@@ -91,6 +91,13 @@ def derive(values: dict, arch_key: str) -> dict:
         if epoch not in (None, ""):
             out["lr_scheduler_num_cycles"] = int(epoch)
 
+    # no_half_vae: GUI param name is sdxl_no_half_vae (TOML key renamed),
+    # passed through unconditionally regardless of the sdxl checkbox
+    # (textual_inversion_gui.py:831 -- "no_half_vae": sdxl_no_half_vae,
+    # no `if sdxl` guard in the actual code despite being "sdxl-only (soft)"
+    # per arch-matrix-textual_inversion.md).
+    out["no_half_vae"] = values.get("sdxl_no_half_vae")
+
     # xformers dropdown -> xformers/sdpa mutually exclusive booleans.
     xformers_choice = values.get("xformers")
     out["xformers"] = True if xformers_choice == "xformers" else None

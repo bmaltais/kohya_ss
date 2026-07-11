@@ -45,6 +45,25 @@ ALWAYS_EXCLUDE = {
     "config_file",
     "output_config",
     "help",
+    # Accelerate-launch-only concepts, per arch-matrix-leco.md section 2's
+    # closing note: leco_gui.py's train_model consumes these directly into
+    # the `accelerate launch` CLI prefix and NEVER writes them into
+    # config_toml_data, even though the real trainer parser also declares a
+    # `dynamo_backend` arg (hence gap-analysis classifies it as a
+    # gap-candidate, not a defect). Exposing it as a v2 TOML FieldSpec would
+    # collide with the existing accelerate-launch-only GUI parameter of the
+    # same name and perturb equivalence for every legacy preset.
+    "dynamo_backend",
+    "dynamo_mode",
+    "dynamo_use_fullgraph",
+    "dynamo_use_dynamic",
+    "num_processes",
+    "num_machines",
+    "num_cpu_threads_per_process",
+    "multi_gpu",
+    "gpu_ids",
+    "main_process_port",
+    "extra_accelerate_launch_args",
 }
 
 WIDGET_ENUM_IMPORT = "from ..fields import FieldSpec, Widget"

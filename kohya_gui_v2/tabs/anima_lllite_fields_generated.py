@@ -361,14 +361,6 @@ ANIMA_LLLITE_FIELDS = [
         from_toml=_to_float,
     ),
     FieldSpec(
-        name="dynamo_backend",
-        widget=Widget.DROPDOWN,
-        default="inductor",
-        archs=None,
-        training_types=frozenset({"anima_lllite"}),
-        group="anima_lllite_generated",
-    ),
-    FieldSpec(
         name="enable_bucket",
         widget=Widget.CHECKBOX,
         default=False,
