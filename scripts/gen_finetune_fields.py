@@ -1,0 +1,218 @@
+"""One-off generator: build kohya_gui_v2/tabs/finetune_fields_generated.py
+from wargame/reference/gap-analysis-finetune.md (port/defect/gap-candidate
+per architecture) plus real argparse introspection (widget type, default,
+choices) for the Finetune tab's 6 architectures.
+
+Not part of the shipped package -- a build-time tool, run once (re-run if
+the gap analysis changes). Output is a plain, hand-editable Python file.
+
+Mirrors scripts/gen_lora_fields.py / gen_dreambooth_fields.py; differs in
+the gap-analysis file's vocabulary: category values here are "port",
+"defect/dead", "gap candidate" (space, not hyphen); disposition for port
+rows is literally "port" (not "n/a").
+"""
+
+import importlib
+import os
+import re
+import sys
+
+SD_SCRIPTS_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sd-scripts"
+)
+GAP_FILE = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "wargame",
+    "reference",
+    "gap-analysis-finetune.md",
+)
+
+# arch_key -> sd-scripts module name
+ARCH_SCRIPTS = {
+    "sdxl": "sdxl_train",
+    "sd3": "sd3_train",
+    "flux1": "flux_train",
+    "anima": "anima_train",
+    "lumina": "lumina_train",
+    "base": "fine_tune",
+}
+
+# Which gap-analysis section each arch_key reads from.
+ARCH_SECTION = {
+    "sdxl": "SDXL (",
+    "sd3": "SD3/3.5 (",
+    "flux1": "FLUX.1 (",
+    "anima": "Anima (",
+    "lumina": "Lumina (",
+    "base": "Base SD1.x/SD2.x (",
+}
+
+ALWAYS_EXCLUDE = {
+    "config_file",
+    "output_config",
+    "help",
+}
+
+# Matrix-confirmed dead keys for this tab (present as hardcoded-None
+# placeholders, never emitted) -- arch-matrix-finetune.md lines 198-199, 329.
+DEAD_KEYS = {"split_mode", "train_blocks"}
+
+WIDGET_ENUM_IMPORT = "from ..fields import FieldSpec, Widget"
+
+
+def load_parser(module_name):
+    if SD_SCRIPTS_DIR not in sys.path:
+        sys.path.insert(0, SD_SCRIPTS_DIR)
+    mod = importlib.import_module(module_name)
+    return mod.setup_parser()
+
+
+def action_to_widget_and_default(action):
+    if action.nargs == 0 and isinstance(action.default, bool):
+        return "CHECKBOX", repr(bool(action.default)), "None"
+    if action.choices:
+        coercer = "None"
+        if action.type in (int,):
+            coercer = "_to_int"
+        elif action.type in (float,):
+            coercer = "_to_float"
+        return "DROPDOWN", repr(action.default), coercer
+    if action.nargs not in (None, 1) or isinstance(action.default, (list, tuple)):
+        return (
+            "TEXTBOX",
+            repr(action.default if action.default is not None else ""),
+            "None",
+        )
+    if action.type in (int,):
+        return (
+            "NUMBER",
+            repr(action.default if action.default is not None else 0),
+            "_to_int",
+        )
+    if action.type in (float,):
+        return (
+            "NUMBER",
+            repr(action.default if action.default is not None else 0.0),
+            "_to_float",
+        )
+    return "TEXTBOX", repr(action.default if action.default is not None else ""), "None"
+
+
+def parse_gap_file(path):
+    """Return {section_title: {name: (category, disposition)}}."""
+    text = open(path, encoding="utf-8").read()
+    sections = re.split(r"^## (.+?)\n", text, flags=re.M)
+    result = {}
+    for i in range(1, len(sections), 2):
+        title = sections[i].strip()
+        body = sections[i + 1]
+        rows = re.findall(
+            r"^\| `([a-zA-Z0-9_]+)` \| ([^|]+?) \| ([^|]+?) \|",
+            body,
+            flags=re.M,
+        )
+        result[title] = {name: (cat.strip(), disp.strip()) for name, cat, disp in rows}
+    return result
+
+
+def section_key_for(title_prefix, sections):
+    for title in sections:
+        if title.startswith(title_prefix):
+            return title
+    raise KeyError(f"No gap-analysis section found for prefix {title_prefix!r}")
+
+
+def main():
+    gap_by_section = parse_gap_file(GAP_FILE)
+
+    parsers = {
+        module_name: load_parser(module_name)
+        for module_name in set(ARCH_SCRIPTS.values())
+    }
+    action_by_module = {
+        module_name: {a.dest: a for a in parser._actions if a.dest != "help"}
+        for module_name, parser in parsers.items()
+    }
+
+    key_archs: dict = {}
+    key_meta: dict = {}
+
+    for arch, module_name in ARCH_SCRIPTS.items():
+        section_title = section_key_for(ARCH_SECTION[arch], gap_by_section)
+        rows = gap_by_section[section_title]
+        actions = action_by_module[module_name]
+        for name, (cat, disp) in rows.items():
+            if name in ALWAYS_EXCLUDE or name in DEAD_KEYS:
+                continue
+            if cat.startswith("defect"):
+                continue
+            if cat == "gap candidate" and disp not in ("expose", "expose-advanced"):
+                continue
+            # cat == "port" (disposition literally "port") or included gap candidate
+            key_archs.setdefault(name, set()).add(arch)
+            if name not in key_meta and name in actions:
+                widget, default_repr, coercer = action_to_widget_and_default(
+                    actions[name]
+                )
+                key_meta[name] = (widget, default_repr, coercer)
+
+    all_archs = set(ARCH_SCRIPTS.keys())
+    lines = []
+    lines.append(
+        '"""Finetune FieldSpecs -- generated by scripts/gen_finetune_fields.py from'
+    )
+    lines.append(
+        "wargame/reference/gap-analysis-finetune.md + wargame/reference/arch-matrix-finetune.md."
+    )
+    lines.append("")
+    lines.append("Regenerate with: uv run python scripts/gen_finetune_fields.py")
+    lines.append(
+        "Hand edits are fine but will be overwritten on regeneration -- move any"
+    )
+    lines.append(
+        "permanent hand corrections into the generator or a follow-up patch step."
+    )
+    lines.append('"""')
+    lines.append("")
+    lines.append(WIDGET_ENUM_IMPORT)
+    lines.append("")
+    lines.append("def _to_int(v):")
+    lines.append('    return int(v) if v not in (None, "") else v')
+    lines.append("")
+    lines.append("def _to_float(v):")
+    lines.append('    return float(v) if v not in (None, "") else v')
+    lines.append("")
+    lines.append("FINETUNE_FIELDS = [")
+
+    for name in sorted(key_meta.keys()):
+        widget, default_repr, coercer = key_meta[name]
+        archs = key_archs[name]
+        archs_repr = "None" if archs == all_archs else f"frozenset({sorted(archs)!r})"
+        coerce_kwargs = ""
+        if coercer != "None":
+            coerce_kwargs = f", to_toml={coercer}, from_toml={coercer}"
+        lines.append(
+            f"    FieldSpec(name={name!r}, widget=Widget.{widget}, default={default_repr}, "
+            f'archs={archs_repr}, training_types=frozenset({{"finetune"}}), group="finetune_generated"'
+            f"{coerce_kwargs}),"
+        )
+
+    lines.append("]")
+    lines.append("")
+
+    out_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "kohya_gui_v2",
+        "tabs",
+    )
+    os.makedirs(out_dir, exist_ok=True)
+    out_path = os.path.join(out_dir, "finetune_fields_generated.py")
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+
+    print(f"Wrote {len(key_meta)} FieldSpecs to {out_path}")
+    print(f"Architectures: {sorted(all_archs)}")
+
+
+if __name__ == "__main__":
+    main()
