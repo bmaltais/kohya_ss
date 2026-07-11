@@ -8,6 +8,7 @@ from kohya_gui.class_gui_config import KohyaSSGUIConfig
 from kohya_gui.custom_logging import setup_logging
 
 from kohya_gui_v2.placeholder_tab import placeholder_tab
+from kohya_gui_v2.tabs.lora_tab import lora_tab
 
 project_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -19,7 +20,7 @@ def read_file_content(file_path):
     return ""
 
 
-def initialize_ui_interface(config, release_info):
+def initialize_ui_interface(config, release_info, headless=False):
     css = read_file_content("./assets/style.css")
 
     ui_interface = gr.Blocks(
@@ -28,6 +29,9 @@ def initialize_ui_interface(config, release_info):
         theme=gr.themes.Default(),
     )
     with ui_interface:
+        with gr.Tab("LoRA"):
+            lora_tab(headless=headless, config=config)
+
         with gr.Tab("Preview"):
             placeholder_tab()
 
@@ -48,7 +52,9 @@ def UI(**kwargs):
     if config.is_config_loaded():
         log.info(f"Loaded default GUI values from '{config_file_path}'...")
 
-    ui_interface = initialize_ui_interface(config, release_info)
+    ui_interface = initialize_ui_interface(
+        config, release_info, headless=kwargs.get("headless", False)
+    )
 
     launch_params = {
         "server_name": kwargs.get("listen"),
