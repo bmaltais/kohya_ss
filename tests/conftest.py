@@ -9,10 +9,18 @@ default so the call succeeds without a live Gradio session.
 import json
 import inspect
 import os
+import sys
 import tempfile
 from unittest.mock import MagicMock, patch
 
 import toml
+
+# Ensure the project root is importable regardless of whether the uv
+# editable install's package mapping has been regenerated since a new
+# top-level package (e.g. kohya_gui_v2) was added.
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
 
 # Heuristics for defaulting fields the fixture doesn't cover, or that the
 # fixture stores as an empty string placeholder for a numeric field (Gradio
