@@ -8,7 +8,12 @@ from kohya_gui.class_gui_config import KohyaSSGUIConfig
 from kohya_gui.custom_logging import setup_logging
 
 from kohya_gui_v2.placeholder_tab import placeholder_tab
+from kohya_gui_v2.tabs.anima_lllite_tab import anima_lllite_tab
+from kohya_gui_v2.tabs.dreambooth_tab import dreambooth_tab
+from kohya_gui_v2.tabs.finetune_tab import finetune_tab
+from kohya_gui_v2.tabs.leco_tab import leco_tab
 from kohya_gui_v2.tabs.lora_tab import lora_tab
+from kohya_gui_v2.tabs.textual_inversion_tab import textual_inversion_tab
 
 project_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -31,6 +36,21 @@ def initialize_ui_interface(config, release_info, headless=False):
     with ui_interface:
         with gr.Tab("LoRA"):
             lora_tab(headless=headless, config=config)
+
+        with gr.Tab("DreamBooth"):
+            dreambooth_tab(headless=headless, config=config)
+
+        with gr.Tab("Finetune"):
+            finetune_tab(headless=headless, config=config)
+
+        with gr.Tab("Textual Inversion"):
+            textual_inversion_tab(headless=headless, config=config)
+
+        with gr.Tab("LeCo"):
+            leco_tab(headless=headless, config=config)
+
+        with gr.Tab("Anima LLLite"):
+            anima_lllite_tab(headless=headless, config=config)
 
         with gr.Tab("Preview"):
             placeholder_tab()
