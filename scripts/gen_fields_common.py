@@ -28,11 +28,18 @@ def english_only_help(text: str) -> str:
 
     Upstream help is often ``\"english description / 日本語…\"``. Prefer the
     first segment that contains no CJK; fall back to the first segment.
+
+    Pure-English strings (including those with ``" / "`` in prose, e.g.
+    dataset_config's multi-resolution help) pass through unchanged — only
+    split when CJK is present.
     """
     text = " ".join(str(text).split())
     if not text:
         return text
-    # Prefer explicit bilingual separator used by sd-scripts
+    # No CJK at all → never split; " / " appears in legitimate English help.
+    if not _CJK_RE.search(text):
+        return text
+    # Bilingual separator used by sd-scripts
     for sep in (" / ", "／"):
         if sep in text:
             parts = [p.strip() for p in text.split(sep) if p.strip()]
@@ -40,15 +47,13 @@ def english_only_help(text: str) -> str:
             if non_cjk:
                 return non_cjk[0]
             return parts[0]
-    # No separator: if the whole string is CJK-heavy, drop it (unusable as tooltip)
-    if _CJK_RE.search(text) and not re.search(r"[A-Za-z]{3,}", text):
+    # No separator: pure-CJK help is unusable as a tooltip
+    if not re.search(r"[A-Za-z]{3,}", text):
         return ""
     # Mixed without separator — strip CJK runs as a last resort
-    if _CJK_RE.search(text):
-        stripped = _CJK_RE.sub("", text)
-        stripped = re.sub(r"\s{2,}", " ", stripped).strip(" /|")
-        return stripped or text
-    return text
+    stripped = _CJK_RE.sub("", text)
+    stripped = re.sub(r"\s{2,}", " ", stripped).strip(" /|")
+    return stripped or text
 
 
 def action_to_widget_and_default(action):

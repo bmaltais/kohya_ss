@@ -105,6 +105,13 @@ def test_pack_rows_groups_non_adjacent_shared_row_keys():
                 LAYOUT[n] = prev
 
 
+_DATASET_CONFIG_HELP = (
+    "Multi-resolution / duplicate-subset datasets are configured entirely in "
+    "this TOML file, not via GUI fields. See 'Behavior when there are "
+    "duplicate subsets': https://example.com/docs"
+)
+
+
 @pytest.mark.parametrize(
     "raw,expected",
     [
@@ -118,10 +125,31 @@ def test_pack_rows_groups_non_adjacent_shared_row_keys():
         ),
         ("English only help text", "English only help text"),
         ("  spaced   words  / 日本語 ", "spaced words"),
+        # Pure English with " / " in prose must NOT be truncated
+        (_DATASET_CONFIG_HELP, _DATASET_CONFIG_HELP),
+        (
+            "Multi-resolution / duplicate-subset datasets are configured entirely "
+            "in this TOML file, not via GUI fields.",
+            "Multi-resolution / duplicate-subset datasets are configured entirely "
+            "in this TOML file, not via GUI fields.",
+        ),
     ],
 )
 def test_english_only_help_strips_japanese(raw, expected):
     assert english_only_help(raw) == expected
+
+
+def test_english_only_help_passes_cjk_free_through_unchanged():
+    """CJK-free inputs must be identity (modulo whitespace collapse only)."""
+    samples = [
+        "plain help",
+        "a / b / c without any japanese",
+        _DATASET_CONFIG_HELP,
+        "rate: 1/2 / still english",
+    ]
+    for s in samples:
+        # Function collapses internal whitespace; identity for already-normalized
+        assert english_only_help(s) == " ".join(s.split())
 
 
 def test_generated_lora_infos_have_no_cjk():
@@ -130,3 +158,18 @@ def test_generated_lora_infos_have_no_cjk():
     cjk = re.compile(r"[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]")
     offenders = [s.name for s in LORA_REGISTRY if s.info and cjk.search(s.info)]
     assert offenders == [], f"CJK still present in info for: {offenders[:10]}"
+
+
+def test_dataset_config_info_not_truncated():
+    """Regression: pure-English help containing ' / ' must survive generation."""
+    if "dataset_config" not in LORA_REGISTRY.names():
+        pytest.skip("dataset_config not in LoRA registry")
+    info = LORA_REGISTRY["dataset_config"].info or ""
+    assert "Multi-resolution" in info
+    # Must retain the rest of the sentence, not stop at the first slash phrase
+    assert (
+        "duplicate-subset" in info
+        or "TOML" in info
+        or len(info) > len("Multi-resolution")
+    )
+    assert info != "Multi-resolution"
