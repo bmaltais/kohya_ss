@@ -68,34 +68,52 @@ def load_parser(module_name):
 
 
 def action_to_widget_and_default(action):
+    """Map an argparse.Action to (Widget enum name, default repr, coercer,
+    choices repr or None)."""
     if action.nargs == 0 and isinstance(action.default, bool):
-        return "CHECKBOX", repr(bool(action.default)), "None"
+        return "CHECKBOX", repr(bool(action.default)), "None", None
     if action.choices:
         coercer = "None"
         if action.type in (int,):
             coercer = "_to_int"
         elif action.type in (float,):
             coercer = "_to_float"
-        return "DROPDOWN", repr(action.default), coercer
+        # Always include the action's own default among the choices --
+        # some parsers declare a default that isn't itself in `choices`,
+        # and Gradio's gr.Dropdown emits a UserWarning + falls back to
+        # allow_custom_value behavior whenever the initial value isn't a
+        # member of `choices`.
+        choices_list = list(action.choices)
+        if action.default not in choices_list:
+            choices_list = [action.default] + choices_list
+        return "DROPDOWN", repr(action.default), coercer, repr(choices_list)
     if action.nargs not in (None, 1) or isinstance(action.default, (list, tuple)):
         return (
             "TEXTBOX",
             repr(action.default if action.default is not None else ""),
             "None",
+            None,
         )
     if action.type in (int,):
         return (
             "NUMBER",
             repr(action.default if action.default is not None else 0),
             "_to_int",
+            None,
         )
     if action.type in (float,):
         return (
             "NUMBER",
             repr(action.default if action.default is not None else 0.0),
             "_to_float",
+            None,
         )
-    return "TEXTBOX", repr(action.default if action.default is not None else ""), "None"
+    return (
+        "TEXTBOX",
+        repr(action.default if action.default is not None else ""),
+        "None",
+        None,
+    )
 
 
 def parse_gap_file(path):
@@ -151,10 +169,10 @@ def main():
             # cat == "port" (disposition literally "port") or included gap candidate
             key_archs.setdefault(name, set()).add(arch)
             if name not in key_meta and name in actions:
-                widget, default_repr, coercer = action_to_widget_and_default(
-                    actions[name]
+                widget, default_repr, coercer, choices_repr = (
+                    action_to_widget_and_default(actions[name])
                 )
-                key_meta[name] = (widget, default_repr, coercer)
+                key_meta[name] = (widget, default_repr, coercer, choices_repr)
 
     all_archs = set(ARCH_SCRIPTS.keys())
     lines = []
@@ -185,16 +203,17 @@ def main():
     lines.append("FINETUNE_FIELDS = [")
 
     for name in sorted(key_meta.keys()):
-        widget, default_repr, coercer = key_meta[name]
+        widget, default_repr, coercer, choices_repr = key_meta[name]
         archs = key_archs[name]
         archs_repr = "None" if archs == all_archs else f"frozenset({sorted(archs)!r})"
         coerce_kwargs = ""
         if coercer != "None":
             coerce_kwargs = f", to_toml={coercer}, from_toml={coercer}"
+        choices_kwargs = f", choices={choices_repr}" if choices_repr else ""
         lines.append(
             f"    FieldSpec(name={name!r}, widget=Widget.{widget}, default={default_repr}, "
             f'archs={archs_repr}, training_types=frozenset({{"finetune"}}), group="finetune_generated"'
-            f"{coerce_kwargs}),"
+            f"{coerce_kwargs}{choices_kwargs}),"
         )
 
     lines.append("]")

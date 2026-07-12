@@ -75,6 +75,7 @@ LORA_FIELDS = [
         archs=frozenset(["anima", "hunyuan_image"]),
         training_types=frozenset({"lora"}),
         group="lora_generated",
+        choices=[None, "torch", "xformers", "flash", "sageattn", "sdpa"],
     ),
     FieldSpec(
         name="base_weights",
@@ -317,6 +318,7 @@ LORA_FIELDS = [
         archs=frozenset(["anima"]),
         training_types=frozenset({"lora"}),
         group="lora_generated",
+        choices=[None, "true", "false", "auto"],
     ),
     FieldSpec(
         name="compile_fullgraph",
@@ -333,6 +335,12 @@ LORA_FIELDS = [
         archs=frozenset(["anima"]),
         training_types=frozenset({"lora"}),
         group="lora_generated",
+        choices=[
+            "default",
+            "reduce-overhead",
+            "max-autotune",
+            "max-autotune-no-cudagraphs",
+        ],
     ),
     FieldSpec(
         name="conditioning_data_dir",
@@ -357,6 +365,7 @@ LORA_FIELDS = [
         archs=None,
         training_types=frozenset({"lora"}),
         group="lora_generated",
+        choices=[None, "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
     ),
     FieldSpec(
         name="console_log_simple",
@@ -475,6 +484,20 @@ LORA_FIELDS = [
         archs=None,
         training_types=frozenset({"lora"}),
         group="lora_generated",
+        choices=[
+            "eager",
+            "aot_eager",
+            "inductor",
+            "aot_ts_nvfuser",
+            "nvprims_nvfuser",
+            "cudagraphs",
+            "ofi",
+            "fx2trt",
+            "onnxrt",
+            "tensort",
+            "ipex",
+            "tvm",
+        ],
     ),
     FieldSpec(
         name="enable_bucket",
@@ -653,6 +676,7 @@ LORA_FIELDS = [
         archs=None,
         training_types=frozenset({"lora"}),
         group="lora_generated",
+        choices=["constant", "exponential", "snr"],
     ),
     FieldSpec(
         name="huggingface_path_in_repo",
@@ -817,6 +841,7 @@ LORA_FIELDS = [
         archs=None,
         training_types=frozenset({"lora"}),
         group="lora_generated",
+        choices=[None, "tensorboard", "wandb", "all"],
     ),
     FieldSpec(
         name="logging_dir",
@@ -853,6 +878,7 @@ LORA_FIELDS = [
         archs=None,
         training_types=frozenset({"lora"}),
         group="lora_generated",
+        choices=["l1", "l2", "huber", "smooth_l1"],
     ),
     FieldSpec(
         name="lowram",
@@ -999,6 +1025,7 @@ LORA_FIELDS = [
         group="lora_generated",
         to_toml=_to_int,
         from_toml=_to_int,
+        choices=[None, 150, 225],
     ),
     FieldSpec(
         name="max_train_epochs",
@@ -1163,6 +1190,7 @@ LORA_FIELDS = [
         archs=None,
         training_types=frozenset({"lora"}),
         group="lora_generated",
+        choices=["no", "fp16", "bf16"],
     ),
     FieldSpec(
         name="mlp_lr",
@@ -1201,6 +1229,7 @@ LORA_FIELDS = [
         archs=frozenset(["flux1", "hunyuan_image", "lumina"]),
         training_types=frozenset({"lora"}),
         group="lora_generated",
+        choices=["raw", "additive", "sigma_scaled"],
     ),
     FieldSpec(
         name="model_type",
@@ -1209,6 +1238,7 @@ LORA_FIELDS = [
         archs=frozenset(["flux1"]),
         training_types=frozenset({"lora"}),
         group="lora_generated",
+        choices=["flux", "chroma"],
     ),
     FieldSpec(
         name="multires_noise_discount",
@@ -1451,6 +1481,16 @@ LORA_FIELDS = [
         archs=None,
         training_types=frozenset({"lora"}),
         group="lora_generated",
+        choices=[
+            None,
+            "lanczos",
+            "nearest",
+            "bilinear",
+            "linear",
+            "bicubic",
+            "cubic",
+            "area",
+        ],
     ),
     FieldSpec(
         name="resolution",
@@ -1529,6 +1569,24 @@ LORA_FIELDS = [
         archs=None,
         training_types=frozenset({"lora"}),
         group="lora_generated",
+        choices=[
+            "ddim",
+            "pndm",
+            "lms",
+            "euler",
+            "euler_a",
+            "heun",
+            "dpm_2",
+            "dpm_2_a",
+            "dpmsolver",
+            "dpmsolver++",
+            "dpmsingle",
+            "k_lms",
+            "k_euler",
+            "k_euler_a",
+            "k_dpm_2",
+            "k_dpm_2_a",
+        ],
     ),
     FieldSpec(
         name="save_clip",
@@ -1605,6 +1663,7 @@ LORA_FIELDS = [
         archs=None,
         training_types=frozenset({"lora"}),
         group="lora_generated",
+        choices=[None, "ckpt", "pt", "safetensors"],
     ),
     FieldSpec(
         name="save_n_epoch_ratio",
@@ -1623,6 +1682,7 @@ LORA_FIELDS = [
         archs=None,
         training_types=frozenset({"lora"}),
         group="lora_generated",
+        choices=[None, "float", "fp16", "bf16"],
     ),
     FieldSpec(
         name="save_state",
@@ -1717,6 +1777,7 @@ LORA_FIELDS = [
         archs=frozenset(["anima", "flux1", "hunyuan_image", "lumina", "sd3"]),
         training_types=frozenset({"lora"}),
         group="lora_generated",
+        choices=[None, "console", "image"],
     ),
     FieldSpec(
         name="show_timesteps_resolution",
@@ -1895,6 +1956,7 @@ LORA_FIELDS = [
         archs=frozenset(["anima", "flux1", "hunyuan_image", "lumina"]),
         training_types=frozenset({"lora"}),
         group="lora_generated",
+        choices=["sigma", "uniform", "sigmoid", "shift", "flux_shift"],
     ),
     FieldSpec(
         name="token_warmup_min",
@@ -2143,6 +2205,7 @@ LORA_FIELDS = [
         archs=frozenset(["anima", "flux1", "hunyuan_image", "lumina", "sd3"]),
         training_types=frozenset({"lora"}),
         group="lora_generated",
+        choices=["sigma_sqrt", "logit_normal", "mode", "cosmap", "none", "uniform"],
     ),
     FieldSpec(
         name="xformers",

@@ -159,6 +159,7 @@ TEXTUAL_INVERSION_FIELDS = [
         archs=None,
         training_types=frozenset({"textual_inversion"}),
         group="textual_inversion_generated",
+        choices=[None, "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
     ),
     FieldSpec(
         name="console_log_simple",
@@ -217,6 +218,20 @@ TEXTUAL_INVERSION_FIELDS = [
         archs=None,
         training_types=frozenset({"textual_inversion"}),
         group="textual_inversion_generated",
+        choices=[
+            "eager",
+            "aot_eager",
+            "inductor",
+            "aot_ts_nvfuser",
+            "nvprims_nvfuser",
+            "cudagraphs",
+            "ofi",
+            "fx2trt",
+            "onnxrt",
+            "tensort",
+            "ipex",
+            "tvm",
+        ],
     ),
     FieldSpec(
         name="enable_bucket",
@@ -335,6 +350,7 @@ TEXTUAL_INVERSION_FIELDS = [
         archs=None,
         training_types=frozenset({"textual_inversion"}),
         group="textual_inversion_generated",
+        choices=["constant", "exponential", "snr"],
     ),
     FieldSpec(
         name="huggingface_path_in_repo",
@@ -469,6 +485,7 @@ TEXTUAL_INVERSION_FIELDS = [
         archs=None,
         training_types=frozenset({"textual_inversion"}),
         group="textual_inversion_generated",
+        choices=[None, "tensorboard", "wandb", "all"],
     ),
     FieldSpec(
         name="logging_dir",
@@ -485,6 +502,7 @@ TEXTUAL_INVERSION_FIELDS = [
         archs=None,
         training_types=frozenset({"textual_inversion"}),
         group="textual_inversion_generated",
+        choices=["l1", "l2", "huber", "smooth_l1"],
     ),
     FieldSpec(
         name="lowram",
@@ -631,6 +649,7 @@ TEXTUAL_INVERSION_FIELDS = [
         group="textual_inversion_generated",
         to_toml=_to_int,
         from_toml=_to_int,
+        choices=[None, 150, 225],
     ),
     FieldSpec(
         name="max_train_epochs",
@@ -785,6 +804,7 @@ TEXTUAL_INVERSION_FIELDS = [
         archs=None,
         training_types=frozenset({"textual_inversion"}),
         group="textual_inversion_generated",
+        choices=["no", "fp16", "bf16"],
     ),
     FieldSpec(
         name="multires_noise_discount",
@@ -923,6 +943,16 @@ TEXTUAL_INVERSION_FIELDS = [
         archs=None,
         training_types=frozenset({"textual_inversion"}),
         group="textual_inversion_generated",
+        choices=[
+            None,
+            "lanczos",
+            "nearest",
+            "bilinear",
+            "linear",
+            "bicubic",
+            "cubic",
+            "area",
+        ],
     ),
     FieldSpec(
         name="resolution",
@@ -991,6 +1021,24 @@ TEXTUAL_INVERSION_FIELDS = [
         archs=None,
         training_types=frozenset({"textual_inversion"}),
         group="textual_inversion_generated",
+        choices=[
+            "ddim",
+            "pndm",
+            "lms",
+            "euler",
+            "euler_a",
+            "heun",
+            "dpm_2",
+            "dpm_2_a",
+            "dpmsolver",
+            "dpmsolver++",
+            "dpmsingle",
+            "k_lms",
+            "k_euler",
+            "k_euler_a",
+            "k_dpm_2",
+            "k_dpm_2_a",
+        ],
     ),
     FieldSpec(
         name="save_every_n_epochs",
@@ -1059,6 +1107,7 @@ TEXTUAL_INVERSION_FIELDS = [
         archs=None,
         training_types=frozenset({"textual_inversion"}),
         group="textual_inversion_generated",
+        choices=[None, "ckpt", "pt", "safetensors"],
     ),
     FieldSpec(
         name="save_n_epoch_ratio",
@@ -1077,6 +1126,7 @@ TEXTUAL_INVERSION_FIELDS = [
         archs=None,
         training_types=frozenset({"textual_inversion"}),
         group="textual_inversion_generated",
+        choices=[None, "float", "fp16", "bf16"],
     ),
     FieldSpec(
         name="save_state",

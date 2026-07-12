@@ -369,6 +369,20 @@ DREAMBOOTH_FIELDS = [
         archs=None,
         training_types=frozenset({"dreambooth"}),
         group="dreambooth_generated",
+        choices=[
+            "eager",
+            "aot_eager",
+            "inductor",
+            "aot_ts_nvfuser",
+            "nvprims_nvfuser",
+            "cudagraphs",
+            "ofi",
+            "fx2trt",
+            "onnxrt",
+            "tensort",
+            "ipex",
+            "tvm",
+        ],
     ),
     FieldSpec(
         name="enable_bucket",
@@ -523,6 +537,7 @@ DREAMBOOTH_FIELDS = [
         archs=None,
         training_types=frozenset({"dreambooth"}),
         group="dreambooth_generated",
+        choices=["constant", "exponential", "snr"],
     ),
     FieldSpec(
         name="huggingface_path_in_repo",
@@ -697,6 +712,7 @@ DREAMBOOTH_FIELDS = [
         archs=None,
         training_types=frozenset({"dreambooth"}),
         group="dreambooth_generated",
+        choices=[None, "tensorboard", "wandb", "all"],
     ),
     FieldSpec(
         name="logging_dir",
@@ -733,6 +749,7 @@ DREAMBOOTH_FIELDS = [
         archs=None,
         training_types=frozenset({"dreambooth"}),
         group="dreambooth_generated",
+        choices=["l1", "l2", "huber", "smooth_l1"],
     ),
     FieldSpec(
         name="lowram",
@@ -879,6 +896,7 @@ DREAMBOOTH_FIELDS = [
         group="dreambooth_generated",
         to_toml=_to_int,
         from_toml=_to_int,
+        choices=[None, 150, 225],
     ),
     FieldSpec(
         name="max_train_epochs",
@@ -1041,6 +1059,7 @@ DREAMBOOTH_FIELDS = [
         archs=None,
         training_types=frozenset({"dreambooth"}),
         group="dreambooth_generated",
+        choices=["no", "fp16", "bf16"],
     ),
     FieldSpec(
         name="mode_scale",
@@ -1059,6 +1078,7 @@ DREAMBOOTH_FIELDS = [
         archs=frozenset(["flux1"]),
         training_types=frozenset({"dreambooth"}),
         group="dreambooth_generated",
+        choices=["raw", "additive", "sigma_scaled"],
     ),
     FieldSpec(
         name="model_type",
@@ -1067,6 +1087,7 @@ DREAMBOOTH_FIELDS = [
         archs=frozenset(["flux1"]),
         training_types=frozenset({"dreambooth"}),
         group="dreambooth_generated",
+        choices=["flux", "chroma"],
     ),
     FieldSpec(
         name="multires_noise_discount",
@@ -1223,6 +1244,16 @@ DREAMBOOTH_FIELDS = [
         archs=None,
         training_types=frozenset({"dreambooth"}),
         group="dreambooth_generated",
+        choices=[
+            None,
+            "lanczos",
+            "nearest",
+            "bilinear",
+            "linear",
+            "bicubic",
+            "cubic",
+            "area",
+        ],
     ),
     FieldSpec(
         name="resolution",
@@ -1291,6 +1322,24 @@ DREAMBOOTH_FIELDS = [
         archs=None,
         training_types=frozenset({"dreambooth"}),
         group="dreambooth_generated",
+        choices=[
+            "ddim",
+            "pndm",
+            "lms",
+            "euler",
+            "euler_a",
+            "heun",
+            "dpm_2",
+            "dpm_2_a",
+            "dpmsolver",
+            "dpmsolver++",
+            "dpmsingle",
+            "k_lms",
+            "k_euler",
+            "k_euler_a",
+            "k_dpm_2",
+            "k_dpm_2_a",
+        ],
     ),
     FieldSpec(
         name="save_clip",
@@ -1367,6 +1416,7 @@ DREAMBOOTH_FIELDS = [
         archs=None,
         training_types=frozenset({"dreambooth"}),
         group="dreambooth_generated",
+        choices=[None, "ckpt", "safetensors", "diffusers", "diffusers_safetensors"],
     ),
     FieldSpec(
         name="save_n_epoch_ratio",
@@ -1385,6 +1435,7 @@ DREAMBOOTH_FIELDS = [
         archs=None,
         training_types=frozenset({"dreambooth"}),
         group="dreambooth_generated",
+        choices=[None, "float", "fp16", "bf16"],
     ),
     FieldSpec(
         name="save_state",
@@ -1459,6 +1510,7 @@ DREAMBOOTH_FIELDS = [
         archs=frozenset(["flux1", "sd3"]),
         training_types=frozenset({"dreambooth"}),
         group="dreambooth_generated",
+        choices=[None, "console", "image"],
     ),
     FieldSpec(
         name="show_timesteps_resolution",
@@ -1591,6 +1643,7 @@ DREAMBOOTH_FIELDS = [
         archs=frozenset(["flux1"]),
         training_types=frozenset({"dreambooth"}),
         group="dreambooth_generated",
+        choices=["sigma", "uniform", "sigmoid", "shift", "flux_shift"],
     ),
     FieldSpec(
         name="token_warmup_min",
@@ -1771,6 +1824,7 @@ DREAMBOOTH_FIELDS = [
         archs=frozenset(["flux1", "sd3"]),
         training_types=frozenset({"dreambooth"}),
         group="dreambooth_generated",
+        choices=["sigma_sqrt", "logit_normal", "mode", "cosmap", "none", "uniform"],
     ),
     FieldSpec(
         name="xformers",

@@ -77,6 +77,7 @@ LECO_FIELDS = [
         archs=None,
         training_types=frozenset({"leco"}),
         group="leco_generated",
+        choices=[None, "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
     ),
     FieldSpec(
         name="console_log_simple",
@@ -195,6 +196,7 @@ LECO_FIELDS = [
         archs=None,
         training_types=frozenset({"leco"}),
         group="leco_generated",
+        choices=["constant", "exponential", "snr"],
     ),
     FieldSpec(
         name="huggingface_path_in_repo",
@@ -313,6 +315,7 @@ LECO_FIELDS = [
         archs=None,
         training_types=frozenset({"leco"}),
         group="leco_generated",
+        choices=[None, "tensorboard", "wandb", "all"],
     ),
     FieldSpec(
         name="logging_dir",
@@ -329,6 +332,7 @@ LECO_FIELDS = [
         archs=None,
         training_types=frozenset({"leco"}),
         group="leco_generated",
+        choices=["l1", "l2", "huber", "smooth_l1"],
     ),
     FieldSpec(
         name="lowram",
@@ -467,6 +471,7 @@ LECO_FIELDS = [
         group="leco_generated",
         to_toml=_to_int,
         from_toml=_to_int,
+        choices=[None, 150, 225],
     ),
     FieldSpec(
         name="max_train_epochs",
@@ -523,6 +528,7 @@ LECO_FIELDS = [
         archs=None,
         training_types=frozenset({"leco"}),
         group="leco_generated",
+        choices=["no", "fp16", "bf16"],
     ),
     FieldSpec(
         name="multires_noise_discount",
@@ -755,6 +761,24 @@ LECO_FIELDS = [
         archs=None,
         training_types=frozenset({"leco"}),
         group="leco_generated",
+        choices=[
+            "ddim",
+            "pndm",
+            "lms",
+            "euler",
+            "euler_a",
+            "heun",
+            "dpm_2",
+            "dpm_2_a",
+            "dpmsolver",
+            "dpmsolver++",
+            "dpmsingle",
+            "k_lms",
+            "k_euler",
+            "k_euler_a",
+            "k_dpm_2",
+            "k_dpm_2_a",
+        ],
     ),
     FieldSpec(
         name="save_every_n_epochs",
@@ -823,6 +847,7 @@ LECO_FIELDS = [
         archs=None,
         training_types=frozenset({"leco"}),
         group="leco_generated",
+        choices=[None, "ckpt", "pt", "safetensors"],
     ),
     FieldSpec(
         name="save_n_epoch_ratio",
@@ -841,6 +866,7 @@ LECO_FIELDS = [
         archs=None,
         training_types=frozenset({"leco"}),
         group="leco_generated",
+        choices=[None, "float", "fp16", "bf16"],
     ),
     FieldSpec(
         name="save_state",
