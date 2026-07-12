@@ -1,0 +1,149 @@
+/*
+ * kohya_gui_v2 — visual design pass
+ * Scoped under .v2-training-tab / .v2-* so legacy GUI CSS stays untouched.
+ *
+ * Direction: dense professional workshop console — graphite + amber accent,
+ * clear accordion hierarchy, intentional field clusters. Not a landing page.
+ */
+
+/* ── tokens ─────────────────────────────────────────────────────────── */
+:root {
+  --v2-accent: #c9852a;
+  --v2-accent-dim: rgba(201, 133, 42, 0.18);
+  --v2-section-border: var(--border-color-primary, #3a3a3a);
+  --v2-toolbar-gap: 0.75rem;
+  --v2-row-gap: 0.5rem;
+  --v2-radius: 6px;
+  --v2-font-ui: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --v2-font-mono: "IBM Plex Mono", "Cascadia Code", ui-monospace, monospace;
+}
+
+/* ── root training tab ──────────────────────────────────────────────── */
+.v2-training-tab {
+  font-family: var(--v2-font-ui);
+  gap: 0.65rem;
+}
+
+.v2-training-tab .v2-toolbar {
+  align-items: flex-end;
+  gap: var(--v2-toolbar-gap);
+  margin-bottom: 0.35rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--v2-section-border);
+  border-radius: var(--v2-radius);
+  background: var(--background-fill-secondary, rgba(0, 0, 0, 0.04));
+}
+
+.v2-training-tab .v2-filter input,
+.v2-training-tab .v2-filter textarea {
+  font-family: var(--v2-font-mono);
+  letter-spacing: 0.01em;
+}
+
+/* Filter bar emphasis — discoverable without shouting */
+.v2-training-tab .v2-filter label span {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* ── accordion sections ─────────────────────────────────────────────── */
+.v2-training-tab .v2-section {
+  border: 1px solid var(--v2-section-border);
+  border-radius: var(--v2-radius);
+  margin-bottom: 0.4rem;
+  overflow: hidden;
+}
+
+.v2-training-tab .v2-section > .label-wrap {
+  background: var(--background-fill-secondary, rgba(0, 0, 0, 0.03));
+  border-bottom: 1px solid transparent;
+  padding: 0.55rem 0.85rem !important;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: none;
+}
+
+.v2-training-tab .v2-section > .label-wrap.open {
+  border-bottom-color: var(--v2-section-border);
+  box-shadow: inset 3px 0 0 0 var(--v2-accent);
+}
+
+.v2-training-tab .v2-section > .label-wrap span {
+  font-size: 0.95rem;
+}
+
+.v2-training-tab .v2-section .v2-field-row {
+  gap: var(--v2-row-gap);
+  align-items: flex-start;
+  padding: 0.15rem 0;
+}
+
+/* Fields inside sections breathe without wasting vertical space */
+.v2-training-tab .v2-field {
+  min-width: 0; /* allow shrink in multi-col rows */
+}
+
+.v2-training-tab .v2-field label span {
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+/* Config accordion quieter than parameter sections */
+.v2-training-tab .v2-config > .label-wrap {
+  opacity: 0.92;
+}
+
+/* ── live filter hide (class only — never touch style.display) ──────── */
+.v2-filter-hidden {
+  display: none !important;
+}
+
+/* ── filter map host: zero footprint ────────────────────────────────── */
+.v2-filter-map-host {
+  display: none !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+/* ── version footer (shared class with launcher) ────────────────────── */
+.ver-class {
+  font-family: var(--v2-font-mono);
+  font-size: 0.8rem;
+  opacity: 0.7;
+  margin-top: 0.75rem;
+}
+
+/* ── dark-mode sanity ───────────────────────────────────────────────── */
+.dark .v2-training-tab .v2-toolbar {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dark .v2-training-tab .v2-section > .label-wrap.open {
+  box-shadow: inset 3px 0 0 0 var(--v2-accent);
+}
+
+/* ── focus visibility ───────────────────────────────────────────────── */
+.v2-training-tab .v2-field:focus-within {
+  outline: 1px solid var(--v2-accent-dim);
+  outline-offset: 2px;
+  border-radius: var(--v2-radius);
+}
+
+/* ── reduced motion ─────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .v2-training-tab * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/*
+ * Re-use legacy info-tooltip behavior when info= is present.
+ * Keep selectors scoped: do not bare-style all labels.
+ */
+.v2-training-tab .svelte-j9uq24:has(> .prose) {
+  /* Gradio info wrapper — leave positioning to shared tooltip JS if loaded */
+  font-size: 0.85rem;
+}

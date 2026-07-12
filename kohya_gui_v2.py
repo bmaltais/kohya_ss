@@ -26,12 +26,14 @@ def read_file_content(file_path):
 
 
 def initialize_ui_interface(config, release_info, headless=False):
-    css = read_file_content("./assets/style.css")
+    # v2-specific stylesheet (legacy GUI keeps assets/style.css untouched)
+    css = read_file_content("./assets/style_v2.css")
 
     ui_interface = gr.Blocks(
         css=css,
         title=f"Kohya_ss GUI v2 (preview) {release_info}",
         theme=gr.themes.Default(),
+        elem_classes=["v2-app"],
     )
     with ui_interface:
         with gr.Tab("LoRA"):
