@@ -71,32 +71,3 @@ def build_components(
         components[spec.name] = factory(**kwargs)
 
     return components
-
-
-def build_group_visibility_map(registry: FieldRegistry) -> dict:
-    """Return {group_name: FieldSpec list} so callers can wrap each group in
-    its own gr.Column/gr.Group and generate visibility-toggle wiring from
-    the registry instead of a hand-written positional tuple (contrast with
-    musubi-tuner-gui's apply_architecture(), which returns a positional
-    20-tuple of gr.Column(visible=...) -- this map lets callers build that
-    generically for any number of groups).
-    """
-    groups: dict = {}
-    for spec in registry:
-        groups.setdefault(spec.group, []).append(spec)
-    return groups
-
-
-def visible_groups_for(
-    registry: FieldRegistry, arch_key: str, training_type: str
-) -> set:
-    """Which group names should be visible for a given architecture +
-    training type selection, derived purely from FieldSpec.archs /
-    training_types -- a group is visible if at least one of its fields
-    supports the selection.
-    """
-    visible = set()
-    for spec in registry:
-        if spec.supports_arch(arch_key) and spec.supports_training_type(training_type):
-            visible.add(spec.group)
-    return visible

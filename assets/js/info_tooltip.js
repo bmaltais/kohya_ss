@@ -18,12 +18,17 @@
     const NAME_SELECTOR = '[data-testid="block-info"], label';
 
     function getInfoDiv(block) {
+        // Prefer Gradio 5.34.x Svelte-scoped selectors, then structural
+        // fallbacks that survive class-hash changes across Gradio upgrades.
         return (
             block.querySelector(":scope > label > .svelte-j9uq24:has(> .prose)") ||
             block.querySelector(
                 ":scope > .svelte-1hfxrpf.container > .svelte-j9uq24:has(> .prose)"
             ) ||
-            block.querySelector(":scope > .svelte-j9uq24:has(> .prose)")
+            block.querySelector(":scope > .svelte-j9uq24:has(> .prose)") ||
+            block.querySelector(":scope > label > div:has(> .prose)") ||
+            block.querySelector(":scope > .container > div:has(> .prose)") ||
+            block.querySelector(":scope > div:has(> .prose)")
         );
     }
 

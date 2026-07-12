@@ -140,10 +140,47 @@
 }
 
 /*
- * Re-use legacy info-tooltip behavior when info= is present.
- * Keep selectors scoped: do not bare-style all labels.
+ * Hover-reveal for FieldSpec info= text (mirrors assets/style.css + info_tooltip.js).
+ *
+ * Gradio renders info as a div wrapping a .prose span. Prefer structural
+ * selectors under .v2-app so we do not depend solely on Svelte scope hashes
+ * (those change across Gradio upgrades). The hashed rule is kept as a
+ * Gradio-5.34.2 fallback for the current build.
+ *
+ * Reveal is class-driven (.info-tooltip-visible) by assets/js/info_tooltip.js,
+ * which positions the tooltip with position:fixed (Accordion overflow:hidden
+ * would clip absolute descendants).
  */
-.v2-training-tab .svelte-j9uq24:has(> .prose) {
-  /* Gradio info wrapper — leave positioning to shared tooltip JS if loaded */
+.v2-app label > div:has(> .prose),
+.v2-app .container > div:has(> .prose),
+.v2-app .block > div:has(> .prose),
+.v2-app .svelte-j9uq24:has(> .prose) {
+  position: fixed;
+  z-index: 9999;
+  width: max-content;
+  min-width: 12em;
+  max-width: 26em;
+  max-height: 16em;
+  overflow-y: auto;
+  padding: 0.5em 0.75em;
+  border-radius: var(--block-radius, 6px);
+  background: rgba(20, 20, 20, 0.85);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--border-color-primary, #555);
+  box-shadow: var(--shadow-drop, 0 2px 8px rgba(0, 0, 0, 0.3));
+  color: #f0f0f0;
   font-size: 0.85rem;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.v2-app label > div.info-tooltip-visible:has(> .prose),
+.v2-app .container > div.info-tooltip-visible:has(> .prose),
+.v2-app .block > div.info-tooltip-visible:has(> .prose),
+.v2-app .svelte-j9uq24.info-tooltip-visible:has(> .prose) {
+  opacity: 1;
+  visibility: visible;
 }

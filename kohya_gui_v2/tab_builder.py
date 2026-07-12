@@ -104,6 +104,9 @@ def _filter_js(training_type: str) -> str:
       acc.classList.remove("v2-filter-hidden");
       const prev = acc.getAttribute(openStateKey);
       const lw = acc.querySelector(".label-wrap");
+      // Restore prior open/closed by clicking Gradio's accordion header.
+      // Relies on Gradio-internal .label-wrap.open DOM — may need a revisit
+      // on major Gradio upgrades; class-only hide/show is the hard requirement.
       if (prev !== null && lw) {{
         const shouldOpen = prev === "1";
         const isOpen = lw.classList.contains("open");
@@ -120,7 +123,6 @@ def _filter_js(training_type: str) -> str:
       if (lw && !lw.classList.contains("open")) lw.click();
     }}
   }});
-  return query;
 }}
 """
 
@@ -155,8 +157,34 @@ def _group_specs_by_section(
     return ordered
 
 
+def _sort_specs_for_rows(specs: list[FieldSpec]) -> list[FieldSpec]:
+    """Stable-sort so specs that share a layout row key become adjacent.
+
+    FieldSpecs are stored alphabetically in the registry, but legacy row
+    membership groups fields that may sit far apart alphabetically. Event
+    wiring is rebuilt from ``registry.names()`` regardless of creation order,
+    so reordering for layout is safe.
+    """
+    first_row_index: dict[str, int] = {}
+    for i, spec in enumerate(specs):
+        key = layout_for(spec.name).row
+        if key is not None and key not in first_row_index:
+            first_row_index[key] = i
+
+    def sort_key(pair: tuple[int, FieldSpec]) -> tuple[int, int]:
+        i, spec = pair
+        key = layout_for(spec.name).row
+        group = first_row_index[key] if key is not None else i
+        return (group, i)
+
+    return [spec for _, spec in sorted(enumerate(specs), key=sort_key)]
+
+
 def _pack_rows(specs: list[FieldSpec]) -> list[list[FieldSpec]]:
-    """Pack specs sharing a layout row key into chunks of ≤_MAX_PER_ROW."""
+    """Pack specs sharing a layout row key into chunks of ≤_MAX_PER_ROW.
+
+    Callers should pass specs already ordered by ``_sort_specs_for_rows``.
+    """
     rows: list[list[FieldSpec]] = []
     current_key: Optional[str] = object()  # sentinel
     current: list[FieldSpec] = []
@@ -205,8 +233,6 @@ def build_training_tab(
     ``required_cli_fields``: optional set of arg names that must appear on
     argv (not only in --config_file TOML) — used by LeCo for prompts_file.
     """
-
-    gr.Checkbox(value=headless, visible=False)  # keep parity with prior tabs
 
     with gr.Column(elem_classes=["v2-training-tab"]):
         with gr.Accordion("Configuration File", open=False, elem_classes=["v2-config"]):
@@ -257,7 +283,8 @@ def build_training_tab(
                 # data attribute for filter JS (Gradio may not pass arbitrary attrs;
                 # we also mirror via a hidden HTML map below)
                 section_accordions[section] = acc
-                for row_specs in _pack_rows(section_specs):
+                # Cluster shared row keys before packing (registry order is alpha)
+                for row_specs in _pack_rows(_sort_specs_for_rows(section_specs)):
                     ctx = (
                         gr.Row(elem_classes=["v2-field-row"])
                         if len(row_specs) > 1
@@ -283,22 +310,15 @@ def build_training_tab(
                                 )
 
         # Haystack for filter JS (escaped into a data attribute)
-        section_ids = {s: f"v2_{training_type}_section_{s}" for s in section_accordions}
         hay_attr = html.escape(json.dumps(filter_haystack), quote=True)
-        sec_attr = html.escape(json.dumps(section_ids), quote=True)
         gr.HTML(
             value=(
                 f'<div style="display:none" class="v2-filter-map" '
-                f'data-v2-filter-map="{hay_attr}" '
-                f'data-v2-sections="{sec_attr}"></div>'
+                f'data-v2-filter-map="{hay_attr}"></div>'
             ),
             visible=True,
             elem_classes=["v2-filter-map-host"],
         )
-
-        # Re-tag section accordions: Gradio Accordion doesn't take data-*,
-        # inject via elem_id which filter JS already uses; also set classes.
-        # (section keys already in elem_id)
 
         button_print = gr.Button("Print training command")
         executor = CommandExecutor(headless=headless)
@@ -335,12 +355,14 @@ def build_training_tab(
         fn=apply_architecture, inputs=[architecture], outputs=arch_outputs
     )
 
-    # Client-side filter (Route A)
-    filter_box.change(
+    # Client-side filter (Route A): .input fires on user typing only (not
+    # programmatic value updates during Open), and has no outputs so the JS
+    # cannot echo the value back into a re-trigger loop.
+    filter_box.input(
         fn=None,
         js=_filter_js(training_type),
         inputs=[filter_box],
-        outputs=[filter_box],
+        outputs=None,
     )
 
     def _build_values(arch_key, *component_values):

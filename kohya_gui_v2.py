@@ -29,8 +29,25 @@ def initialize_ui_interface(config, release_info, headless=False):
     # v2-specific stylesheet (legacy GUI keeps assets/style.css untouched)
     css = read_file_content("./assets/style_v2.css")
 
+    # Same hover-info tooltip script the legacy GUI uses (assets/style_v2.css
+    # hides Gradio info text by default; this JS reveals it on label hover).
+    enable_info_tooltip = True
+    if config is not None:
+        try:
+            enable_info_tooltip = config.get("settings.enable_info_tooltip", True)
+        except Exception:
+            enable_info_tooltip = True
+    info_tooltip_js = read_file_content("./assets/js/info_tooltip.js")
+    head = (
+        f'<script type="text/javascript">'
+        f"window.KOHYA_INFO_TOOLTIP_ENABLED = {str(bool(enable_info_tooltip)).lower()};"
+        f"</script>"
+        f'<script type="text/javascript">{info_tooltip_js}</script>'
+    )
+
     ui_interface = gr.Blocks(
         css=css,
+        head=head,
         title=f"Kohya_ss GUI v2 (preview) {release_info}",
         theme=gr.themes.Default(),
         elem_classes=["v2-app"],
