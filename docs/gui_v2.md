@@ -72,6 +72,15 @@ to preview what would be converted, or without `--dry-run` to write the
 
 ## Known-defect register
 
+**Maintainer decision (2026-07-11): leave `kohya_gui/` as-is for now.**
+Every entry below is an old-GUI bug that v2 already avoids by construction
+(v2's behavior needs no further change); fixing the corresponding bug in
+the existing `kohya_gui/*_gui.py` code is separate work with its own
+review/testing burden, and is explicitly out of scope for this branch
+(Abort Condition #2). Revisit if/when the old GUI itself gets a maintenance
+pass -- the LeCo `prompts_file` crash is the most severe (breaks every run
+launched from that tab today) and would be the natural first pick.
+
 The Move 7 equivalence harnesses (old GUI vs. v2, run over the `presets/`
 corpus plus hand-built fixtures for LeCo/Textual Inversion/Anima LLLite)
 found the following places where v2 *intentionally* differs from the
@@ -91,28 +100,27 @@ that confirms it:
 
 ## `defer`-tagged gap args (maintainer follow-up)
 
-The Move 4 gap analysis flagged one recurring `defer` item across three
-training types -- `train_inpainting` as a *gap-candidate* (i.e. exposing it
-for architectures where the current GUI never offers it at all, distinct
-from the DreamBooth/Finetune tabs where it's already a real, user-facing
-field):
+**Maintainer decision (2026-07-11): leave all three deferred, do not
+expose.** The Move 4 gap analysis flagged one recurring `defer` item across
+three training types -- `train_inpainting` as a *gap-candidate* (i.e.
+exposing it for architectures where the current GUI never offers it at
+all, distinct from the DreamBooth/Finetune tabs where it's already a real,
+user-facing field):
 
-| Training type | Architectures where `train_inpainting` is gap-candidate-deferred |
-|---|---|
-| LoRA | sdxl, flux1, sd3, hunyuan_image, lumina (5 of 8 architectures) |
-| Textual Inversion | sd_v1v2, sdxl (both architectures) |
-| Anima LLLite | anima_lllite (its one architecture) |
+| Training type | Architectures where `train_inpainting` is gap-candidate-deferred | Decision |
+|---|---|---|
+| LoRA | sdxl, flux1, sd3, hunyuan_image, lumina (5 of 8 architectures) | Deferred -- never offered by the old GUI for these architectures and not validated against those trainer scripts; exposing it risks a silently-broken feature. |
+| Textual Inversion | sd_v1v2, sdxl (both architectures) | Deferred -- TI trains embeddings, not the UNet; inpainting-mode training is a much less obvious fit here than for LoRA/DreamBooth, and was never offered. |
+| Anima LLLite | anima_lllite (its one architecture) | Deferred -- this tab is already documented as experimental (the ControlNet-LLLite backend asserts on several option combos); adding an untested inpainting path compounds that risk. |
 
 In each case the old GUI never exposes `train_inpainting` as a widget for
 that architecture at all (LoRA's `network_module`-based architectures don't
 have an inpainting toggle; neither does Textual Inversion or Anima LLLite),
-but the underlying parser accepts it. Whether inpainting-mode training is
-actually meaningful/tested for these architecture + training-type
-combinations is a product question, not a code-archaeology one -- flagged
-here for the maintainer to decide rather than silently exposing a widget
-for an untested code path. DreamBooth and Finetune are unaffected: both
-already have a real, user-facing `train_inpainting` checkbox today, so it's
-a `port`/derivation case there, not a `defer`.
+but the underlying parser accepts it. DreamBooth and Finetune are
+unaffected: both already have a real, user-facing `train_inpainting`
+checkbox today, so it's a `port`/derivation case there, not a `defer`.
+Revisit only if a specific architecture's inpainting support gets
+validated/requested.
 
 No other gap-candidate arg, across any of the six training types, needed a
 `defer` disposition -- everything else was mechanically classified
