@@ -266,6 +266,38 @@ CURATED_CHOICES = {
         ".caption",
         ".txt",
     ],
+    # Align with kohya_gui/class_accelerate_launch.py (not train_util's
+    # incomplete list which omits "no" and misspells tensorrt as "tensort").
+    # Legacy JSON presets almost always store dynamo_backend="no".
+    "dynamo_backend": [
+        "no",
+        "eager",
+        "aot_eager",
+        "inductor",
+        "aot_ts_nvfuser",
+        "nvprims_nvfuser",
+        "cudagraphs",
+        "ofi",
+        "fx2trt",
+        "onnxrt",
+        "tensorrt",
+        "ipex",
+        "tvm",
+    ],
+    # Align with kohya_gui/class_advanced_training.py. Argparse only allows
+    # [None, 150, 225] (None → 75 token default), but the legacy GUI and every
+    # preset stores the explicit 75 choice; without it Gradio rejects open/save.
+    "max_token_length": [
+        75,
+        150,
+        225,
+    ],
+}
+
+# Defaults that must win over argparse introspection (same reason as CURATED_CHOICES).
+CURATED_DEFAULTS = {
+    "dynamo_backend": "no",
+    "max_token_length": 75,
 }
 
 # Hand-curated high-traffic rows (used when AST leaves row=None or to force clusters)
@@ -474,6 +506,78 @@ class ClassExtractor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
+# fn name (as called via button.click(fn, ..., outputs=self.X)) -> picker kind.
+# get_file_path/get_any_file_path both open a file dialog; get_folder_path a
+# folder dialog. Mirrors kohya_gui/common_gui.py's three dialog helpers.
+PATH_FN_NAMES = {
+    "get_folder_path": "folder",
+    "get_file_path": "file",
+    "get_any_file_path": "file",
+}
+
+
+def _call_fn_name(node: Optional[ast.AST]) -> Optional[str]:
+    if node is None:
+        return None
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Lambda) and isinstance(node.body, ast.Call):
+        return _call_fn_name(node.body.func)
+    return None
+
+
+def extract_path_fields() -> dict[str, str]:
+    """Scan every legacy class_*.py for ``<button>.click(get_folder_path|
+    get_file_path|get_any_file_path, ..., outputs=self.<field>)`` wiring and
+    return ``{field_name: "file"|"folder"}``.
+
+    This is how the legacy GUI decides which fields get a native-dialog
+    Browse button; v2 reuses the same decision instead of re-guessing it.
+    """
+    kinds: dict[str, str] = {}
+    for path in sorted(GUI_DIR.glob("class_*.py")):
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if not (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "click"
+            ):
+                continue
+            fn_node = node.args[0] if node.args else None
+            for kw in node.keywords:
+                if kw.arg == "fn":
+                    fn_node = kw.value
+            kind = PATH_FN_NAMES.get(_call_fn_name(fn_node))
+            if not kind:
+                continue
+            outputs_node = node.args[1] if len(node.args) > 1 else None
+            for kw in node.keywords:
+                if kw.arg == "outputs":
+                    outputs_node = kw.value
+            if (
+                isinstance(outputs_node, ast.Attribute)
+                and isinstance(outputs_node.value, ast.Name)
+                and outputs_node.value.id == "self"
+            ):
+                field_name = NAME_ALIASES.get(outputs_node.attr, outputs_node.attr)
+                kinds.setdefault(field_name, kind)
+    return kinds
+
+
+# Conservative fallback for fields with no legacy widget at all (gap-analysis
+# additions): only classify unambiguous folder-suffixed names. Deliberately
+# does NOT guess "file" — misclassifying a folder field as file (or vice
+# versa) opens the wrong dialog, which is worse than no button at all.
+def path_kind_heuristic(name: str) -> Optional[str]:
+    if name.endswith(("_dir", "_folder")):
+        return "folder"
+    return None
+
+
 def extract_all() -> dict[str, Extracted]:
     """Return best Extracted per field name (first section wins; network override later)."""
     by_name: dict[str, Extracted] = {}
@@ -615,7 +719,11 @@ def collect_all_registry_names() -> set[str]:
     return names
 
 
-def emit_layout_map(by_name: dict[str, Extracted], all_names: set[str]) -> str:
+def emit_layout_map(
+    by_name: dict[str, Extracted],
+    all_names: set[str],
+    path_kinds: dict[str, str],
+) -> str:
     # Ensure every registry name has an entry
     for n in sorted(all_names):
         if n not in by_name:
@@ -701,12 +809,37 @@ def emit_layout_map(by_name: dict[str, Extracted], all_names: set[str]) -> str:
     lines.append("}")
     lines.append("")
     lines.append(
+        "# Defaults that must win over argparse introspection (same reason as CURATED_CHOICES)."
+    )
+    lines.append("CURATED_DEFAULTS: dict[str, object] = {")
+    for k, v in CURATED_DEFAULTS.items():
+        lines.append(f"    {k!r}: {v!r},")
+    lines.append("}")
+    lines.append("")
+    lines.append(
         "# Fields that use CURATED_CHOICES and allow typing values not in the list"
     )
     lines.append(
         "CURATED_ALLOW_CUSTOM = frozenset("
         '{"optimizer_type", "lr_scheduler", "lr_scheduler_type", "caption_extension"})'
     )
+    lines.append("")
+    lines.append(
+        '# "file" or "folder" — which native dialog the legacy GUI wires a Browse'
+    )
+    lines.append(
+        "# button to for this field (extract_path_fields() in the generator script);"
+    )
+    lines.append("# absent means the legacy GUI has no picker for it either.")
+    lines.append("PATH_FIELDS: dict[str, str] = {")
+    for k in sorted(path_kinds):
+        lines.append(f"    {k!r}: {path_kinds[k]!r},")
+    lines.append("}")
+    lines.append("")
+    lines.append("")
+    lines.append("def path_kind_for(name: str) -> Optional[str]:")
+    lines.append('    """Return "file", "folder", or None for a field name."""')
+    lines.append("    return PATH_FIELDS.get(name)")
     lines.append("")
     lines.append("LAYOUT: dict[str, FieldLayout] = {")
     for n in sorted(by_name.keys()):
@@ -744,7 +877,13 @@ def main():
     apply_hand_rows(by_name)
     apply_hand_section_labels(by_name)
     all_names = collect_all_registry_names()
-    text = emit_layout_map(by_name, all_names)
+    path_kinds = extract_path_fields()
+    for n in all_names:
+        if n not in path_kinds:
+            guess = path_kind_heuristic(n)
+            if guess:
+                path_kinds[n] = guess
+    text = emit_layout_map(by_name, all_names, path_kinds)
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUT_PATH.write_text(text, encoding="utf-8")
 
@@ -763,6 +902,11 @@ def main():
     print(f"LAYOUT entries: {len(by_name)}")
     print(f"Registry names: {len(all_names)}")
     print(f"Fallback (advanced auto) fields: {len(unmapped_advanced)}")
+    print(
+        f"PATH_FIELDS: {len(path_kinds)} "
+        f"(file={sum(1 for v in path_kinds.values() if v == 'file')}, "
+        f"folder={sum(1 for v in path_kinds.values() if v == 'folder')})"
+    )
     print("Per-section counts (registry names):")
     for s in SECTION_ORDER:
         print(f"  {s}: {sections.get(s, 0)}")

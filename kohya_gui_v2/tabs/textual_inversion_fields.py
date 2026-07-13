@@ -17,6 +17,7 @@ GUI) but neither trainer script accepts it, so it never reaches the run
 config (arch-matrix-textual_inversion.md section 3).
 """
 
+from ..accelerate_launch_fields import accelerate_launch_fields
 from ..fields import FieldRegistry, FieldSpec, Widget
 from .textual_inversion_derivations import derive as derive_textual_inversion
 from .textual_inversion_fields_generated import TEXTUAL_INVERSION_FIELDS
@@ -52,7 +53,11 @@ GUI_ONLY_FIELDS = [
     ),
 ]
 
-TEXTUAL_INVERSION_REGISTRY = FieldRegistry(GUI_ONLY_FIELDS + TEXTUAL_INVERSION_FIELDS)
+TEXTUAL_INVERSION_REGISTRY = FieldRegistry(
+    GUI_ONLY_FIELDS
+    + accelerate_launch_fields("textual_inversion")
+    + TEXTUAL_INVERSION_FIELDS
+)
 
 
 def derive(values: dict, arch_key: str) -> dict:

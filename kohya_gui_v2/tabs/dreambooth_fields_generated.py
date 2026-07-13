@@ -17,6 +17,22 @@ def _to_float(v):
     return float(v) if v not in (None, "") else v
 
 
+def _to_arg_list(v):
+    s = str(v).strip()
+    return s.replace('"', "").split() if s else None
+
+
+def _from_arg_list(v):
+    return " ".join(v) if isinstance(v, (list, tuple)) else (v or "")
+
+
+def _to_int_or_float(v):
+    if v in (None, ""):
+        return v
+    f = float(v)
+    return int(f) if f >= 1 else f
+
+
 DREAMBOOTH_FIELDS = [
     FieldSpec(
         name="adaptive_noise_scale",
@@ -446,13 +462,14 @@ DREAMBOOTH_FIELDS = [
     FieldSpec(
         name="dynamo_backend",
         widget=Widget.DROPDOWN,
-        default="inductor",
+        default="no",
         label="Dynamo backend",
         info="The backend to use for the dynamo JIT compiler.",
         archs=None,
         training_types=frozenset({"dreambooth"}),
         group="accelerate_launch",
         choices=[
+            "no",
             "eager",
             "aot_eager",
             "inductor",
@@ -462,7 +479,7 @@ DREAMBOOTH_FIELDS = [
             "ofi",
             "fx2trt",
             "onnxrt",
-            "tensort",
+            "tensorrt",
             "ipex",
             "tvm",
         ],
@@ -937,6 +954,8 @@ DREAMBOOTH_FIELDS = [
         archs=None,
         training_types=frozenset({"dreambooth"}),
         group="basic",
+        to_toml=_to_int_or_float,
+        from_toml=_to_int_or_float,
     ),
     FieldSpec(
         name="lr_scheduler",
@@ -970,6 +989,8 @@ DREAMBOOTH_FIELDS = [
         archs=None,
         training_types=frozenset({"dreambooth"}),
         group="basic",
+        to_toml=_to_arg_list,
+        from_toml=_from_arg_list,
     ),
     FieldSpec(
         name="lr_scheduler_min_lr_ratio",
@@ -1039,6 +1060,8 @@ DREAMBOOTH_FIELDS = [
         archs=None,
         training_types=frozenset({"dreambooth"}),
         group="basic",
+        to_toml=_to_int_or_float,
+        from_toml=_to_int_or_float,
     ),
     FieldSpec(
         name="masked_loss",
@@ -1101,7 +1124,7 @@ DREAMBOOTH_FIELDS = [
     FieldSpec(
         name="max_token_length",
         widget=Widget.DROPDOWN,
-        default="",
+        default=75,
         label="Max Token Length",
         info="max token length of text encoder",
         archs=None,
@@ -1109,7 +1132,7 @@ DREAMBOOTH_FIELDS = [
         group="advanced",
         to_toml=_to_int,
         from_toml=_to_int,
-        choices=["", 150, 225],
+        choices=[75, 150, 225],
     ),
     FieldSpec(
         name="max_train_epochs",
@@ -1433,6 +1456,8 @@ DREAMBOOTH_FIELDS = [
         archs=None,
         training_types=frozenset({"dreambooth"}),
         group="basic",
+        to_toml=_to_arg_list,
+        from_toml=_from_arg_list,
     ),
     FieldSpec(
         name="optimizer_type",

@@ -59,17 +59,14 @@ def derive(values: dict, arch_key: str) -> dict:
     if not values.get("show_timesteps"):
         out["show_timesteps_resolution"] = None
 
-    # optimizer_args / lr_scheduler_args: space-separated, quote-stripped
-    # textbox -> list of strings, explicitly None when unset -- unlike
-    # LeCo/LoRA/DreamBooth/Finetune, anima_lllite_gui.py guards BOTH fields
-    # with an explicit `not in ("", [], None) else None` check
-    # (anima_lllite_gui.py:679-688), not just optimizer_args.
-    for name in ("optimizer_args", "lr_scheduler_args"):
-        raw = values.get(name)
-        if raw in ("", [], None):
-            out[name] = None
-        else:
-            out[name] = str(raw).replace('"', "").split()
+    # optimizer_args / lr_scheduler_args: left as the raw widget string here.
+    # FieldSpec.to_toml/from_toml (_to_arg_list/_from_arg_list) own the
+    # textbox<->list round-trip for both the run-config build and the
+    # import_json/normalize_widget_value display path; duplicating the split
+    # here double-applied it (a widget already showing "[]" from a prior
+    # derive() pass would get re-split into ["[]"], crashing
+    # optimizer.py's `key, value = arg.split("=")` -- see dreambooth
+    # optimizer_args regression, 2026-07-12).
 
     # wandb_run_name falls back to output_name when empty.
     if not values.get("wandb_run_name"):

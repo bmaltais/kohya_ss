@@ -24,6 +24,22 @@ class Widget(Enum):
 
 
 @dataclass(frozen=True)
+class VisibleWhen:
+    """Value-based visibility condition for a FieldSpec.
+
+    `deps` names the raw-value keys `predicate` reads (e.g. {"LoRA_type"}) so
+    the tab builder knows which components must trigger a visibility
+    recompute on `.change()`. `predicate` receives the same raw values dict
+    `derive()` does (component values keyed by FieldSpec name) and returns
+    whether the field should be visible, on top of (not instead of) the
+    existing architecture-based `supports_arch` check.
+    """
+
+    deps: frozenset
+    predicate: Callable[[dict], bool]
+
+
+@dataclass(frozen=True)
 class FieldSpec:
     """One trainer-facing (or GUI-only bookkeeping) value.
 
@@ -56,9 +72,13 @@ class FieldSpec:
     keep_if_falsy: bool = False
     to_toml: Optional[Callable[[Any], Any]] = None
     from_toml: Optional[Callable[[Any], Any]] = None
+    visible_when: Optional[VisibleWhen] = None
 
     def supports_arch(self, arch_key: Optional[str]) -> bool:
         return self.archs is None or arch_key is None or arch_key in self.archs
+
+    def supports_visibility(self, raw_values: dict) -> bool:
+        return self.visible_when is None or self.visible_when.predicate(raw_values)
 
     def supports_training_type(self, training_type: Optional[str]) -> bool:
         return (
@@ -72,6 +92,37 @@ class FieldSpec:
 
     def coerce_from_toml(self, value: Any) -> Any:
         return self.from_toml(value) if self.from_toml else value
+
+    def normalize_widget_value(self, value: Any) -> Any:
+        """Coerce a loaded value so Gradio widgets (esp. Dropdown) accept it.
+
+        Legacy JSON presets often store stringified numbers (\"75\") or values
+        that argparse never listed as choices (dynamo_backend=\"no\"). Gradio
+        4+ raises on preprocess when a Dropdown value is not in `choices`, so
+        open→save would crash without this normalization.
+        """
+        try:
+            value = self.coerce_from_toml(value)
+        except (TypeError, ValueError):
+            return self.default
+
+        if self.widget is Widget.DROPDOWN and self.choices is not None:
+            if value in self.choices:
+                return value
+            # Soft match so \"75\" lands on int 75, etc.
+            for choice in self.choices:
+                if choice == value:
+                    return choice
+                if isinstance(choice, (int, float)) and not isinstance(value, bool):
+                    try:
+                        if type(choice)(value) == choice and str(value).strip() != "":
+                            return choice
+                    except (TypeError, ValueError):
+                        pass
+                if str(choice) == str(value):
+                    return choice
+            return self.default
+        return value
 
 
 class FieldRegistry:

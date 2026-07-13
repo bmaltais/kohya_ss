@@ -14,6 +14,7 @@ registry shape matches the other five and `build_tab`/`build_run_config`
 need no training-type-specific branch for "no architecture selector".
 """
 
+from ..accelerate_launch_fields import accelerate_launch_fields
 from ..fields import FieldRegistry, FieldSpec, Widget
 from .anima_lllite_derivations import derive as derive_anima_lllite
 from .anima_lllite_fields_generated import ANIMA_LLLITE_FIELDS
@@ -41,7 +42,9 @@ GUI_ONLY_FIELDS = [
     ),
 ]
 
-ANIMA_LLLITE_REGISTRY = FieldRegistry(GUI_ONLY_FIELDS + ANIMA_LLLITE_FIELDS)
+ANIMA_LLLITE_REGISTRY = FieldRegistry(
+    GUI_ONLY_FIELDS + accelerate_launch_fields("anima_lllite") + ANIMA_LLLITE_FIELDS
+)
 
 
 def derive(values: dict, arch_key: str) -> dict:

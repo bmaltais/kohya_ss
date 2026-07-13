@@ -26,11 +26,18 @@ def read_file_content(file_path):
 
 
 def initialize_ui_interface(config, release_info, headless=False):
-    # v2-specific stylesheet (legacy GUI keeps assets/style.css untouched)
-    css = read_file_content("./assets/style_v2.css")
+    # v2 reuses the legacy stylesheet verbatim (tooltip reveal, folder-button
+    # chrome, .styler/.ver-class fixes) so both GUIs render identically off
+    # one source, then layers only v2-specific additions (section tints,
+    # filter, row spacing) on top. Never fork the shared rules into a second,
+    # independently-drifting copy.
+    css = (
+        read_file_content("./assets/style.css")
+        + "\n"
+        + read_file_content("./assets/style_v2.css")
+    )
 
-    # Same hover-info tooltip script the legacy GUI uses (assets/style_v2.css
-    # hides Gradio info text by default; this JS reveals it on label hover).
+    # Same hover-info tooltip script the legacy GUI uses.
     enable_info_tooltip = True
     if config is not None:
         try:
@@ -38,11 +45,27 @@ def initialize_ui_interface(config, release_info, headless=False):
         except Exception:
             enable_info_tooltip = True
     info_tooltip_js = read_file_content("./assets/js/info_tooltip.js")
+    # Native browser tooltip for the path-field Browse buttons (Gradio's
+    # Button has no info= slot). Delegated on mouseover -- like
+    # info_tooltip.js -- rather than a DOMContentLoaded pass, since these
+    # buttons exist inside Gradio's client-rendered tree, not the static
+    # head-injected HTML.
+    path_browse_tooltip_js = """
+document.addEventListener("mouseover", function (e) {
+    const btn = e.target.closest && e.target.closest(".v2-path-browse");
+    if (btn && !btn.title) {
+        btn.title = btn.classList.contains("v2-path-browse-folder")
+            ? "Browse for a folder"
+            : "Browse for a file";
+    }
+}, true);
+"""
     head = (
         f'<script type="text/javascript">'
         f"window.KOHYA_INFO_TOOLTIP_ENABLED = {str(bool(enable_info_tooltip)).lower()};"
         f"</script>"
         f'<script type="text/javascript">{info_tooltip_js}</script>'
+        f'<script type="text/javascript">{path_browse_tooltip_js}</script>'
     )
 
     ui_interface = gr.Blocks(

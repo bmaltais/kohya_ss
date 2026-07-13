@@ -22,6 +22,7 @@ currently fails immediately with `SystemExit(2)`. v2 must always emit
 TOML key.
 """
 
+from ..accelerate_launch_fields import accelerate_launch_fields
 from ..fields import FieldRegistry, FieldSpec, Widget
 from .leco_derivations import derive as derive_leco
 from .leco_fields_generated import LECO_FIELDS
@@ -56,7 +57,9 @@ GUI_ONLY_FIELDS = [
 # must consult this set.
 REQUIRED_CLI_FIELDS = frozenset({"prompts_file"})
 
-LECO_REGISTRY = FieldRegistry(GUI_ONLY_FIELDS + LECO_FIELDS)
+LECO_REGISTRY = FieldRegistry(
+    GUI_ONLY_FIELDS + accelerate_launch_fields("leco") + LECO_FIELDS
+)
 
 
 def derive(values: dict, arch_key: str) -> dict:

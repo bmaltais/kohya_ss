@@ -513,10 +513,17 @@ def get_file_path(
         root.wm_attributes("-topmost", 1)  # Ensure the dialog is topmost
         root.withdraw()  # Hide the root window to show only the dialog
 
+        # default_extension may be a single extension (".toml") or a
+        # space-separated list (".toml .json") when multiple file types
+        # should be selectable in the dialog; the filter pattern must list
+        # every extension or the OS dialog hides all but the first.
+        extensions = default_extension.split()
+        patterns = " ".join(f"*{ext}" for ext in extensions)
+
         # Open the file dialog and capture the selected file path
         file_path = filedialog.askopenfilename(
-            filetypes=((extension_name, f"*{default_extension}"), ("All files", "*.*")),
-            defaultextension=default_extension,
+            filetypes=((extension_name, patterns), ("All files", "*.*")),
+            defaultextension=extensions[0],
             initialfile=initial_file,
             initialdir=initial_dir,
         )

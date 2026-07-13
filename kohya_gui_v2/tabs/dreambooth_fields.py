@@ -14,6 +14,7 @@ architecture keys sharing one script and one gap-analysis section, since
 which script runs (matrix line 16).
 """
 
+from ..accelerate_launch_fields import accelerate_launch_fields
 from ..fields import FieldRegistry, FieldSpec, Widget
 from .dreambooth_derivations import derive as derive_dreambooth
 from .dreambooth_fields_generated import DREAMBOOTH_FIELDS
@@ -41,7 +42,9 @@ GUI_ONLY_FIELDS = [
     ),
 ]
 
-DREAMBOOTH_REGISTRY = FieldRegistry(GUI_ONLY_FIELDS + DREAMBOOTH_FIELDS)
+DREAMBOOTH_REGISTRY = FieldRegistry(
+    GUI_ONLY_FIELDS + accelerate_launch_fields("dreambooth") + DREAMBOOTH_FIELDS
+)
 
 
 def derive(values: dict, arch_key: str) -> dict:

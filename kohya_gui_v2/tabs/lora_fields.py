@@ -6,7 +6,9 @@ scripts/gen_lora_fields.py from the Move 4 gap analysis; regenerate with
 `uv run python scripts/gen_lora_fields.py` after any gap-analysis change.
 """
 
-from ..fields import FieldRegistry, FieldSpec, Widget
+from ..accelerate_launch_fields import accelerate_launch_fields
+from ..fields import FieldRegistry, FieldSpec, VisibleWhen, Widget
+from .lora_derivations import LYCORIS_PRESETS_CHOICES
 from .lora_derivations import derive as derive_lora
 from .lora_fields_generated import LORA_FIELDS
 
@@ -20,6 +22,163 @@ ARCHITECTURE_CHOICES = [
     "anima",
     "lumina",
 ]
+
+# LoRA_type -> visibility groupings, ported verbatim from the
+# update_LoRA_settings() visibility map in kohya_gui/lora_gui.py
+# (~lines 2822-3286), keyed by the sets each widget's "visible" check uses.
+_CONVOLUTION_TYPES = frozenset(
+    {
+        "LoCon",
+        "Kohya DyLoRA",
+        "Kohya LoCon",
+        "Kohya LoHa",
+        "Kohya LoKr",
+        "LoRA-FA",
+        "LyCORIS/BOFT",
+        "LyCORIS/Diag-OFT",
+        "LyCORIS/DyLoRA",
+        "LyCORIS/LoHa",
+        "LyCORIS/LoKr",
+        "LyCORIS/LoCon",
+        "LyCORIS/GLoRA",
+    }
+)
+_KOHYA_ADVANCED_TYPES = frozenset(
+    {
+        "Anima",
+        "Flux1",
+        "Flux1 OFT",
+        "HunyuanImage-2.1",
+        "Standard",
+        "Kohya DyLoRA",
+        "Kohya LoCon",
+        "LoRA-FA",
+    }
+)
+_FACTOR_TYPES = frozenset({"Kohya LoKr", "LyCORIS/LoKr"})
+_BYPASS_MODE_TYPES = frozenset({"LyCORIS/LoCon", "LyCORIS/LoHa", "LyCORIS/LoKr"})
+_USE_CP_TYPES = frozenset({"LyCORIS/LoKr"})
+_USE_TUCKER_TYPES = frozenset(
+    {
+        "Kohya LoHa",
+        "Kohya LoKr",
+        "LyCORIS/BOFT",
+        "LyCORIS/Diag-OFT",
+        "LyCORIS/DyLoRA",
+        "LyCORIS/GLoRA",
+        "LyCORIS/LoCon",
+        "LyCORIS/LoHa",
+        "LyCORIS/LoKr",
+    }
+)
+_USE_SCALAR_TYPES = frozenset({"LyCORIS/LoCon", "LyCORIS/LoHa", "LyCORIS/LoKr"})
+_RANK_DROPOUT_SCALE_TYPES = frozenset(
+    {
+        "LyCORIS/BOFT",
+        "LyCORIS/Diag-OFT",
+        "LyCORIS/GLoRA",
+        "LyCORIS/LoCon",
+        "LyCORIS/LoHa",
+        "LyCORIS/LoKr",
+        "LyCORIS/Native Fine-Tuning",
+    }
+)
+_CONSTRAIN_TYPES = frozenset({"LyCORIS/Diag-OFT"})
+_RESCALED_TYPES = frozenset({"LyCORIS/Diag-OFT"})
+_TRAIN_NORM_TYPES = frozenset(
+    {
+        "LyCORIS/DyLoRA",
+        "LyCORIS/BOFT",
+        "LyCORIS/Diag-OFT",
+        "LyCORIS/GLoRA",
+        "LyCORIS/LoCon",
+        "LyCORIS/LoHa",
+        "LyCORIS/LoKr",
+        "LyCORIS/Native Fine-Tuning",
+    }
+)
+_DECOMPOSE_BOTH_TYPES = frozenset({"LyCORIS/LoKr"})
+_TRAIN_ON_INPUT_TYPES = frozenset({"LyCORIS/iA3"})
+_RANK_DROPOUT_TYPES = frozenset(
+    {
+        "LoCon",
+        "Kohya DyLoRA",
+        "Kohya LoHa",
+        "Kohya LoKr",
+        "LyCORIS/BOFT",
+        "LyCORIS/Diag-OFT",
+        "LyCORIS/GLoRA",
+        "LyCORIS/LoCon",
+        "LyCORIS/LoHa",
+        "LyCORIS/LoKr",
+        "Kohya LoCon",
+        "LoRA-FA",
+        "LyCORIS/Native Fine-Tuning",
+        "Standard",
+    }
+)
+_MODULE_DROPOUT_TYPES = frozenset(
+    {
+        "LoCon",
+        "LyCORIS/BOFT",
+        "LyCORIS/Diag-OFT",
+        "Kohya DyLoRA",
+        "Kohya LoHa",
+        "Kohya LoKr",
+        "LyCORIS/GLoRA",
+        "LyCORIS/LoCon",
+        "LyCORIS/LoHa",
+        "LyCORIS/LoKr",
+        "Kohya LoCon",
+        "LyCORIS/Native Fine-Tuning",
+        "LoRA-FA",
+        "Standard",
+    }
+)
+_LYCORIS_PRESET_TYPES = frozenset(
+    {
+        "LyCORIS/DyLoRA",
+        "LyCORIS/iA3",
+        "LyCORIS/BOFT",
+        "LyCORIS/Diag-OFT",
+        "LyCORIS/GLoRA",
+        "LyCORIS/LoCon",
+        "LyCORIS/LoHa",
+        "LyCORIS/LoKr",
+        "LyCORIS/Native Fine-Tuning",
+    }
+)
+_UNIT_TYPES = frozenset({"Kohya DyLoRA", "LyCORIS/DyLoRA"})
+_LORAPLUS_TYPES = frozenset(
+    {
+        "LoCon",
+        "Kohya DyLoRA",
+        "Kohya LoHa",
+        "Kohya LoKr",
+        "LyCORIS/BOFT",
+        "LyCORIS/Diag-OFT",
+        "LyCORIS/GLoRA",
+        "LyCORIS/LoCon",
+        "LyCORIS/LoHa",
+        "LyCORIS/LoKr",
+        "Kohya LoCon",
+        "LoRA-FA",
+        "LyCORIS/Native Fine-Tuning",
+        "Standard",
+    }
+)
+
+
+def _lora_type_in(types: frozenset) -> VisibleWhen:
+    return VisibleWhen(
+        deps=frozenset({"LoRA_type"}),
+        predicate=lambda values, types=types: values.get("LoRA_type") in types,
+    )
+
+
+def _ggpo_visible(values: dict) -> bool:
+    return bool(values.get("train_lora_ggpo"))
+
 
 GUI_ONLY_FIELDS = [
     FieldSpec(
@@ -40,9 +199,539 @@ GUI_ONLY_FIELDS = [
         group="architecture",
         training_types=frozenset({"lora"}),
     ),
+    # LoRA_type + LyCORIS/native network-args widgets. These feed
+    # lora_derivations.derive()'s network_module/network_args branching --
+    # see kohya_gui/lora_gui.py:1626-1860 and :2496-3286 for the ported
+    # logic and visibility map.
+    FieldSpec(
+        name="LoRA_type",
+        widget=Widget.DROPDOWN,
+        default="Standard",
+        choices=[
+            "Anima",
+            "Flux1",
+            "Flux1 OFT",
+            "HunyuanImage-2.1",
+            "Kohya DyLoRA",
+            "Kohya LoCon",
+            "Kohya LoHa",
+            "Kohya LoKr",
+            "LoRA-FA",
+            "Lumina",
+            "LyCORIS/iA3",
+            "LyCORIS/BOFT",
+            "LyCORIS/Diag-OFT",
+            "LyCORIS/DyLoRA",
+            "LyCORIS/GLoRA",
+            "LyCORIS/LoCon",
+            "LyCORIS/LoHa",
+            "LyCORIS/LoKr",
+            "LyCORIS/Native Fine-Tuning",
+            "Standard",
+        ],
+        label="LoRA type",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+    ),
+    FieldSpec(
+        name="LyCORIS_preset",
+        widget=Widget.DROPDOWN,
+        default="full",
+        choices=LYCORIS_PRESETS_CHOICES,
+        label="LyCORIS Preset",
+        info="Use path_to_config_file.toml to choose config file (for LyCORIS module settings)",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_LYCORIS_PRESET_TYPES),
+    ),
+    FieldSpec(
+        name="conv_dim",
+        widget=Widget.NUMBER,
+        default=1,
+        label="Convolution Rank (Dimension)",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_CONVOLUTION_TYPES),
+    ),
+    FieldSpec(
+        name="conv_alpha",
+        widget=Widget.NUMBER,
+        default=1,
+        label="Convolution Alpha",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_CONVOLUTION_TYPES),
+    ),
+    FieldSpec(
+        name="factor",
+        widget=Widget.NUMBER,
+        default=-1,
+        label="LoKr factor",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_FACTOR_TYPES),
+    ),
+    FieldSpec(
+        name="bypass_mode",
+        widget=Widget.CHECKBOX,
+        default=False,
+        label="Bypass mode",
+        info="Designed for bnb 8bit/4bit linear layer. (QLyCORIS)",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_BYPASS_MODE_TYPES),
+    ),
+    FieldSpec(
+        name="dora_wd",
+        widget=Widget.CHECKBOX,
+        default=False,
+        label="DoRA Weight Decompose",
+        info="Enable the DoRA method for these algorithms",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_BYPASS_MODE_TYPES),
+    ),
+    FieldSpec(
+        name="use_cp",
+        widget=Widget.CHECKBOX,
+        default=False,
+        label="Use CP decomposition",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_USE_CP_TYPES),
+    ),
+    FieldSpec(
+        name="use_tucker",
+        widget=Widget.CHECKBOX,
+        default=False,
+        label="Use Tucker decomposition",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_USE_TUCKER_TYPES),
+    ),
+    FieldSpec(
+        name="use_scalar",
+        widget=Widget.CHECKBOX,
+        default=False,
+        label="Use Scalar",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_USE_SCALAR_TYPES),
+    ),
+    FieldSpec(
+        name="rank_dropout_scale",
+        widget=Widget.CHECKBOX,
+        default=False,
+        label="Rank Dropout Scale",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_RANK_DROPOUT_SCALE_TYPES),
+    ),
+    FieldSpec(
+        name="constrain",
+        widget=Widget.NUMBER,
+        default=0.0,
+        label="Constrain OFT",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_CONSTRAIN_TYPES),
+    ),
+    FieldSpec(
+        name="rescaled",
+        widget=Widget.CHECKBOX,
+        default=False,
+        label="Rescaled OFT",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_RESCALED_TYPES),
+    ),
+    FieldSpec(
+        name="train_norm",
+        widget=Widget.CHECKBOX,
+        default=False,
+        label="Train Norm",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_TRAIN_NORM_TYPES),
+    ),
+    FieldSpec(
+        name="decompose_both",
+        widget=Widget.CHECKBOX,
+        default=False,
+        label="LoKr decompose both",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_DECOMPOSE_BOTH_TYPES),
+    ),
+    FieldSpec(
+        name="train_on_input",
+        widget=Widget.CHECKBOX,
+        default=True,
+        label="iA3 train on input",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_TRAIN_ON_INPUT_TYPES),
+    ),
+    FieldSpec(
+        name="rank_dropout",
+        widget=Widget.NUMBER,
+        default=0.0,
+        label="Rank dropout",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_RANK_DROPOUT_TYPES),
+    ),
+    FieldSpec(
+        name="module_dropout",
+        widget=Widget.NUMBER,
+        default=0.0,
+        label="Module dropout",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_MODULE_DROPOUT_TYPES),
+    ),
+    FieldSpec(
+        name="unit",
+        widget=Widget.NUMBER,
+        default=1,
+        label="DyLoRA Unit / Block size",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_UNIT_TYPES),
+    ),
+    # Kohya LoCon/Standard/LoRA-FA/DyLoRA block-weighting args
+    FieldSpec(
+        name="down_lr_weight",
+        widget=Widget.TEXTBOX,
+        default="",
+        label="Down LR weights",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_KOHYA_ADVANCED_TYPES),
+    ),
+    FieldSpec(
+        name="mid_lr_weight",
+        widget=Widget.TEXTBOX,
+        default="",
+        label="Mid LR weights",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_KOHYA_ADVANCED_TYPES),
+    ),
+    FieldSpec(
+        name="up_lr_weight",
+        widget=Widget.TEXTBOX,
+        default="",
+        label="Up LR weights",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_KOHYA_ADVANCED_TYPES),
+    ),
+    FieldSpec(
+        name="block_lr_zero_threshold",
+        widget=Widget.TEXTBOX,
+        default="",
+        label="Blocks LR zero threshold",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_KOHYA_ADVANCED_TYPES),
+    ),
+    FieldSpec(
+        name="block_dims",
+        widget=Widget.TEXTBOX,
+        default="",
+        label="Block dims",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_KOHYA_ADVANCED_TYPES),
+    ),
+    FieldSpec(
+        name="block_alphas",
+        widget=Widget.TEXTBOX,
+        default="",
+        label="Block alphas",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_KOHYA_ADVANCED_TYPES),
+    ),
+    FieldSpec(
+        name="conv_block_dims",
+        widget=Widget.TEXTBOX,
+        default="",
+        label="Conv dims",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_KOHYA_ADVANCED_TYPES),
+    ),
+    FieldSpec(
+        name="conv_block_alphas",
+        widget=Widget.TEXTBOX,
+        default="",
+        label="Conv alphas",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_KOHYA_ADVANCED_TYPES),
+    ),
+    # LoRA+ ratios -- append unconditionally in derive() regardless of
+    # LoRA_type (matches append_loraplus_network_args, called unconditionally
+    # in legacy train_model); visible_when only mirrors legacy's cosmetic Row
+    # visibility.
+    FieldSpec(
+        name="loraplus_lr_ratio",
+        widget=Widget.NUMBER,
+        default=0,
+        label="LoRA+ learning rate ratio",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_LORAPLUS_TYPES),
+    ),
+    FieldSpec(
+        name="loraplus_unet_lr_ratio",
+        widget=Widget.NUMBER,
+        default=0,
+        label="LoRA+ Unet learning rate ratio",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_LORAPLUS_TYPES),
+    ),
+    FieldSpec(
+        name="loraplus_text_encoder_lr_ratio",
+        widget=Widget.NUMBER,
+        default=0,
+        label="LoRA+ Text Encoder learning rate ratio",
+        gui_only=True,
+        group="network",
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(_LORAPLUS_TYPES),
+    ),
+    # Flux1-only block targeting + GGPO (visible whenever architecture ==
+    # flux1, matching legacy's flux1_checkbox-gated flux1Training accordion --
+    # independent of the LoRA_type value chosen). `split_mode` itself is
+    # already a generated top-level FieldSpec (lora_fields_generated.py) --
+    # not redeclared here.
+    FieldSpec(
+        name="train_blocks",
+        widget=Widget.DROPDOWN,
+        default="all",
+        choices=["all", "double", "single"],
+        label="Train Blocks",
+        gui_only=True,
+        group="network",
+        archs=frozenset({"flux1"}),
+        training_types=frozenset({"lora"}),
+    ),
+    FieldSpec(
+        name="split_qkv",
+        widget=Widget.CHECKBOX,
+        default=False,
+        label="Split QKV",
+        gui_only=True,
+        group="network",
+        archs=frozenset({"flux1"}),
+        training_types=frozenset({"lora"}),
+    ),
+    FieldSpec(
+        name="train_t5xxl",
+        widget=Widget.CHECKBOX,
+        default=False,
+        label="Train T5-XXL",
+        gui_only=True,
+        group="network",
+        archs=frozenset({"flux1"}),
+        training_types=frozenset({"lora"}),
+    ),
+    FieldSpec(
+        name="train_lora_ggpo",
+        widget=Widget.CHECKBOX,
+        default=False,
+        label="Train LoRA GGPO",
+        gui_only=True,
+        group="network",
+        archs=frozenset({"flux1"}),
+        training_types=frozenset({"lora"}),
+    ),
+    FieldSpec(
+        name="ggpo_sigma",
+        widget=Widget.NUMBER,
+        default=0.03,
+        label="GGPO sigma",
+        gui_only=True,
+        group="network",
+        archs=frozenset({"flux1"}),
+        training_types=frozenset({"lora"}),
+        visible_when=VisibleWhen(
+            deps=frozenset({"train_lora_ggpo"}), predicate=_ggpo_visible
+        ),
+    ),
+    FieldSpec(
+        name="ggpo_beta",
+        widget=Widget.NUMBER,
+        default=0.01,
+        label="GGPO beta",
+        gui_only=True,
+        group="network",
+        archs=frozenset({"flux1"}),
+        training_types=frozenset({"lora"}),
+        visible_when=VisibleWhen(
+            deps=frozenset({"train_lora_ggpo"}), predicate=_ggpo_visible
+        ),
+    ),
+    FieldSpec(
+        name="enable_all_linear",
+        widget=Widget.CHECKBOX,
+        default=False,
+        label="Enable All Linear",
+        info="(Only applicable to 'Flux1 OFT' LoRA) Target all linear connections in the MLP layer.",
+        gui_only=True,
+        group="network",
+        archs=frozenset({"flux1"}),
+        training_types=frozenset({"lora"}),
+        visible_when=_lora_type_in(frozenset({"Flux1 OFT"})),
+    ),
+    FieldSpec(
+        name="img_attn_dim",
+        widget=Widget.TEXTBOX,
+        default="",
+        label="img_attn_dim",
+        gui_only=True,
+        group="network",
+        archs=frozenset({"flux1"}),
+        training_types=frozenset({"lora"}),
+    ),
+    FieldSpec(
+        name="img_mlp_dim",
+        widget=Widget.TEXTBOX,
+        default="",
+        label="img_mlp_dim",
+        gui_only=True,
+        group="network",
+        archs=frozenset({"flux1"}),
+        training_types=frozenset({"lora"}),
+    ),
+    FieldSpec(
+        name="img_mod_dim",
+        widget=Widget.TEXTBOX,
+        default="",
+        label="img_mod_dim",
+        gui_only=True,
+        group="network",
+        archs=frozenset({"flux1"}),
+        training_types=frozenset({"lora"}),
+    ),
+    FieldSpec(
+        name="single_dim",
+        widget=Widget.TEXTBOX,
+        default="",
+        label="single_dim",
+        gui_only=True,
+        group="network",
+        archs=frozenset({"flux1"}),
+        training_types=frozenset({"lora"}),
+    ),
+    FieldSpec(
+        name="txt_attn_dim",
+        widget=Widget.TEXTBOX,
+        default="",
+        label="txt_attn_dim",
+        gui_only=True,
+        group="network",
+        archs=frozenset({"flux1"}),
+        training_types=frozenset({"lora"}),
+    ),
+    FieldSpec(
+        name="txt_mlp_dim",
+        widget=Widget.TEXTBOX,
+        default="",
+        label="txt_mlp_dim",
+        gui_only=True,
+        group="network",
+        archs=frozenset({"flux1"}),
+        training_types=frozenset({"lora"}),
+    ),
+    FieldSpec(
+        name="txt_mod_dim",
+        widget=Widget.TEXTBOX,
+        default="",
+        label="txt_mod_dim",
+        gui_only=True,
+        group="network",
+        archs=frozenset({"flux1"}),
+        training_types=frozenset({"lora"}),
+    ),
+    FieldSpec(
+        name="single_mod_dim",
+        widget=Widget.TEXTBOX,
+        default="",
+        label="single_mod_dim",
+        gui_only=True,
+        group="network",
+        archs=frozenset({"flux1"}),
+        training_types=frozenset({"lora"}),
+    ),
+    FieldSpec(
+        name="in_dims",
+        widget=Widget.TEXTBOX,
+        default="",
+        label="in_dims",
+        gui_only=True,
+        group="network",
+        archs=frozenset({"flux1"}),
+        training_types=frozenset({"lora"}),
+    ),
+    FieldSpec(
+        name="train_double_block_indices",
+        widget=Widget.TEXTBOX,
+        default="all",
+        label="train_double_block_indices",
+        gui_only=True,
+        group="network",
+        archs=frozenset({"flux1"}),
+        training_types=frozenset({"lora"}),
+    ),
+    FieldSpec(
+        name="train_single_block_indices",
+        widget=Widget.TEXTBOX,
+        default="all",
+        label="train_single_block_indices",
+        gui_only=True,
+        group="network",
+        archs=frozenset({"flux1"}),
+        training_types=frozenset({"lora"}),
+    ),
 ]
 
-LORA_REGISTRY = FieldRegistry(GUI_ONLY_FIELDS + LORA_FIELDS)
+LORA_REGISTRY = FieldRegistry(
+    GUI_ONLY_FIELDS + accelerate_launch_fields("lora") + LORA_FIELDS
+)
 
 
 def derive(values: dict, arch_key: str) -> dict:

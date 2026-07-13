@@ -46,6 +46,18 @@ COSMETIC_ALLOWLIST = {
     "output_name",
     "sample_prompts",
     "wandb_run_name",  # derived from output_name, inherits the same tmpdir-substitution timing artifact
+    # old GUI always writes an empty list for an unset optimizer/scheduler
+    # args textbox; v2's FieldSpec.to_toml (_to_arg_list) returns None for
+    # an empty string, which the falsy-drop filter omits entirely. Both
+    # `optimizer_args = []` and an absent key are no-ops to sd-scripts
+    # (`args.optimizer_args is not None and len(args.optimizer_args) > 0`).
+    "lr_scheduler_args",
+    "optimizer_args",
+    # Same empty-list-vs-absent-key artifact as above, but for the
+    # LoRA_type-derived network_args string (networks.lora's create_network
+    # treats `args.network_args is None` and `args.network_args == []`
+    # identically).
+    "network_args",
 }
 
 # GUI kwarg name -> v2 FieldSpec (TOML key) name, for the handful of keys
@@ -56,12 +68,6 @@ RENAME_MAP = {
     "optimizer": "optimizer_type",
     "max_resolution": "resolution",
 }
-
-# Known-in-progress derivation gaps (not yet a formal Move 7 known-defect
-# register entry -- these are v2-incomplete, not old-GUI-buggy). Tracked
-# here so the harness can report signal on everything else while the full
-# LoRA_type branching is built out.
-DERIVATION_IN_PROGRESS = {"network_module", "network_args"}
 
 # Move 7 known-defect register (tier 2): old GUI provably emits a key no
 # LoRA-family sd-scripts parser accepts (confirmed via Move 4 gap analysis,
@@ -250,6 +256,15 @@ def test_lora_equivalence(preset_path):
         if gui_name in raw_values:
             raw_values[v2_name] = raw_values[gui_name]
 
+    # xformers/sdpa: the string->boolean split now happens once in
+    # legacy_import.import_json (against the raw JSON value), not inside
+    # derive() -- mirror that here since this harness calls derive()
+    # directly rather than going through import_json.
+    if "xformers" in raw_values:
+        xformers_choice = raw_values["xformers"]
+        raw_values["xformers"] = True if xformers_choice == "xformers" else None
+        raw_values["sdpa"] = True if xformers_choice == "sdpa" else None
+
     v2_values = {}
     for spec in LORA_REGISTRY:
         v2_values[spec.name] = raw_values.get(spec.name, spec.default)
@@ -300,11 +315,10 @@ def test_lora_equivalence(preset_path):
     unexplained_missing_or_extra = (
         diff_keys
         - COSMETIC_ALLOWLIST
-        - DERIVATION_IN_PROGRESS
         - v2_only_but_at_default
         - old_only_known_defect
     )
-    unexplained_mismatched = mismatched - DERIVATION_IN_PROGRESS
+    unexplained_mismatched = mismatched
 
     if unexplained_missing_or_extra or unexplained_mismatched:
         details = []

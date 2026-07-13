@@ -71,7 +71,7 @@ def load_config(registry: FieldRegistry, path: str) -> dict:
     values = {}
     for spec in registry:
         if spec.name in flat:
-            values[spec.name] = spec.coerce_from_toml(flat[spec.name])
+            values[spec.name] = spec.normalize_widget_value(flat[spec.name])
         else:
             values[spec.name] = spec.default
     return values

@@ -30,6 +30,13 @@ COSMETIC_ALLOWLIST = {
     "output_dir",
     "output_name",
     "wandb_run_name",
+    # old GUI always writes an empty list for an unset optimizer/scheduler
+    # args textbox; v2's FieldSpec.to_toml (_to_arg_list) returns None for
+    # an empty string, which the falsy-drop filter omits entirely. Both
+    # `optimizer_args = []` and an absent key are no-ops to sd-scripts
+    # (`args.optimizer_args is not None and len(args.optimizer_args) > 0`).
+    "lr_scheduler_args",
+    "optimizer_args",
 }
 
 RENAME_MAP = {

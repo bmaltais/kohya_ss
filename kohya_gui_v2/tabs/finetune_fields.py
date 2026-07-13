@@ -14,6 +14,7 @@ DreamBooth's sd15/sd2 split -- v2/v_parameterization are universal flags
 here too).
 """
 
+from ..accelerate_launch_fields import accelerate_launch_fields
 from ..fields import FieldRegistry, FieldSpec, Widget
 from .finetune_derivations import derive as derive_finetune
 from .finetune_fields_generated import FINETUNE_FIELDS
@@ -41,7 +42,9 @@ GUI_ONLY_FIELDS = [
     ),
 ]
 
-FINETUNE_REGISTRY = FieldRegistry(GUI_ONLY_FIELDS + FINETUNE_FIELDS)
+FINETUNE_REGISTRY = FieldRegistry(
+    GUI_ONLY_FIELDS + accelerate_launch_fields("finetune") + FINETUNE_FIELDS
+)
 
 
 def derive(values: dict, arch_key: str) -> dict:

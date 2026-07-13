@@ -288,14 +288,34 @@ def import_json(path: str, training_type: str = None) -> ImportResult:
         if gui_name in cfg:
             renamed[v2_name] = cfg[gui_name]
 
+    # xformers dropdown ("none"/"sdpa"/"xformers", or a stale plain boolean
+    # from an older GUI schema) -> xformers/sdpa mutually exclusive
+    # booleans. This must happen once here, against the raw JSON value,
+    # not inside each training type's derive() -- derive() also runs on
+    # every do_train/do_save via tab_builder.py's _build_values, using the
+    # live Gradio checkbox's already-split boolean as input; re-applying
+    # the string-match test to that boolean would always fail and null
+    # xformers back out (2026-07-12 regression).
+    if "xformers" in renamed:
+        xformers_choice = renamed["xformers"]
+        renamed["xformers"] = True if xformers_choice == "xformers" else None
+        renamed["sdpa"] = True if xformers_choice == "sdpa" else None
+
     values = {}
     for spec in registry:
-        if spec.gui_only:
-            continue
-        values[spec.name] = renamed.get(spec.name, spec.default)
+        raw = renamed.get(spec.name, spec.default)
+        # normalize_widget_value coerces stringified numbers and clamps
+        # dropdown values to choices so Gradio open→save never rejects
+        # legacy presets (e.g. dynamo_backend=\"no\", max_token_length=\"75\").
+        values[spec.name] = spec.normalize_widget_value(raw)
 
     arch_key = ARCH_DETECTORS[training_type](renamed)
-    values.update(DERIVE_FUNCS[training_type](renamed, arch_key))
+    derived = DERIVE_FUNCS[training_type](renamed, arch_key)
+    for key, raw in derived.items():
+        try:
+            values[key] = registry[key].normalize_widget_value(raw)
+        except KeyError:
+            values[key] = raw
 
     # A raw JSON key is "recognized" if it's a rename-map source name, a
     # FieldSpec's own name (both consumed directly above), or a composite

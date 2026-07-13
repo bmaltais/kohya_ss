@@ -103,12 +103,77 @@ CURATED_CHOICES: dict[str, list] = {
         ".caption",
         ".txt",
     ],
+    # Align with kohya_gui/class_accelerate_launch.py (not train_util's
+    # incomplete list which omits "no" and misspells tensorrt as "tensort").
+    # Legacy JSON presets almost always store dynamo_backend="no".
+    "dynamo_backend": [
+        "no",
+        "eager",
+        "aot_eager",
+        "inductor",
+        "aot_ts_nvfuser",
+        "nvprims_nvfuser",
+        "cudagraphs",
+        "ofi",
+        "fx2trt",
+        "onnxrt",
+        "tensorrt",
+        "ipex",
+        "tvm",
+    ],
+    # Align with kohya_gui/class_advanced_training.py. Argparse only allows
+    # [None, 150, 225] (None → 75 token default), but the legacy GUI and every
+    # preset stores the explicit 75 choice; without it Gradio rejects open/save.
+    "max_token_length": [
+        75,
+        150,
+        225,
+    ],
+}
+
+# Defaults that must win over argparse introspection (same reason as CURATED_CHOICES).
+CURATED_DEFAULTS: dict[str, object] = {
+    "dynamo_backend": "no",
+    "max_token_length": 75,
 }
 
 # Fields that use CURATED_CHOICES and allow typing values not in the list
 CURATED_ALLOW_CUSTOM = frozenset(
     {"optimizer_type", "lr_scheduler", "lr_scheduler_type", "caption_extension"}
 )
+
+# "file" or "folder" — which native dialog the legacy GUI wires a Browse
+# button to for this field (extract_path_fields() in the generator script);
+# absent means the legacy GUI has no picker for it either.
+PATH_FIELDS: dict[str, str] = {
+    "ae": "file",
+    "byt5": "file",
+    "clip_g": "file",
+    "clip_l": "file",
+    "conditioning_data_dir": "folder",
+    "dataset_config": "file",
+    "gemma2": "file",
+    "llm_adapter_path": "file",
+    "log_tracker_config": "file",
+    "logging_dir": "folder",
+    "output_dir": "folder",
+    "pretrained_model_name_or_path": "file",
+    "qwen3": "file",
+    "reg_data_dir": "folder",
+    "resume": "folder",
+    "t5_tokenizer_path": "folder",
+    "t5xxl": "file",
+    "text_encoder": "file",
+    "tokenizer_cache_dir": "folder",
+    "train_data_dir": "folder",
+    "vae": "file",
+}
+
+
+def path_kind_for(name: str) -> Optional[str]:
+    """Return "file", "folder", or None for a field name."""
+    return PATH_FIELDS.get(name)
+
 
 LAYOUT: dict[str, FieldLayout] = {
     "adaptive_noise_scale": FieldLayout(

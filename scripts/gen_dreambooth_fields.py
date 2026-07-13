@@ -170,6 +170,21 @@ def main():
     lines.append("def _to_float(v):")
     lines.append('    return float(v) if v not in (None, "") else v')
     lines.append("")
+    lines.append("def _to_arg_list(v):")
+    lines.append("    s = str(v).strip()")
+    lines.append('    return s.replace(\'"\', "").split() if s else None')
+    lines.append("")
+    lines.append("def _from_arg_list(v):")
+    lines.append(
+        '    return " ".join(v) if isinstance(v, (list, tuple)) else (v or "")'
+    )
+    lines.append("")
+    lines.append("def _to_int_or_float(v):")
+    lines.append('    if v in (None, ""):')
+    lines.append("        return v")
+    lines.append("    f = float(v)")
+    lines.append("    return int(f) if f >= 1 else f")
+    lines.append("")
     lines.append("DREAMBOOTH_FIELDS = [")
 
     for name in sorted(key_meta.keys()):

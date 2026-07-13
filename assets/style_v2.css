@@ -1,186 +1,290 @@
 /*
- * kohya_gui_v2 — visual design pass
- * Scoped under .v2-training-tab / .v2-* so legacy GUI CSS stays untouched.
+ * kohya_gui_v2 additions ONLY. Shared chrome (tooltip reveal, folder-button
+ * style, .styler/.ver-class fixes) lives once in assets/style.css and is
+ * loaded ahead of this file by kohya_gui_v2.py -- do not re-derive it here.
  *
- * Direction: dense professional workshop console — graphite + amber accent,
- * clear accordion hierarchy, intentional field clusters. Not a landing page.
+ * v2 introduces no new typography, accent color, or theme: it reuses
+ * gr.themes.Default() untouched, same as the legacy GUI. The only new
+ * surface area is (1) per-section background tints, using the exact
+ * recipe the legacy GUI already uses per training-type accordion
+ * (elem_classes tint + hover-darken + 8px radius + transition -- see
+ * .basic_background / .advanced_background / etc. in style.css), extended
+ * to the ten section keys layout_map.py defines; (2) the filter bar and
+ * its hide/show mechanics, which have no legacy equivalent.
  */
 
-/* ── tokens ─────────────────────────────────────────────────────────── */
-:root {
-  --v2-accent: #c9852a;
-  --v2-accent-dim: rgba(201, 133, 42, 0.18);
-  --v2-section-border: var(--border-color-primary, #3a3a3a);
-  --v2-toolbar-gap: 0.75rem;
-  --v2-row-gap: 0.5rem;
-  --v2-radius: 6px;
-  --v2-font-ui: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
-  --v2-font-mono: "IBM Plex Mono", "Cascadia Code", ui-monospace, monospace;
+/* ── section tints (same recipe as legacy *_background classes) ───────── */
+.v2-section-model {
+    background: #eef0f2;
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+}
+.v2-section-model:hover {
+    background-color: #e3e6e9;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.dark .v2-section-model {
+    background: #20242a;
+}
+.dark .v2-section-model:hover {
+    background-color: #2a2f36;
+    border: 1px solid #444;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* ── root training tab ──────────────────────────────────────────────── */
-.v2-training-tab {
-  font-family: var(--v2-font-ui);
-  gap: 0.65rem;
+.v2-section-folders {
+    background: #eef1ee;
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+}
+.v2-section-folders:hover {
+    background-color: #e3e7e2;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.dark .v2-section-folders {
+    background: #1f2420;
+}
+.dark .v2-section-folders:hover {
+    background-color: #292f29;
+    border: 1px solid #444;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-.v2-training-tab .v2-toolbar {
-  align-items: flex-end;
-  gap: var(--v2-toolbar-gap);
-  margin-bottom: 0.35rem;
-  padding: 0.5rem 0.65rem;
-  border: 1px solid var(--v2-section-border);
-  border-radius: var(--v2-radius);
-  background: var(--background-fill-secondary, rgba(0, 0, 0, 0.04));
+.v2-section-dataset {
+    background: #f0f0f0; /* same family as legacy .preset_background */
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+}
+.v2-section-dataset:hover {
+    background-color: #e6e6e6;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.dark .v2-section-dataset {
+    background: #1e1e1e;
+}
+.dark .v2-section-dataset:hover {
+    background-color: #282828;
+    border: 1px solid #404040;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-.v2-training-tab .v2-filter input,
-.v2-training-tab .v2-filter textarea {
-  font-family: var(--v2-font-mono);
-  letter-spacing: 0.01em;
+.v2-section-basic {
+    background: #eaeff1; /* legacy .basic_background, verbatim */
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+}
+.v2-section-basic:hover {
+    background-color: #dfe4e7;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.dark .v2-section-basic {
+    background: #1f2328;
+}
+.dark .v2-section-basic:hover {
+    background-color: #292d32;
+    border: 1px solid #4a4e53;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* Filter bar emphasis — discoverable without shouting */
-.v2-training-tab .v2-filter label span {
-  font-weight: 600;
-  letter-spacing: 0.02em;
+.v2-section-network {
+    background: #ece9e6; /* same family as legacy .flux1_background */
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+}
+.v2-section-network:hover {
+    background-color: #e2dfdb;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.dark .v2-section-network {
+    background: #252321;
+}
+.dark .v2-section-network:hover {
+    background-color: #2f2d2b;
+    border: 1px solid #4f4d4b;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* ── accordion sections ─────────────────────────────────────────────── */
-.v2-training-tab .v2-section {
-  border: 1px solid var(--v2-section-border);
-  border-radius: var(--v2-radius);
-  margin-bottom: 0.4rem;
-  overflow: hidden;
+.v2-section-advanced {
+    background: #f4f4f4; /* legacy .advanced_background, verbatim */
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+}
+.v2-section-advanced:hover {
+    background-color: #ebebeb;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.dark .v2-section-advanced {
+    background: #222222;
+}
+.dark .v2-section-advanced:hover {
+    background-color: #2c2c2c;
+    border: 1px solid #444444;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-.v2-training-tab .v2-section > .label-wrap {
-  background: var(--background-fill-secondary, rgba(0, 0, 0, 0.03));
-  border-bottom: 1px solid transparent;
-  padding: 0.55rem 0.85rem !important;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: none;
+.v2-section-samples {
+    background: #d9dde1; /* legacy .samples_background, verbatim */
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+}
+.v2-section-samples:hover {
+    background-color: #cfd3d8;
+    border: 1px solid #bbb;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.dark .v2-section-samples {
+    background: #1b242c;
+}
+.dark .v2-section-samples:hover {
+    background-color: #252e36;
+    border: 1px solid #465058;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-.v2-training-tab .v2-section > .label-wrap.open {
-  border-bottom-color: var(--v2-section-border);
-  box-shadow: inset 3px 0 0 0 var(--v2-accent);
+.v2-section-huggingface {
+    background: #e0e4e7; /* legacy .huggingface_background, verbatim */
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+}
+.v2-section-huggingface:hover {
+    background-color: #d6dce0;
+    border: 1px solid #bbb;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.dark .v2-section-huggingface {
+    background: #1c2128;
+}
+.dark .v2-section-huggingface:hover {
+    background-color: #262b32;
+    border: 1px solid #474c53;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-.v2-training-tab .v2-section > .label-wrap span {
-  font-size: 0.95rem;
+.v2-section-metadata {
+    background: #e8e6e9;
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+}
+.v2-section-metadata:hover {
+    background-color: #dedbe0;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.dark .v2-section-metadata {
+    background: #232025;
+}
+.dark .v2-section-metadata:hover {
+    background-color: #2d2a2f;
+    border: 1px solid #4c474e;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-.v2-training-tab .v2-section .v2-field-row {
-  gap: var(--v2-row-gap);
-  align-items: flex-start;
-  padding: 0.15rem 0;
+.v2-section-accelerate_launch {
+    background: #e6e9e4;
+    transition: background-color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+}
+.v2-section-accelerate_launch:hover {
+    background-color: #dbdfd8;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.dark .v2-section-accelerate_launch {
+    background: #1e231c;
+}
+.dark .v2-section-accelerate_launch:hover {
+    background-color: #282e26;
+    border: 1px solid #454e42;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* Fields inside sections breathe without wasting vertical space */
-.v2-training-tab .v2-field {
-  min-width: 0; /* allow shrink in multi-col rows */
+/* ── field rows: legacy relies on Gradio's own gr.Row() gap; the only
+   v2-specific need is a touch of breathing room when up to 4 fields share
+   one line ─────────────────────────────────────────────────────────────── */
+.v2-field-row {
+    /* !important: Gradio's own ".row.unequal-height" rule (added when
+       packed fields have different natural heights) also sets
+       align-items and otherwise wins on selector specificity, undoing
+       the stretch this rule asks for. */
+    align-items: stretch !important;
+    gap: 0.5rem;
+}
+.v2-field {
+    min-width: 0; /* allow shrink so rows of 3-4 fields don't overflow */
 }
 
-.v2-training-tab .v2-field label span {
-  font-size: 0.88rem;
-  font-weight: 500;
+/* ── path-field Browse button: same visual recipe as legacy's
+   #open_folder / #open_folder_small (assets/style.css), scoped by class
+   since v2 has many instances instead of one fixed id per GUI ──────────── */
+.v2-path-row {
+    align-items: stretch;
+    gap: 0.35rem;
+}
+.v2-path-browse {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* height is intentionally left unset (auto): .v2-path-row and
+       .v2-field-row both use align-items: stretch, and flexbox only
+       stretches a flex item's cross-size when that size is auto. Setting
+       "height: 100%" here (a prior attempt) actually broke stretching --
+       an explicit height opts the item OUT of stretch, and the 100% then
+       can't resolve because the row's own height is itself flex-computed
+       rather than an explicit pixel value, so it collapsed back to the
+       button's tiny intrinsic content size. Leaving height auto lets the
+       parent rows' stretch do the sizing instead. Width stays a fixed
+       absolute unit for the reason the old height comment explained --
+       Gradio's nested em-based button/lg/svelte-scoped rules compound
+       against a self-referential "Nem", so pinning width needs a stable
+       absolute unit rather than em. */
+    width: 2.5rem !important;
+    min-width: 2.5rem !important;
+    max-width: 2.5rem !important;
+    flex-grow: 0 !important;
+    flex-shrink: 0 !important;
+    padding: 0 !important;
+    font-size: 1.1rem;
+    cursor: pointer;
+    /* Colors, border, and hover/active/dark states are intentionally NOT
+       set here: Open/Save/Save as (tab_builder.py's button_open etc.)
+       are plain gr.Button() with no elem_classes, so they render with
+       Gradio's stock secondary-button theme rules. Reusing the same
+       --button-secondary-* theme variables (rather than hardcoded
+       colors) makes this button pixel-identical to those, and gets
+       dark mode and hover for free instead of needing a `.dark` block
+       to keep in sync by hand. */
+    color: var(--button-secondary-text-color);
+    background: var(--button-secondary-background-fill);
+    border: var(--button-border-width) solid var(--button-secondary-border-color);
+    border-radius: var(--button-large-radius);
+    box-shadow: var(--button-secondary-shadow);
+    transition: background 0.2s, border 0.2s, color 0.2s, box-shadow 0.2s;
+}
+.v2-path-browse:hover,
+.v2-path-browse:focus {
+    color: var(--button-secondary-text-color-hover);
+    background: var(--button-secondary-background-fill-hover);
+    border-color: var(--button-secondary-border-color-hover);
+    box-shadow: var(--button-secondary-shadow-hover);
+    outline: none;
 }
 
-/* Config accordion quieter than parameter sections */
-.v2-training-tab .v2-config > .label-wrap {
-  opacity: 0.92;
-}
-
-/* ── live filter hide (class only — never touch style.display) ──────── */
+/* ── live filter hide (class only — never touch style.display, so arch-
+   driven visibility from tab_builder.py's gr.update(visible=...) always
+   wins once the filter is cleared) ─────────────────────────────────────── */
 .v2-filter-hidden {
-  display: none !important;
+    display: none !important;
 }
 
-/* ── filter map host: zero footprint ────────────────────────────────── */
+/* ── filter map host: zero-footprint data carrier for the filter JS ────── */
 .v2-filter-map-host {
-  display: none !important;
-  height: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow: hidden !important;
+    display: none !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
 }
 
-/* ── version footer (shared class with launcher) ────────────────────── */
-.ver-class {
-  font-family: var(--v2-font-mono);
-  font-size: 0.8rem;
-  opacity: 0.7;
-  margin-top: 0.75rem;
-}
-
-/* ── dark-mode sanity ───────────────────────────────────────────────── */
-.dark .v2-training-tab .v2-toolbar {
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.dark .v2-training-tab .v2-section > .label-wrap.open {
-  box-shadow: inset 3px 0 0 0 var(--v2-accent);
-}
-
-/* ── focus visibility ───────────────────────────────────────────────── */
-.v2-training-tab .v2-field:focus-within {
-  outline: 1px solid var(--v2-accent-dim);
-  outline-offset: 2px;
-  border-radius: var(--v2-radius);
-}
-
-/* ── reduced motion ─────────────────────────────────────────────────── */
+/* ── reduced motion ──────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .v2-training-tab * {
-    transition: none !important;
-    animation: none !important;
-  }
-}
-
-/*
- * Hover-reveal for FieldSpec info= text (mirrors assets/style.css + info_tooltip.js).
- *
- * Gradio renders info as a div wrapping a .prose span. Prefer structural
- * selectors under .v2-app so we do not depend solely on Svelte scope hashes
- * (those change across Gradio upgrades). The hashed rule is kept as a
- * Gradio-5.34.2 fallback for the current build.
- *
- * Reveal is class-driven (.info-tooltip-visible) by assets/js/info_tooltip.js,
- * which positions the tooltip with position:fixed (Accordion overflow:hidden
- * would clip absolute descendants).
- */
-.v2-app label > div:has(> .prose),
-.v2-app .container > div:has(> .prose),
-.v2-app .block > div:has(> .prose),
-.v2-app .svelte-j9uq24:has(> .prose) {
-  position: fixed;
-  z-index: 9999;
-  width: max-content;
-  min-width: 12em;
-  max-width: 26em;
-  max-height: 16em;
-  overflow-y: auto;
-  padding: 0.5em 0.75em;
-  border-radius: var(--block-radius, 6px);
-  background: rgba(20, 20, 20, 0.85);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border: 1px solid var(--border-color-primary, #555);
-  box-shadow: var(--shadow-drop, 0 2px 8px rgba(0, 0, 0, 0.3));
-  color: #f0f0f0;
-  font-size: 0.85rem;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity 0.15s ease;
-}
-
-.v2-app label > div.info-tooltip-visible:has(> .prose),
-.v2-app .container > div.info-tooltip-visible:has(> .prose),
-.v2-app .block > div.info-tooltip-visible:has(> .prose),
-.v2-app .svelte-j9uq24.info-tooltip-visible:has(> .prose) {
-  opacity: 1;
-  visibility: visible;
+    .v2-training-tab * {
+        transition: none !important;
+        animation: none !important;
+    }
 }

@@ -8,13 +8,9 @@ gui_only source widgets like `lora_type`, `xformers_radio`) and returns a
 dict of TOML-key -> value overrides to merge on top of the plain FieldSpec
 values before calling `build_run_config`.
 
-Coverage note (2026-07-11, B1 checkpoint): the universal derivations below
-are implemented and exercised by the equivalence harness. `network_module`
-and `network_args`'s full LoRA_type-dependent branching (LyCORIS presets,
-Flux1 block dims, LoRA+ ratios, GGPO, native LoHa/LoKr) is NOT yet fully
-ported -- this is a known, tracked gap (see B1 status notes), not silently
-missing. Presets that depend on those branches will show as equivalence
-diffs until this is completed.
+Coverage note (2026-07-12): `network_module`/`network_args`'s LoRA_type-
+dependent branching is now ported (see `_derive_network_module_and_args`
+below), mirroring `kohya_gui/lora_gui.py:1626-1860`.
 """
 
 import math
@@ -31,6 +27,300 @@ TEXT_ENCODER_OUTPUTS_ARCHS = {
     "anima",
     "lumina",
 }
+
+# Ported from kohya_gui/lora_gui.py:86-93.
+LYCORIS_PRESETS_CHOICES = [
+    "attn-mlp",
+    "attn-only",
+    "full",
+    "full-lin",
+    "unet-transformer-only",
+    "unet-convblock-only",
+]
+
+# Native sd-scripts LoHa/LoKr (networks.loha / networks.lokr) -- distinct from
+# LyCORIS/LoHa and LyCORIS/LoKr which use the third-party lycoris.kohya
+# module. Ported from kohya_gui/lora_gui.py:889-949.
+
+
+def _append_loraplus_network_args(
+    network_args: str,
+    loraplus_lr_ratio,
+    loraplus_unet_lr_ratio,
+    loraplus_text_encoder_lr_ratio,
+) -> str:
+    # sd-scripts only reads loraplus_* via --network_args (networks/lora.py's
+    # create_network kwargs), not as top-level config keys, so they must be
+    # appended here rather than written as their own config_toml_data entries.
+    if loraplus_lr_ratio:
+        network_args += f" loraplus_lr_ratio={loraplus_lr_ratio}"
+    if loraplus_unet_lr_ratio:
+        network_args += f" loraplus_unet_lr_ratio={loraplus_unet_lr_ratio}"
+    if loraplus_text_encoder_lr_ratio:
+        network_args += (
+            f" loraplus_text_encoder_lr_ratio={loraplus_text_encoder_lr_ratio}"
+        )
+    return network_args
+
+
+def _build_native_loha_lokr_network_args(
+    *,
+    is_lokr: bool,
+    conv_dim=0,
+    conv_alpha=1,
+    use_tucker: bool = False,
+    factor=-1,
+    rank_dropout=0,
+    module_dropout=0,
+) -> str:
+    """Build optional --network_args for networks.loha / networks.lokr.
+
+    Only non-default optional values are emitted so the backend can apply its
+    architecture auto-detection defaults (targets, exclude_patterns).
+    conv_dim=0 means "do not train Conv2d 3x3+ layers".
+    """
+    parts: list[str] = []
+    if conv_dim is not None and float(conv_dim) > 0:
+        parts.append(f"conv_dim={int(conv_dim)}")
+        if conv_alpha is not None:
+            alpha_val = (
+                int(conv_alpha) if float(conv_alpha) == int(conv_alpha) else conv_alpha
+            )
+            parts.append(f"conv_alpha={alpha_val}")
+    if use_tucker:
+        parts.append("use_tucker=True")
+    if is_lokr and factor is not None and int(factor) != -1:
+        parts.append(f"factor={int(factor)}")
+    if rank_dropout is not None and float(rank_dropout) > 0:
+        parts.append(f"rank_dropout={rank_dropout}")
+    if module_dropout is not None and float(module_dropout) > 0:
+        parts.append(f"module_dropout={module_dropout}")
+    return (" " + " ".join(parts)) if parts else ""
+
+
+def _derive_network_module_and_args(values: dict, arch_key: str) -> tuple:
+    """Port of the LoRA_type -> network_module/network_args branching in
+    kohya_gui/lora_gui.py:1626-1860 (train_model, right before
+    config_toml_data is built).
+    """
+    lora_type = values.get("LoRA_type", "Standard")
+    lycoris_preset = values.get("LyCORIS_preset", "full")
+    conv_dim = values.get("conv_dim", 1)
+    conv_alpha = values.get("conv_alpha", 1)
+    use_tucker = values.get("use_tucker")
+    rank_dropout = values.get("rank_dropout") or 0
+    module_dropout = values.get("module_dropout") or 0
+    bypass_mode = values.get("bypass_mode")
+    dora_wd = values.get("dora_wd")
+    use_scalar = values.get("use_scalar")
+    rank_dropout_scale = values.get("rank_dropout_scale")
+    train_norm = values.get("train_norm")
+    constrain = values.get("constrain")
+    rescaled = values.get("rescaled")
+    unit = values.get("unit", 1)
+    factor = values.get("factor", -1)
+    use_cp = values.get("use_cp")
+    decompose_both = values.get("decompose_both")
+    train_on_input = values.get("train_on_input")
+
+    network_module = None
+    network_args = ""
+
+    if lora_type == "LyCORIS/BOFT":
+        network_module = "lycoris.kohya"
+        network_args = f" preset={lycoris_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} module_dropout={module_dropout} use_tucker={use_tucker} rank_dropout={rank_dropout} rank_dropout_scale={rank_dropout_scale} algo=boft train_norm={train_norm}"
+
+    if lora_type == "LyCORIS/Diag-OFT":
+        network_module = "lycoris.kohya"
+        network_args = f" preset={lycoris_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} module_dropout={module_dropout} use_tucker={use_tucker} rank_dropout={rank_dropout} rank_dropout_scale={rank_dropout_scale} constraint={constrain} rescaled={rescaled} algo=diag-oft train_norm={train_norm}"
+
+    if lora_type == "LyCORIS/DyLoRA":
+        network_module = "lycoris.kohya"
+        network_args = f' preset={lycoris_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} use_tucker={use_tucker} block_size={unit} rank_dropout={rank_dropout} module_dropout={module_dropout} algo="dylora" train_norm={train_norm}'
+
+    if lora_type == "LyCORIS/GLoRA":
+        network_module = "lycoris.kohya"
+        network_args = f' preset={lycoris_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} use_tucker={use_tucker} rank_dropout={rank_dropout} module_dropout={module_dropout} rank_dropout_scale={rank_dropout_scale} algo="glora" train_norm={train_norm}'
+
+    if lora_type == "LyCORIS/iA3":
+        network_module = "lycoris.kohya"
+        network_args = f" preset={lycoris_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} train_on_input={train_on_input} algo=ia3"
+
+    if lora_type in ("LoCon", "LyCORIS/LoCon"):
+        network_module = "lycoris.kohya"
+        network_args = f" preset={lycoris_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} use_tucker={use_tucker} rank_dropout={rank_dropout} bypass_mode={bypass_mode} dora_wd={dora_wd} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout_scale={rank_dropout_scale} algo=locon train_norm={train_norm}"
+
+    if lora_type == "LyCORIS/LoHa":
+        network_module = "lycoris.kohya"
+        network_args = f" preset={lycoris_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} use_tucker={use_tucker} rank_dropout={rank_dropout} bypass_mode={bypass_mode} dora_wd={dora_wd} module_dropout={module_dropout} use_tucker={use_tucker} use_scalar={use_scalar} rank_dropout_scale={rank_dropout_scale} algo=loha train_norm={train_norm}"
+
+    if lora_type == "LyCORIS/LoKr":
+        network_module = "lycoris.kohya"
+        network_args = f" preset={lycoris_preset} conv_dim={conv_dim} conv_alpha={conv_alpha} use_tucker={use_tucker} rank_dropout={rank_dropout} bypass_mode={bypass_mode} dora_wd={dora_wd} module_dropout={module_dropout} factor={factor} use_cp={use_cp} use_scalar={use_scalar} decompose_both={decompose_both} rank_dropout_scale={rank_dropout_scale} algo=lokr train_norm={train_norm}"
+
+    if lora_type == "LyCORIS/Native Fine-Tuning":
+        network_module = "lycoris.kohya"
+        network_args = f" preset={lycoris_preset} rank_dropout={rank_dropout} module_dropout={module_dropout} rank_dropout_scale={rank_dropout_scale} algo=full train_norm={train_norm}"
+
+    if lora_type == "Flux1":
+        network_module = "networks.lora_flux"
+        kohya_lora_var_list = [
+            "img_attn_dim",
+            "img_mlp_dim",
+            "img_mod_dim",
+            "single_dim",
+            "txt_attn_dim",
+            "txt_mlp_dim",
+            "txt_mod_dim",
+            "single_mod_dim",
+            "in_dims",
+            "train_double_block_indices",
+            "train_single_block_indices",
+        ]
+        train_lora_ggpo = values.get("train_lora_ggpo")
+        if train_lora_ggpo:
+            kohya_lora_var_list += ["ggpo_beta", "ggpo_sigma"]
+        kohya_lora_vars = {
+            key: values.get(key)
+            for key in kohya_lora_var_list
+            if values.get(key)
+        }
+        if values.get("split_mode"):
+            kohya_lora_vars["train_blocks"] = "single"
+
+        if values.get("split_qkv"):
+            kohya_lora_vars["split_qkv"] = True
+        if values.get("train_t5xxl"):
+            kohya_lora_vars["train_t5xxl"] = True
+
+        for key, value in kohya_lora_vars.items():
+            if value:
+                network_args += f" {key}={value}"
+
+    if lora_type == "Flux1 OFT":
+        network_module = "networks.oft_flux"
+        if values.get("enable_all_linear"):
+            network_args += " enable_all_linear=True"
+
+    if lora_type == "HunyuanImage-2.1":
+        network_module = "networks.lora_hunyuan_image"
+
+    if lora_type == "Anima":
+        network_module = "networks.lora_anima"
+
+    if lora_type == "Lumina":
+        network_module = "networks.lora_lumina"
+
+    if lora_type == "Kohya LoHa":
+        network_module = "networks.loha"
+        network_args = _build_native_loha_lokr_network_args(
+            is_lokr=False,
+            conv_dim=conv_dim,
+            conv_alpha=conv_alpha,
+            use_tucker=use_tucker,
+            factor=factor,
+            rank_dropout=rank_dropout,
+            module_dropout=module_dropout,
+        )
+
+    if lora_type == "Kohya LoKr":
+        network_module = "networks.lokr"
+        network_args = _build_native_loha_lokr_network_args(
+            is_lokr=True,
+            conv_dim=conv_dim,
+            conv_alpha=conv_alpha,
+            use_tucker=use_tucker,
+            factor=factor,
+            rank_dropout=rank_dropout,
+            module_dropout=module_dropout,
+        )
+
+    if lora_type in ("Kohya LoCon", "Standard"):
+        network_module = "networks.lora_sd3" if arch_key == "sd3" else "networks.lora"
+        kohya_lora_var_list = [
+            "down_lr_weight",
+            "mid_lr_weight",
+            "up_lr_weight",
+            "block_lr_zero_threshold",
+            "block_dims",
+            "block_alphas",
+            "conv_block_dims",
+            "conv_block_alphas",
+            "rank_dropout",
+            "module_dropout",
+        ]
+        kohya_lora_vars = {
+            key: values.get(key)
+            for key in kohya_lora_var_list
+            if values.get(key)
+        }
+
+        if lora_type == "Kohya LoCon":
+            network_args += f' conv_dim="{conv_dim}" conv_alpha="{conv_alpha}"'
+
+        for key, value in kohya_lora_vars.items():
+            if value:
+                network_args += f" {key}={value}"
+
+    if lora_type == "LoRA-FA":
+        network_module = "networks.lora_fa"
+        kohya_lora_var_list = [
+            "down_lr_weight",
+            "mid_lr_weight",
+            "up_lr_weight",
+            "block_lr_zero_threshold",
+            "block_dims",
+            "block_alphas",
+            "conv_block_dims",
+            "conv_block_alphas",
+            "rank_dropout",
+            "module_dropout",
+        ]
+        kohya_lora_vars = {
+            key: values.get(key)
+            for key in kohya_lora_var_list
+            if values.get(key)
+        }
+        network_args = ""
+        for key, value in kohya_lora_vars.items():
+            if value:
+                network_args += f" {key}={value}"
+
+    if lora_type == "Kohya DyLoRA":
+        network_module = "networks.dylora"
+        kohya_lora_var_list = [
+            "conv_dim",
+            "conv_alpha",
+            "down_lr_weight",
+            "mid_lr_weight",
+            "up_lr_weight",
+            "block_lr_zero_threshold",
+            "block_dims",
+            "block_alphas",
+            "conv_block_dims",
+            "conv_block_alphas",
+            "rank_dropout",
+            "module_dropout",
+            "unit",
+        ]
+        kohya_lora_vars = {
+            key: values.get(key)
+            for key in kohya_lora_var_list
+            if values.get(key)
+        }
+        network_args = ""
+        for key, value in kohya_lora_vars.items():
+            if value:
+                network_args += f" {key}={value}"
+
+    network_args = _append_loraplus_network_args(
+        network_args,
+        values.get("loraplus_lr_ratio"),
+        values.get("loraplus_unet_lr_ratio"),
+        values.get("loraplus_text_encoder_lr_ratio"),
+    )
+
+    return network_module, network_args.strip()
 
 
 def _count_dataset_steps(train_data_dir: str) -> int:
@@ -94,11 +384,19 @@ def derive(values: dict, arch_key: str) -> dict:
 
     # xformers radio -> xformers/sdpa mutually exclusive booleans. Matches
     # old GUI exactly (lora_gui.py ~2121/2143): True only on an exact string
-    # match, None otherwise -- including for stale presets that still store
-    # a plain boolean under the "xformers" key from an older GUI schema.
+    # match, None otherwise. Only applies when values["xformers"] still
+    # holds the raw v1 dropdown string -- a second derive() pass (every
+    # do_train/do_save via _build_values) sees the live Gradio checkbox's
+    # bool and must not reinterpret it as the dropdown string and null
+    # xformers back out.
     xformers_choice = values.get("xformers")
-    out["xformers"] = True if xformers_choice == "xformers" else None
-    out["sdpa"] = True if xformers_choice == "sdpa" else None
+    if isinstance(xformers_choice, str) and xformers_choice in (
+        "xformers",
+        "sdpa",
+        "none",
+    ):
+        out["xformers"] = True if xformers_choice == "xformers" else None
+        out["sdpa"] = True if xformers_choice == "sdpa" else None
 
     # wandb_run_name falls back to output_name when empty
     if not values.get("wandb_run_name"):
@@ -178,22 +476,14 @@ def derive(values: dict, arch_key: str) -> dict:
     else:
         out["no_half_vae"] = None
 
-    # lr_scheduler_args: space-separated, double-quoted "key=value" textbox
-    # -> list of strings; always a list, even when empty (lora_gui.py ~2017:
-    # `str(lr_scheduler_args).replace('"', "").split()`, no None fallback).
-    out["lr_scheduler_args"] = (
-        str(values.get("lr_scheduler_args") or "").replace('"', "").split()
-    )
-
-    # optimizer_args: same transform, but old GUI special-cases a literal
-    # empty-list widget value to None (lora_gui.py ~2079-2083: `if
-    # optimizer_args != [] else None`) -- a string widget value (including
-    # "") always goes through str().split(), which produces [] for "".
-    raw_optimizer_args = values.get("optimizer_args")
-    if raw_optimizer_args == []:
-        out["optimizer_args"] = None
-    else:
-        out["optimizer_args"] = str(raw_optimizer_args or "").replace('"', "").split()
+    # lr_scheduler_args / optimizer_args: left as the raw widget string here.
+    # FieldSpec.to_toml/from_toml (_to_arg_list/_from_arg_list) own the
+    # textbox<->list round-trip for both the run-config build and the
+    # import_json/normalize_widget_value display path; duplicating the split
+    # here double-applied it (a widget already showing "[]" from a prior
+    # derive() pass would get re-split into ["[]"], crashing
+    # optimizer.py's `key, value = arg.split("=")` -- see dreambooth
+    # optimizer_args regression, 2026-07-12).
 
     # text_encoder_lr: GUI single value -> 2-element list [te_lr, te_lr]
     # (t5xxl_lr override is a further per-arch composite not yet ported --
@@ -203,5 +493,9 @@ def derive(values: dict, arch_key: str) -> dict:
         out["text_encoder_lr"] = [te_lr, te_lr]
     else:
         out["text_encoder_lr"] = None
+
+    network_module, network_args = _derive_network_module_and_args(values, arch_key)
+    out["network_module"] = network_module
+    out["network_args"] = network_args
 
     return out

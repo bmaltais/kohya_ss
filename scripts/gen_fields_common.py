@@ -87,6 +87,13 @@ def action_to_widget_and_default(action):
                 deduped.append(c)
         return "DROPDOWN", repr(default), coercer, repr(deduped)
     if action.nargs not in (None, 1) or isinstance(action.default, (list, tuple)):
+        # Space-separated "key=value" args (optimizer_args, lr_scheduler_args,
+        # network_args): the widget holds a single string but sd-scripts
+        # expects a list on --config_file. Round-trip via _to_arg_list /
+        # _from_arg_list, mirroring the old GUIs' `str(x).replace('"',
+        # "").split()` behavior (see e.g. kohya_gui/dreambooth_gui.py:1028-1032).
+        if action.nargs == "*" and action.type is str:
+            return "TEXTBOX", repr(""), "ARGLIST", None
         return (
             "TEXTBOX",
             repr(action.default if action.default is not None else ""),
@@ -105,6 +112,18 @@ def action_to_widget_and_default(action):
             "NUMBER",
             repr(action.default if action.default is not None else 0.0),
             "_to_float",
+            None,
+        )
+    if getattr(action.type, "__name__", None) == "int_or_float":
+        # sd-scripts' local `int_or_float` argparse type (lr_warmup_steps,
+        # lr_decay_steps): accepts an int step count or a float (<1) ratio
+        # of train steps. A bare Gradio TEXTBOX submits a str, so without
+        # this coercer the value round-trips into the run TOML as a string
+        # and crashes get_scheduler_fix's `int - str` arithmetic.
+        return (
+            "TEXTBOX",
+            repr(action.default if action.default is not None else 0),
+            "_to_int_or_float",
             None,
         )
     return (
@@ -126,11 +145,16 @@ def _safe_help(action) -> str | None:
 
 
 def layout_presentation(name: str, action=None):
-    """Return (group, label_repr, info_repr, widget_override, choices_override).
+    """Return (group, label_repr, info_repr, widget_override, choices_override, default_override).
 
-    widget_override / choices_override are None unless name is in CURATED_CHOICES.
+    widget_override / choices_override / default_override are None unless the
+    field is listed in CURATED_CHOICES / CURATED_DEFAULTS.
     """
-    from kohya_gui_v2.layout_map import CURATED_CHOICES, layout_for
+    from kohya_gui_v2.layout_map import (
+        CURATED_CHOICES,
+        CURATED_DEFAULTS,
+        layout_for,
+    )
 
     lay = layout_for(name)
     group = lay.section
@@ -156,12 +180,17 @@ def layout_presentation(name: str, action=None):
             choices = [""] + choices
         choices_override = repr(choices)
 
+    default_override = None
+    if name in CURATED_DEFAULTS:
+        default_override = repr(CURATED_DEFAULTS[name])
+
     return (
         group,
         repr(label),
         repr(info) if info else "None",
         widget_override,
         choices_override,
+        default_override,
     )
 
 
@@ -176,18 +205,25 @@ def emit_field_spec_line(
     action=None,
 ) -> str:
     """One FieldSpec(...) source line for a generated fields module."""
-    group, label_repr, info_repr, widget_override, choices_override = (
-        layout_presentation(name, action=action)
-    )
+    (
+        group,
+        label_repr,
+        info_repr,
+        widget_override,
+        choices_override,
+        default_override,
+    ) = layout_presentation(name, action=action)
     if widget_override:
         widget = widget_override
     if choices_override is not None:
         choices_repr = choices_override
-        # Ensure default is in curated list or leave as-is (allow_custom at runtime)
-        # If default was None/empty for optimizer etc., keep default_repr from argparse
+    if default_override is not None:
+        default_repr = default_override
 
     coerce_kwargs = ""
-    if coercer != "None":
+    if coercer == "ARGLIST":
+        coerce_kwargs = ", to_toml=_to_arg_list, from_toml=_from_arg_list"
+    elif coercer != "None":
         coerce_kwargs = f", to_toml={coercer}, from_toml={coercer}"
     choices_kwargs = f", choices={choices_repr}" if choices_repr else ""
     info_kwargs = f", info={info_repr}" if info_repr != "None" else ""

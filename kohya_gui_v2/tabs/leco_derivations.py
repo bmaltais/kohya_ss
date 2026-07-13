@@ -32,25 +32,24 @@ def derive(values: dict, arch_key: str) -> dict:
     if arch_key == "sdxl":
         out["clip_skip"] = None
 
-    # xformers dropdown ("none"/"sdpa"/"xformers") -> xformers/sdpa
-    # mutually exclusive booleans (arch-matrix-leco.md #37-38).
-    xformers_choice = values.get("xformers")
-    out["xformers"] = True if xformers_choice == "xformers" else None
-    out["sdpa"] = True if xformers_choice == "sdpa" else None
+    # xformers/sdpa: FieldSpecs are now the direct trainer-facing booleans
+    # (two independent checkboxes), not a dropdown -- the one-time
+    # string->boolean split from a legacy JSON's "xformers" dropdown value
+    # (arch-matrix-leco.md #37-38) happens in legacy_import.import_json,
+    # against the raw JSON dict, not here. This function also runs on every
+    # do_train/do_save via tab_builder.py's _build_values using the live
+    # (already-boolean) checkbox values, so re-deriving from a
+    # "xformers"/"sdpa" string match here would always fail and null both
+    # fields back out.
 
-    # network_args / optimizer_args / lr_scheduler_args: space-separated,
-    # quote-stripped textbox -> list of strings (arch-matrix-leco.md #15,
-    # #21, #23). optimizer_args's old-GUI guard against `!= []` is
-    # practically always true for a string widget (dead in practice, per
-    # the matrix note) -- ported faithfully as a plain split, not a
-    # conditional None.
-    out["network_args"] = str(values.get("network_args") or "").replace('"', "").split()
-    out["optimizer_args"] = (
-        str(values.get("optimizer_args") or "").replace('"', "").split()
-    )
-    out["lr_scheduler_args"] = (
-        str(values.get("lr_scheduler_args") or "").replace('"', "").split()
-    )
+    # network_args / optimizer_args / lr_scheduler_args: left as the raw
+    # widget string here. FieldSpec.to_toml/from_toml (_to_arg_list/
+    # _from_arg_list) own the textbox<->list round-trip for both the
+    # run-config build and the import_json/normalize_widget_value display
+    # path; duplicating the split here double-applied it (a widget already
+    # showing "[]" from a prior derive() pass would get re-split into
+    # ["[]"], crashing optimizer.py's `key, value = arg.split("=")` -- see
+    # dreambooth optimizer_args regression, 2026-07-12).
 
     # wandb_run_name falls back to output_name when empty
     # (arch-matrix-leco.md #56).

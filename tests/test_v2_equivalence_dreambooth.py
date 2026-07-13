@@ -53,6 +53,13 @@ COSMETIC_ALLOWLIST = {
     "train_inpainting",
     "huber_scale",
     "max_grad_norm",
+    # old GUI always writes an empty list for an unset optimizer/scheduler
+    # args textbox; v2's FieldSpec.to_toml (_to_arg_list) returns None for
+    # an empty string, which the falsy-drop filter omits entirely. Both
+    # `optimizer_args = []` and an absent key are no-ops to sd-scripts
+    # (`args.optimizer_args is not None and len(args.optimizer_args) > 0`).
+    "lr_scheduler_args",
+    "optimizer_args",
 }
 
 # GUI kwarg name -> v2 FieldSpec (TOML key) name.
@@ -236,6 +243,17 @@ def test_dreambooth_equivalence(preset_path):
     for gui_name, v2_name in RENAME_MAP.items():
         if gui_name in cfg_keys:
             cfg_keys.add(v2_name)
+    if "xformers" in cfg_keys:
+        cfg_keys.add("sdpa")
+
+    # xformers/sdpa: the string->boolean split now happens once in
+    # legacy_import.import_json (against the raw JSON value), not inside
+    # derive() -- mirror that here since this harness calls derive()
+    # directly rather than going through import_json.
+    if "xformers" in raw_values:
+        xformers_choice = raw_values["xformers"]
+        raw_values["xformers"] = True if xformers_choice == "xformers" else None
+        raw_values["sdpa"] = True if xformers_choice == "sdpa" else None
 
     v2_values = {}
     for spec in DREAMBOOTH_REGISTRY:
