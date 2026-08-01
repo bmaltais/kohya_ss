@@ -44,7 +44,7 @@ jobs:
 
       - name: Docker meta:${{ github.ref_name }}
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository_owner }}/kohya-ss-gui
           flavor: |
