@@ -1,8 +1,13 @@
---pre --extra-index-url https://download.pytorch.org/whl/nightly/cpu
-torch==2.8.0.*
-torchvision==0.22.*
-git+https://github.com/bitsandbytes-foundation/bitsandbytes.git/#0.45.5
-tensorflow-macos 
+# macOS arm64 (Apple Silicon): the default PyPI wheels already ship MPS support,
+# so no additional PyTorch index is needed here.
+# torch and torchvision must be a matching pair: torchvision 0.23.0 requires
+# exactly torch 2.8.0 (0.22.x requires torch 2.7.x). The previous
+# torch 2.8.0 / torchvision 0.22 pair was unsatisfiable and broke pip resolution.
+torch==2.8.0
+torchvision==0.23.0
+# bitsandbytes omitted: CUDA/ROCm-only, unsupported on macOS arm64 / MPS.
+# 8-bit optimizers (AdamW8bit, etc.) are therefore unavailable on this platform.
+tensorflow-macos
 tensorflow-metal
 tensorboard==2.14.1
 onnxruntime==1.17.1
