@@ -1581,7 +1581,7 @@ def check_duplicate_filenames(
 
 
 def validate_file_path(file_path: str) -> bool:
-    if file_path == "":
+    if not file_path:
         return True
     msg = f"Validating {file_path} existence..."
     if not os.path.isfile(file_path):
@@ -1596,7 +1596,7 @@ def validate_folder_path(
     can_be_written_to: bool = False,
     create_if_not_exists: bool = False,
 ) -> bool:
-    if folder_path == "":
+    if not folder_path:
         return True
     msg = f"Validating {folder_path} existence{' and writability' if can_be_written_to else ''}..."
     if not os.path.isdir(folder_path):

@@ -2756,6 +2756,7 @@ def lora_tab(
                             network_weights = gr.Textbox(
                                 label="Network weights",
                                 placeholder="(Optional)",
+                                value="",
                                 info="Path to an existing LoRA network weights to resume training from",
                             )
                             network_weights_file = gr.Button(

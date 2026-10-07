@@ -629,5 +629,32 @@ class TestLoraGuiDictAdapterWiring(unittest.TestCase):
         self.assertEqual(result[self.components["training_preset"]], direct_result[-2])
 
 
+class TestNetworkWeightsDefaultsToEmptyString(unittest.TestCase):
+    """The LoRA tab's "Network weights" Textbox must default to "".
+
+    Gradio defaults a Textbox built without `value=` to `None`, and
+    train_model() validates that optional field as a path *before* deciding
+    whether it was filled in. Leaving it untouched therefore reached
+    `os.path.isfile(None)` and turned the train button into a TypeError on
+    every run. The sibling tabs (leco_gui, anima_lllite_gui) already seed
+    their equivalent field from config.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        with gr.Blocks():
+            lora_gui.lora_tab(headless=True, config=KohyaSSGUIConfig())
+        cls.registry = dict(lora_gui.last_built_field_registry)
+
+    def test_defaults_to_empty_string(self):
+        self.assertEqual(self.registry["network_weights"].value, "")
+
+    def test_default_passes_the_preflight_that_used_to_crash(self):
+        # The exact call that raised TypeError for a `None` default.
+        self.assertTrue(
+            lora_gui.validate_file_path(self.registry["network_weights"].value)
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
