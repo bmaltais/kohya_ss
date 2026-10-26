@@ -13,7 +13,7 @@ Content-only; no code. Owned jointly by whoever maintains the referenced feature
 - `Installation/` — per-platform/package-manager install guides (`pip_linux.md`, `pip_windows.md`, `uv_linux.md`, `uv_windows.md`).
 - `LoRA/`, `Finetuning/` — feature-specific guides, each with a `top_level.md` overview.
 - Root-level `*_README.md` / `*_README-ja.md` / `*_README-zh.md` pairs are translated copies — when updating an English doc that has translated siblings, note in the PR that translations are now stale (translations are community-maintained, not auto-synced).
-- `image_folder_structure.md`, `troubleshooting_tesla_v100.md`, `installation_docker.md`, `installation_runpod.md`, `installation_novita.md` are standalone single-topic guides, not part of a series.
+- `image_folder_structure.md`, `troubleshooting_tesla_v100.md`, `installation_docker.md`, `installation_runpod.md`, `installation_novita.md`, `installation_runcrate.md` are standalone single-topic guides, not part of a series.
 
 ## Work Guidance
 

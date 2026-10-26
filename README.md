@@ -27,7 +27,7 @@ Support for Linux and macOS is also available. While Linux support is actively m
     - [`uv` vs `pip` – What's the Difference?](#uv-vs-pip--whats-the-difference)
   - [Cloud Installation Overview](#cloud-installation-overview)
     - [Colab](#-colab)
-    - [Runpod, Novita, Docker](#runpod-novita-docker)
+    - [Runpod, Novita, Runcrate, Docker](#runpod-novita-runcrate-docker)
   - [Offline / air-gapped GUI shell](#offline--air-gapped-gui-shell)
 - [Custom Path Defaults](#custom-path-defaults)
 - [Server Options](#server-options)
@@ -100,12 +100,13 @@ For browser-based training without local setup, use this Colab notebook:
 **Special thanks**  
 I would like to express my gratitude to camenduru for their valuable contribution.
 
-#### Runpod, Novita, Docker
+#### Runpod, Novita, Runcrate, Docker
 
 These options are for users running training on hosted GPU infrastructure or containers.
 
 - **[Runpod setup](docs/installation_runpod.md)** – Ready-made GPU background training via templates.
 - **[Novita setup](docs/installation_novita.md)** – Similar to Runpod, but integrated into the Novita UI.
+- **[Runcrate setup](docs/installation_runcrate.md)** – Hourly GPU virtual machines; install with uv and open the GUI through an HTTPS link.
 - **[Docker setup](docs/installation_docker.md)** – For developers/sysadmins using containerized environments.
 
 ### Offline / air-gapped GUI shell
