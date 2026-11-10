@@ -359,9 +359,9 @@ class TestMossImageAdvancedFieldVisibility(unittest.TestCase):
                 break
         assert cls.dep_fn is not None, "update_LoRA_settings not wired"
 
-    def _visibility(self, lora_type):
+    def _visibility(self, lora_type, moss_image_checkbox=False):
         """Return {label-or-component: visible} for handler outputs."""
-        results = self.dep_fn.fn(lora_type)
+        results = self.dep_fn.fn(lora_type, moss_image_checkbox)
         assert len(results) == len(self.dep_fn.outputs)
         vis = {}
         for update, comp in zip(results, self.dep_fn.outputs):
@@ -379,36 +379,82 @@ class TestMossImageAdvancedFieldVisibility(unittest.TestCase):
     )
 
     def test_moss_hides_ddpm_only_advanced_controls(self):
-        vis = self._visibility("MOSS-Image")
+        vis = self._visibility("MOSS-Image", True)
         for label in self.HIDDEN_FOR_MOSS:
             self.assertIs(
                 vis.get(label), False, f"{label} must be hidden for MOSS-Image"
             )
 
     def test_moss_hides_noise_offset_row(self):
-        # The wiring ends with [..., loraplus, noise_offset_row, clip_skip,
-        # max_token_length, min_snr_gamma, debiased_estimation_loss,
-        # v_pred_like_loss, scale_v_pred_loss_like_noise_pred] — so the
-        # noise-offset Row is the 7th output from the end (a bare gr.Row
-        # with no label to key on).
-        results = self.dep_fn.fn("MOSS-Image")
-        noise_row_update = results[-7]
-        self.assertEqual(type(self.dep_fn.outputs[-7]).__name__, "Row")
+        # The wiring has [..., loraplus, noise_offset_row, clip_skip, ...]:
+        # the noise-offset Row is the bare gr.Row right before the Clip skip
+        # output (it has no label to key on, and its position from the end
+        # changes whenever another output is appended).
+        clip_skip_index = [
+            i
+            for i, c in enumerate(self.dep_fn.outputs)
+            if getattr(c, "label", None) == "Clip skip"
+        ][0]
+        row_index = clip_skip_index - 1
+        self.assertEqual(type(self.dep_fn.outputs[row_index]).__name__, "Row")
+        results = self.dep_fn.fn("MOSS-Image", True)
         self.assertIs(
-            noise_row_update.constructor_args.get("visible"),
+            results[row_index].constructor_args.get("visible"),
             False,
             "noise_offset_row must be hidden for MOSS-Image",
         )
-        results_std = self.dep_fn.fn("Standard")
+        results_std = self.dep_fn.fn("Standard", False)
         self.assertIs(
-            results_std[-7].constructor_args.get("visible"),
+            results_std[row_index].constructor_args.get("visible"),
             True,
             "noise_offset_row must be visible again for Standard",
         )
 
+    # The MOSS-Image accordion owns the VAE / attention mode settings, so the
+    # Advanced duplicates must be hidden for every MOSS-compatible LoRA type.
+    HIDDEN_FOR_MOSS_DUPLICATES = (
+        "VAE (Optional: Path to checkpoint of vae for training)",
+        "Memory efficient attention",
+        "CrossAttention",
+    )
+
+    def test_moss_hides_advanced_vae_and_attention_duplicates(self):
+        for lora_type, moss in (("MOSS-Image", True), ("Kohya LoHa", True)):
+            vis = self._visibility(lora_type, moss)
+            for label in self.HIDDEN_FOR_MOSS_DUPLICATES:
+                self.assertIs(
+                    vis.get(label),
+                    False,
+                    f"{label} must be hidden while MOSS-Image is selected",
+                )
+        vis = self._visibility("Standard", False)
+        for label in self.HIDDEN_FOR_MOSS_DUPLICATES:
+            self.assertIs(
+                vis.get(label),
+                True,
+                f"{label} must stay visible without MOSS-Image",
+            )
+
+    def test_moss_hides_vae_buttons_with_the_dropdown(self):
+        clip_skip_index = [
+            i
+            for i, c in enumerate(self.dep_fn.outputs)
+            if getattr(c, "label", None) == "Clip skip"
+        ][0]
+        # clip_skip is followed by min_snr_gamma, debiased, v_pred,
+        # scale_v_pred, then the VAE dropdown / refresh / open buttons.
+        vae_outputs = slice(clip_skip_index + 5, clip_skip_index + 8)
+        results = self.dep_fn.fn("MOSS-Image", True)
+        for update, comp in zip(results[vae_outputs], self.dep_fn.outputs[vae_outputs]):
+            self.assertIs(
+                update.constructor_args.get("visible"),
+                False,
+                f"{type(comp).__name__} of the Advanced VAE control must be hidden",
+            )
+
     def test_other_types_keep_advanced_controls_visible(self):
         for lora_type in ("Standard", "Kohya LoCon", "LyCORIS/LoCon", "Flux1"):
-            vis = self._visibility(lora_type)
+            vis = self._visibility(lora_type, False)
             for label in self.HIDDEN_FOR_MOSS:
                 self.assertIs(
                     vis.get(label),
@@ -417,8 +463,55 @@ class TestMossImageAdvancedFieldVisibility(unittest.TestCase):
                 )
 
     def test_handler_output_arity_matches_wiring(self):
-        results = self.dep_fn.fn("MOSS-Image")
+        results = self.dep_fn.fn("MOSS-Image", True)
         self.assertEqual(len(results), len(self.dep_fn.outputs))
+
+
+class TestMossImageLoRATypeChoices(unittest.TestCase):
+    """With the MOSS-Image source model selected, the LoRA type dropdown must
+    only offer what sd-scripts can train on a MossImageBlock DiT
+    (networks.lora_generic, networks.loha, networks.lokr).
+
+    networks.lora ("Standard") and lycoris.kohya match modules by their
+    SD/Flux names and create 0 modules on MOSS-Image, so they are excluded.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        import gradio as gr
+
+        from kohya_gui.class_gui_config import KohyaSSGUIConfig
+
+        with gr.Blocks() as demo:
+            lora_gui.lora_tab(headless=True, config=KohyaSSGUIConfig())
+        cls.dep_fn = None
+        for fn in demo.fns.values():
+            if getattr(fn.fn, "__name__", "") == "update_lora_type_choices":
+                cls.dep_fn = fn
+                break
+        assert cls.dep_fn is not None, "update_lora_type_choices not wired"
+
+    def test_moss_checkbox_restricts_choices(self):
+        update = self.dep_fn.fn(True)
+        self.assertEqual(
+            list(update.constructor_args["choices"]),
+            lora_gui.MOSS_IMAGE_LORA_TYPE_CHOICES,
+        )
+        self.assertEqual(update.constructor_args["value"], "MOSS-Image")
+
+    def test_handler_reads_only_the_checkbox(self):
+        # GH #3606: reading LoRA_type here would act on the pre-load snapshot
+        # when a config load sets the checkbox and LoRA_type in one response,
+        # and the echoed value would clobber the just-loaded type.
+        self.assertEqual(len(self.dep_fn.inputs), 1)
+        self.assertEqual(self.dep_fn.inputs[0].label, "MOSS-Image")
+
+    def test_unchecking_restores_all_choices_without_echoing_a_value(self):
+        update = self.dep_fn.fn(False)
+        self.assertEqual(
+            list(update.constructor_args["choices"]), lora_gui.LORA_TYPE_CHOICES
+        )
+        self.assertNotIn("value", update.constructor_args)
 
 
 if __name__ == "__main__":

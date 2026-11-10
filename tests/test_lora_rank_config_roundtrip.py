@@ -13,7 +13,8 @@ The fix removes the slider inputs entirely and returns maximum-only updates,
 so Gradio keeps whatever value the load event set (clamping client-side when
 the maximum shrinks). These tests assert:
 
-1. the handler's inputs are exactly [LoRA_type] (no value snapshot race),
+1. the handler's inputs are [LoRA_type, MOSS-Image checkbox] (no value
+   snapshot race),
 2. conv_dim / network_dim updates carry `maximum` but never `value`,
 3. the extended maximum still applies to the rank-unbounded LyCORIS types,
 4. open_configuration round-trips non-default ranks for LyCORIS configs.
@@ -53,14 +54,19 @@ class TestUpdateLoraSettingsNoValueEcho(unittest.TestCase):
     def setUpClass(cls):
         cls.demo, cls.dep_fn = _build_tab()
 
-    def test_handler_inputs_are_only_the_dropdown(self):
+    def test_handler_inputs_do_not_snapshot_ranks(self):
         # conv_dim/network_dim must NOT be inputs: reading them snapshots the
-        # pre-load value and reintroduces the #3606 race.
-        self.assertEqual(len(self.dep_fn.inputs), 1)
+        # pre-load value and reintroduces the #3606 race. The LoRA type and
+        # the MOSS-Image source-model checkbox (a boolean, no rank snapshot)
+        # are the only inputs.
+        self.assertEqual(len(self.dep_fn.inputs), 2)
         self.assertEqual(self.dep_fn.inputs[0].label, "LoRA type")
+        self.assertEqual(self.dep_fn.inputs[1].label, "MOSS-Image")
+        input_labels = {getattr(c, "label", None) for c in self.dep_fn.inputs}
+        self.assertFalse(input_labels & set(RANK_LABELS))
 
     def _rank_updates(self, lora_type):
-        results = self.dep_fn.fn(lora_type)
+        results = self.dep_fn.fn(lora_type, False)
         self.assertEqual(len(results), len(self.dep_fn.outputs))
         updates = {}
         for update, comp in zip(results, self.dep_fn.outputs):
@@ -111,7 +117,7 @@ class TestUpdateLoraSettingsNoValueEcho(unittest.TestCase):
     def test_output_arity_matches_wiring(self):
         # The handler still returns one update per wired output (28 today);
         # Gradio raises if an event returns fewer values than outputs.
-        results = self.dep_fn.fn("LyCORIS/LoCon")
+        results = self.dep_fn.fn("LyCORIS/LoCon", False)
         self.assertEqual(len(results), len(self.dep_fn.outputs))
 
 

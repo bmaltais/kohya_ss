@@ -99,6 +99,40 @@ LYCORIS_PRESETS_CHOICES = [
     "unet-convblock-only",
 ]
 
+# Every LoRA type the GUI can train (mirrors the LoRA type dropdown).
+LORA_TYPE_CHOICES = [
+    "Anima",
+    "Flux1",
+    "Flux1 OFT",
+    "HunyuanImage-2.1",
+    "Kohya DyLoRA",
+    "Kohya LoCon",
+    "Kohya LoHa",
+    "Kohya LoKr",
+    "LoRA-FA",
+    "Lumina",
+    "MOSS-Image",
+    "LyCORIS/iA3",
+    "LyCORIS/BOFT",
+    "LyCORIS/Diag-OFT",
+    "LyCORIS/DyLoRA",
+    "LyCORIS/GLoRA",
+    "LyCORIS/LoCon",
+    "LyCORIS/LoHa",
+    "LyCORIS/LoKr",
+    "LyCORIS/Native Fine-Tuning",
+    "Standard",
+]
+
+# Types that can be trained on a MOSS-Image DiT. Only the sd-scripts networks
+# that auto-detect the architecture (networks/network_base.detect_arch_config)
+# work: networks.lora_generic ("MOSS-Image", a standard kohya LoRA checkpoint),
+# networks.loha and networks.lokr. networks.lora ("Standard") and
+# lycoris.kohya match modules by their SD/Flux names and create 0 modules on a
+# MossImageBlock DiT ("create LoRA for U-Net: 0 modules" -> no trainable
+# params), so they must not be offered for MOSS-Image.
+MOSS_IMAGE_LORA_TYPE_CHOICES = ["MOSS-Image", "Kohya LoHa", "Kohya LoKr"]
+
 
 def save_configuration(
     save_as_bool,
@@ -2252,6 +2286,9 @@ def train_model(
         multires_noise_iterations = 0
         debiased_estimation_loss = False
         min_snr_gamma = 0
+        # mem_eff_attn is SD/Flux U-Net attention; MOSS-Image selects its
+        # attention implementation with --attn_mode and ignores the flag.
+        mem_eff_attn = False
         v_pred_like_loss = 0
         scale_v_pred_loss_like_noise_pred = False
 
@@ -2914,29 +2951,7 @@ def lora_tab(
                 with gr.Row():
                     LoRA_type = gr.Dropdown(
                         label="LoRA type",
-                        choices=[
-                            "Anima",
-                            "Flux1",
-                            "Flux1 OFT",
-                            "HunyuanImage-2.1",
-                            "Kohya DyLoRA",
-                            "Kohya LoCon",
-                            "Kohya LoHa",
-                            "Kohya LoKr",
-                            "LoRA-FA",
-                            "Lumina",
-                            "MOSS-Image",
-                            "LyCORIS/iA3",
-                            "LyCORIS/BOFT",
-                            "LyCORIS/Diag-OFT",
-                            "LyCORIS/DyLoRA",
-                            "LyCORIS/GLoRA",
-                            "LyCORIS/LoCon",
-                            "LyCORIS/LoHa",
-                            "LyCORIS/LoKr",
-                            "LyCORIS/Native Fine-Tuning",
-                            "Standard",
-                        ],
+                        choices=LORA_TYPE_CHOICES,
                         value="Standard",
                     )
                     LyCORIS_preset = gr.Dropdown(
@@ -3237,9 +3252,37 @@ def lora_tab(
                     outputs=[train_lora_ggpo_row],
                 )
 
+                # MOSS-Image only has three compatible LoRA types (see
+                # MOSS_IMAGE_LORA_TYPE_CHOICES). Restrict the LoRA type dropdown
+                # while the MOSS-Image source model is selected so unsupported
+                # types (Standard / LyCORIS.* / Flux1 / ...) cannot be picked by
+                # mistake, and restore the full list when it is unchecked.
+                #
+                # LoRA_type is deliberately NOT an input here: a config load sets
+                # LoRA_type and the checkbox in one response, and a handler reading
+                # LoRA_type would act on the pre-load snapshot and then clobber the
+                # just-loaded value with its own. Checking the box therefore selects
+                # MOSS-Image explicitly, while unchecking only restores the choices
+                # (an invalid leftover pair is rejected by train_model's guard with
+                # an explicit message).
+                def update_lora_type_choices(moss_image_checkbox):
+                    if moss_image_checkbox:
+                        return gr.Dropdown(
+                            choices=MOSS_IMAGE_LORA_TYPE_CHOICES, value="MOSS-Image"
+                        )
+                    return gr.Dropdown(choices=LORA_TYPE_CHOICES)
+
+                source_model.moss_image_checkbox.change(
+                    fn=update_lora_type_choices,
+                    inputs=[source_model.moss_image_checkbox],
+                    outputs=[LoRA_type],
+                    show_progress=False,
+                )
+
                 # Show or hide LoCon conv settings depending on LoRA type selection
                 def update_LoRA_settings(
                     LoRA_type,
+                    moss_image_checkbox,
                 ) -> tuple:
                     log.debug("LoRA type changed...")
 
@@ -3255,7 +3298,14 @@ def lora_tab(
                     # moss_max_token_length). Hide them so users don't set
                     # values that are silently ignored. ip_noise_gamma IS
                     # applied by the flow path, so it stays visible.
-                    is_moss_image = LoRA_type == "MOSS-Image"
+                    # The MOSS-Image accordion owns the VAE / attention mode /
+                    # token length settings for this family, so the Advanced
+                    # duplicates are hidden for any compatible LoRA type when the
+                    # MOSS-Image source model is selected (and for the MOSS-Image
+                    # type itself).
+                    is_moss_image = (
+                        bool(moss_image_checkbox) or LoRA_type == "MOSS-Image"
+                    )
 
                     lora_settings_config = {
                         "network_row": {
@@ -3708,6 +3758,33 @@ def lora_tab(
                             "gr_type": gr.Checkbox,
                             "update_params": {"visible": not is_moss_image},
                         },
+                        # Advanced duplicates of MOSS-Image accordion settings:
+                        # the VAE (Advanced "VAE" dropdown) and the attention
+                        # selectors (Advanced "Memory efficient attention" and
+                        # "CrossAttention") are replaced by the MOSS-Image
+                        # accordion's VAE Path / Attention Mode / Split Attention.
+                        "advanced_vae": {
+                            "gr_type": gr.Dropdown,
+                            "update_params": {"visible": not is_moss_image},
+                        },
+                        "advanced_vae_refresh": {
+                            "gr_type": gr.Button,
+                            "update_params": {"visible": not is_moss_image},
+                        },
+                        "advanced_vae_button": {
+                            "gr_type": gr.Button,
+                            "update_params": {
+                                "visible": (not is_moss_image) and (not headless)
+                            },
+                        },
+                        "advanced_mem_eff_attn": {
+                            "gr_type": gr.Checkbox,
+                            "update_params": {"visible": not is_moss_image},
+                        },
+                        "advanced_xformers": {
+                            "gr_type": gr.Dropdown,
+                            "update_params": {"visible": not is_moss_image},
+                        },
                     }
 
                     results = []
@@ -3827,49 +3904,59 @@ def lora_tab(
             ):
                 huggingface = HuggingFace(config=config)
 
-            LoRA_type.change(
-                update_LoRA_settings,
-                inputs=[
-                    LoRA_type,
-                ],
-                outputs=[
-                    network_row,
-                    convolution_row,
-                    kohya_advanced_lora,
-                    network_weights,
-                    network_weights_file,
-                    dim_from_weights,
-                    factor,
-                    conv_dim,
-                    network_dim,
-                    bypass_mode,
-                    dora_wd,
-                    use_cp,
-                    use_tucker,
-                    use_scalar,
-                    rank_dropout_scale,
-                    constrain,
-                    rescaled,
-                    train_norm,
-                    decompose_both,
-                    train_on_input,
-                    scale_weight_norms,
-                    network_dropout,
-                    rank_dropout,
-                    module_dropout,
-                    LyCORIS_preset,
-                    unit,
-                    lycoris_accordion,
-                    loraplus,
-                    advanced_training.noise_offset_row,
-                    advanced_training.clip_skip,
-                    advanced_training.max_token_length,
-                    advanced_training.min_snr_gamma,
-                    advanced_training.debiased_estimation_loss,
-                    advanced_training.v_pred_like_loss,
-                    advanced_training.scale_v_pred_loss_like_noise_pred,
-                ],
-            )
+            lora_settings_outputs = [
+                network_row,
+                convolution_row,
+                kohya_advanced_lora,
+                network_weights,
+                network_weights_file,
+                dim_from_weights,
+                factor,
+                conv_dim,
+                network_dim,
+                bypass_mode,
+                dora_wd,
+                use_cp,
+                use_tucker,
+                use_scalar,
+                rank_dropout_scale,
+                constrain,
+                rescaled,
+                train_norm,
+                decompose_both,
+                train_on_input,
+                scale_weight_norms,
+                network_dropout,
+                rank_dropout,
+                module_dropout,
+                LyCORIS_preset,
+                unit,
+                lycoris_accordion,
+                loraplus,
+                advanced_training.noise_offset_row,
+                advanced_training.clip_skip,
+                advanced_training.max_token_length,
+                advanced_training.min_snr_gamma,
+                advanced_training.debiased_estimation_loss,
+                advanced_training.v_pred_like_loss,
+                advanced_training.scale_v_pred_loss_like_noise_pred,
+                advanced_training.vae,
+                advanced_training.vae_refresh,
+                advanced_training.vae_button,
+                advanced_training.mem_eff_attn,
+                advanced_training.xformers,
+            ]
+
+            # The LoRA type drives these controls, and so does the MOSS-Image
+            # source-model checkbox (its accordion replaces the Advanced VAE /
+            # attention mode / max token length fields, and it restricts the
+            # LoRA type list), so re-evaluate on either change.
+            for lora_settings_trigger in (LoRA_type, source_model.moss_image_checkbox):
+                lora_settings_trigger.change(
+                    update_LoRA_settings,
+                    inputs=[LoRA_type, source_model.moss_image_checkbox],
+                    outputs=lora_settings_outputs,
+                )
 
         global executor
         executor = CommandExecutor(headless=headless)

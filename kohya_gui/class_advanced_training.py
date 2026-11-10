@@ -108,7 +108,9 @@ class AdvancedTraining:
                 value=self.config.get("advanced.vae_dir", ""),
                 allow_custom_value=True,
             )
-            create_refresh_button(
+            # keep a reference so callers can hide the whole VAE control
+            # (the MOSS-Image accordion has its own VAE path)
+            self.vae_refresh = create_refresh_button(
                 self.vae,
                 lambda: None,
                 lambda: {
