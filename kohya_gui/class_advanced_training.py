@@ -108,7 +108,9 @@ class AdvancedTraining:
                 value=self.config.get("advanced.vae_dir", ""),
                 allow_custom_value=True,
             )
-            create_refresh_button(
+            # keep a reference so callers can hide the whole VAE control
+            # (the MOSS-Image accordion has its own VAE path)
+            self.vae_refresh = create_refresh_button(
                 self.vae,
                 lambda: None,
                 lambda: {
@@ -406,7 +408,7 @@ class AdvancedTraining:
                 info="Values lower than 1000 will make the model more img2img focussed. 1000 = noise only",
             )
 
-        with gr.Row():
+        with gr.Row() as self.noise_offset_row:
             self.noise_offset_type = gr.Dropdown(
                 label="Noise offset type",
                 choices=[

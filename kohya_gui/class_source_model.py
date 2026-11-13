@@ -312,6 +312,13 @@ class SourceModel:
                                 min_width=60,
                                 interactive=True,
                             )
+                            self.moss_image_checkbox = gr.Checkbox(
+                                label="MOSS-Image",
+                                value=False,
+                                visible=False,
+                                min_width=60,
+                                interactive=True,
+                            )
 
                             def toggle_checkboxes(
                                 v2,
@@ -322,6 +329,7 @@ class SourceModel:
                                 hunyuan_image_checkbox,
                                 anima_checkbox,
                                 lumina_checkbox,
+                                moss_image_checkbox,
                             ):
                                 # Check if all checkboxes are unchecked
                                 if (
@@ -332,6 +340,7 @@ class SourceModel:
                                     and not hunyuan_image_checkbox
                                     and not anima_checkbox
                                     and not lumina_checkbox
+                                    and not moss_image_checkbox
                                 ):
                                     # If all unchecked, return new interactive checkboxes
                                     return (
@@ -349,6 +358,9 @@ class SourceModel:
                                         gr.Checkbox(
                                             interactive=True
                                         ),  # lumina_checkbox
+                                        gr.Checkbox(
+                                            interactive=True
+                                        ),  # moss_image_checkbox
                                     )
                                 else:
                                     # If any checkbox is checked, return checkboxes with current interactive state
@@ -375,6 +387,9 @@ class SourceModel:
                                         gr.Checkbox(
                                             interactive=lumina_checkbox
                                         ),  # lumina_checkbox
+                                        gr.Checkbox(
+                                            interactive=moss_image_checkbox
+                                        ),  # moss_image_checkbox
                                     )
 
                             checkbox_inputs = [
@@ -386,6 +401,7 @@ class SourceModel:
                                 self.hunyuan_image_checkbox,
                                 self.anima_checkbox,
                                 self.lumina_checkbox,
+                                self.moss_image_checkbox,
                             ]
 
                             self.v2.change(
@@ -436,6 +452,12 @@ class SourceModel:
                                 outputs=checkbox_inputs,
                                 show_progress=False,
                             )
+                            self.moss_image_checkbox.change(
+                                fn=toggle_checkboxes,
+                                inputs=checkbox_inputs,
+                                outputs=checkbox_inputs,
+                                show_progress=False,
+                            )
                     with gr.Column():
                         gr.Group(visible=False)
 
@@ -476,6 +498,7 @@ class SourceModel:
                         self.hunyuan_image_checkbox,
                         self.anima_checkbox,
                         self.lumina_checkbox,
+                        self.moss_image_checkbox,
                     ],
                     show_progress=False,
                 )
