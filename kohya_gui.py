@@ -11,6 +11,16 @@ import contextlib
 os.environ.setdefault("TF_ENABLE_ONEDNN_OPTS", "0")
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
 
+import warnings
+
+# Gradio (through Starlette) emits a StarletteDeprecationWarning about the
+# renamed HTTP_422_UNPROCESSABLE_ENTITY constant on every API request. It is a
+# harmless upstream deprecation notice, not an error; keep the console readable.
+warnings.filterwarnings(
+    "ignore",
+    message=r".*HTTP_422_UNPROCESSABLE_ENTITY.*",
+)
+
 import gradio as gr
 
 from kohya_gui.class_gui_config import KohyaSSGUIConfig
