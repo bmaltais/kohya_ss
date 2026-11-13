@@ -247,6 +247,51 @@ class mossImageTraining:
                         interactive=True,
                     )
 
+                with gr.Row():
+                    self.caption_candidates = gr.Checkbox(
+                        label="Multi-Caption Candidates (Tag Dropout)",
+                        value=self.config.get("moss_image.caption_candidates", False),
+                        info=(
+                            "Generate tag-dropout caption variants and let the "
+                            "trainer pick one at random every step. Works WITH "
+                            "Cache Text Encoder Outputs (which forbids "
+                            "--caption_tag_dropout_rate). Writes <image>.multi "
+                            "next to each image and a derived "
+                            "<name>.moss-multi.toml; the original captions and "
+                            "dataset TOML are never modified. Requires a dataset "
+                            "config TOML with image_dir subsets."
+                        ),
+                        interactive=True,
+                    )
+                    self.caption_candidate_count = gr.Number(
+                        label="Caption Candidates",
+                        value=self.config.get("moss_image.caption_candidate_count", 3),
+                        info="Total candidates per image: the original caption plus dropout variants. Cache size and caching time scale with this number.",
+                        minimum=2,
+                        maximum=8,
+                        step=1,
+                        interactive=True,
+                    )
+                    self.caption_tag_dropout_rate = gr.Number(
+                        label="Caption Tag Dropout Rate",
+                        value=self.config.get(
+                            "moss_image.caption_tag_dropout_rate", 0.15
+                        ),
+                        info="Probability of dropping each tag in the variants. The first Keep n tokens tags are always kept.",
+                        minimum=0.05,
+                        maximum=0.9,
+                        step=0.05,
+                        interactive=True,
+                    )
+                    self.caption_candidates_regenerate = gr.Checkbox(
+                        label="Regenerate Candidates",
+                        value=self.config.get(
+                            "moss_image.caption_candidates_regenerate", False
+                        ),
+                        info="Rewrite existing .multi files. Needed after changing the candidate count, dropout rate or Keep n tokens; otherwise existing files are reused.",
+                        interactive=True,
+                    )
+
                 self.moss_image_checkbox.change(
                     lambda moss_image_checkbox: gr.Accordion(
                         visible=moss_image_checkbox

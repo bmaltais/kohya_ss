@@ -53,6 +53,9 @@ from .class_hunyuan_image import hunyuanImageTraining
 from .class_anima import animaTraining
 from .class_lumina import luminaTraining
 from .class_moss_image import mossImageTraining
+from .moss_caption_candidates import (
+    prepare_dataset_config as prepare_moss_caption_candidates,
+)
 
 from .dreambooth_folder_creation_gui import (
     gradio_dreambooth_folder_creation_tab,
@@ -455,6 +458,10 @@ def save_configuration(
     moss_image_convrot_int8_text_encoder,
     moss_image_convrot_int8_bwd,
     moss_image_unsloth_offload_checkpointing,
+    moss_image_caption_candidates,
+    moss_image_caption_candidate_count,
+    moss_image_caption_tag_dropout_rate,
+    moss_image_caption_candidates_regenerate,
     moss_image_checkbox,
 ):
     # Get list of function parameters and values
@@ -820,6 +827,10 @@ def open_configuration(
     moss_image_convrot_int8_text_encoder,
     moss_image_convrot_int8_bwd,
     moss_image_unsloth_offload_checkpointing,
+    moss_image_caption_candidates,
+    moss_image_caption_candidate_count,
+    moss_image_caption_tag_dropout_rate,
+    moss_image_caption_candidates_regenerate,
     moss_image_checkbox,
     ##
     training_preset,
@@ -1522,6 +1533,10 @@ def train_model(
     moss_image_convrot_int8_text_encoder,
     moss_image_convrot_int8_bwd,
     moss_image_unsloth_offload_checkpointing,
+    moss_image_caption_candidates,
+    moss_image_caption_candidate_count,
+    moss_image_caption_tag_dropout_rate,
+    moss_image_caption_candidates_regenerate,
     moss_image_checkbox,
 ):
     # Get list of function parameters and values
@@ -1721,6 +1736,26 @@ def train_model(
     #     text_encoder_lr = 0
     # if unet_lr == "":
     #     unet_lr = 0
+
+    # MOSS-Image: offline tag-dropout caption candidates. --caption_tag_dropout_rate
+    # cannot be combined with --cache_text_encoder_outputs, so the variants are
+    # written to <image>.multi files and a derived dataset TOML is handed to the
+    # trainer. Original captions and the user's dataset TOML are never modified.
+    if moss_image_checkbox and moss_image_caption_candidates:
+        try:
+            dataset_config = prepare_moss_caption_candidates(
+                dataset_config,
+                candidate_count=int(moss_image_caption_candidate_count),
+                dropout_rate=float(moss_image_caption_tag_dropout_rate),
+                keep_tokens=int(keep_tokens),
+                regenerate=bool(moss_image_caption_candidates_regenerate),
+            )
+        except (OSError, ValueError, toml.TomlDecodeError) as exception:
+            output_message(
+                msg=f"Multi-caption candidates failed: {exception}",
+                headless=headless,
+            )
+            return TRAIN_BUTTON_VISIBLE
 
     if dataset_config:
         log.info(
@@ -4361,6 +4396,22 @@ def lora_tab(
             (
                 "moss_image_unsloth_offload_checkpointing",
                 moss_image_training.unsloth_offload_checkpointing,
+            ),
+            (
+                "moss_image_caption_candidates",
+                moss_image_training.caption_candidates,
+            ),
+            (
+                "moss_image_caption_candidate_count",
+                moss_image_training.caption_candidate_count,
+            ),
+            (
+                "moss_image_caption_tag_dropout_rate",
+                moss_image_training.caption_tag_dropout_rate,
+            ),
+            (
+                "moss_image_caption_candidates_regenerate",
+                moss_image_training.caption_candidates_regenerate,
             ),
             ("moss_image_checkbox", source_model.moss_image_checkbox),
         ]
